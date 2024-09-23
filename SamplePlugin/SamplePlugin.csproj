@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <Authors>AtmoOmen</Authors>
+        <Version>0.0.2.0</Version>
+        <Description>Sample Plugin Template based on goatcorp's.</Description>
+        <Copyright></Copyright>
+        <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <Platforms>AnyCPU</Platforms>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <BaseOutputPath>$(SolutionDir)bin</BaseOutputPath>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+        <NoWarn>1701;1702;CS0414;CS8601;CS8602;CS8604;CS8603;IDE1006;IDE0300;MSB3270;MSB324</NoWarn>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+        <NoWarn>1701;1702;CS0414;CS8601;CS8602;CS8604;CS8603;IDE1006;IDE0300;MSB3270;MSB324</NoWarn>
+    </PropertyGroup>
+
+    <!-- Please modify the DalamudLibPath property based on your XIVLauncher location -->
+    <!-- 请根据你的 XIVLauncher 位置, 修改 DalamudLibPath 属性 -->
+    <!-- 国际服默认: $(appdata)\XIVLauncher\addon\Hooks\dev -->
+    <PropertyGroup>
+        <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
+        <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('Linux'))">$(HOME)/.xlcore/dalamud/Hooks/dev/</DalamudLibPath>
+        <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">$(HOME)/Library/Application Support/XIV on Mac/dalamud/Hooks/dev/</DalamudLibPath>
+        <DalamudLibPath Condition="$(DALAMUD_HOME) != ''">$(DALAMUD_HOME)/</DalamudLibPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Remove="bin\**" />
+        <EmbeddedResource Remove="bin\**" />
+        <None Remove="bin\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="DalamudPackager" Version="2.1.13" />
+        <ProjectReference Include="..\OmenTools\OmenTools.csproj" />
+        <Reference Include="FFXIVClientStructs">
+            <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Newtonsoft.Json">
+            <HintPath>$(DalamudLibPath)Newtonsoft.Json.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Dalamud">
+            <HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="ImGui.NET">
+            <HintPath>$(DalamudLibPath)ImGui.NET.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="ImGuiScene">
+            <HintPath>$(DalamudLibPath)ImGuiScene.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Lumina">
+            <HintPath>$(DalamudLibPath)Lumina.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Lumina.Excel">
+            <HintPath>$(DalamudLibPath)Lumina.Excel.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+    </ItemGroup>
+
+</Project>
