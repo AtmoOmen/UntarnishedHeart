@@ -1,8 +1,8 @@
 using System.Linq;
 using Dalamud.Interface.Windowing;
-using SamplePlugin.Windows;
+using UntarnishedHeart.Windows;
 
-namespace SamplePlugin.Managers;
+namespace UntarnishedHeart.Managers;
 
 public class WindowManager
 {

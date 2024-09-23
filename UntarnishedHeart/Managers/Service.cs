@@ -1,12 +1,13 @@
 using Dalamud.Plugin;
 
-namespace SamplePlugin.Managers;
+namespace UntarnishedHeart.Managers;
 
 public class Service
 {
     public static void Init(IDalamudPluginInterface pluginInterface)
     {
         DService.Init(pluginInterface);
+        DService.UiBuilder.DisableCutsceneUiHide = true;
 
         Config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         Config.Init();

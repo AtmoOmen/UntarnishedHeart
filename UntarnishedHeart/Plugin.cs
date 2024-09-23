@@ -5,17 +5,17 @@ global using OmenTools.Infos;
 global using OmenTools.ImGuiOm;
 global using OmenTools.Helpers;
 global using OmenTools;
-global using static SamplePlugin.Plugin;
+global using static UntarnishedHeart.Plugin;
 using System;
 using System.Reflection;
 using Dalamud.Plugin;
-using SamplePlugin.Managers;
+using UntarnishedHeart.Managers;
 
-namespace SamplePlugin;
+namespace UntarnishedHeart;
 
 public sealed class Plugin : IDalamudPlugin
 {
-    public static string PluginName => "Omen Sample Plugin";
+    public static string PluginName => "Untarnished Heart";
     public static Version? Version { get; private set; }
 
     public Plugin(IDalamudPluginInterface pluginInterface)

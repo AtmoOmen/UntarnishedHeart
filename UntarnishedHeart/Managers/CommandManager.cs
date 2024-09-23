@@ -3,11 +3,11 @@ using System.Linq;
 using System.Text;
 using Dalamud.Game.Command;
 
-namespace SamplePlugin.Managers;
+namespace UntarnishedHeart.Managers;
 
 public sealed class CommandManager
 {
-    public const string CommandPDR = "/omspp";
+    public const string CommandPDR = "/utheart";
     private static readonly ConcurrentDictionary<string, CommandInfo> _addedCommands = [];
     private static readonly ConcurrentDictionary<string, CommandInfo> _subCommandArgs = [];
     private static readonly object _lock = new();
@@ -90,6 +90,7 @@ public sealed class CommandManager
     {
         WindowManager.Main.IsOpen ^= true;
 
+        if (string.IsNullOrWhiteSpace(args)) return;
         var spitedArgs = args.Split(' ', 2);
         if (_subCommandArgs.TryGetValue(spitedArgs[0], out var commandInfo))
             commandInfo.Handler(spitedArgs[0], spitedArgs.Length > 1 ? spitedArgs[1] : string.Empty);
