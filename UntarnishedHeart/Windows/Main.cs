@@ -300,8 +300,7 @@ public class Executor
             var framework = EventFramework.Instance();
             if (framework == null) return false;
             var director = framework->GetContentDirector();
-            if (director == null) return false;
-            return ((int)director->ContentTimeLeft & 100) > 1;
+            return director != null;
         }, "等待副本开始");
 
         var counter = 0;
