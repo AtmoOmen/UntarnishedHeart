@@ -12,6 +12,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.UI;
@@ -252,7 +253,16 @@ public class Executor
 
         DService.ClientState.TerritoryChanged += OnZoneChanged;
         DService.DutyState.DutyCompleted += OnDutyCompleted;
+        DService.Framework.Update += OnFrameworkUpdate;
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "ContentsFinderConfirm", OnAddonSetup);
+    }
+
+    private void OnFrameworkUpdate(IFramework framework)
+    {
+        if (Throttler2.Throttle(10_000))
+        {
+            OnZoneChanged(DService.ClientState.TerritoryType);
+        }
     }
 
     public void Start(ExecutorPreset? preset, int maxRound = -1)
@@ -345,6 +355,7 @@ public class Executor
     {
         DService.ClientState.TerritoryChanged -= OnZoneChanged;
         DService.DutyState.DutyCompleted -= OnDutyCompleted;
+        DService.Framework.Update -= OnFrameworkUpdate;
         DService.AddonLifecycle.UnregisterListener(OnAddonSetup);
 
         TaskHelper?.Abort();
