@@ -1,4 +1,5 @@
 using Dalamud.Plugin;
+using UntarnishedHeart.Utils;
 
 namespace UntarnishedHeart.Managers;
 
@@ -18,6 +19,10 @@ public class Service
 
     public static void Uninit()
     {
+        GameFunctions.PathFindHelper.Dispose();
+        GameFunctions.PathFindTask?.Dispose();
+        GameFunctions.PathFindTask = null;
+
         CommandManager.Uninit();
         WindowManager.Uninit();
         Config.Uninit();

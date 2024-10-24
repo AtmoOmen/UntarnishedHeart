@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Windows.Forms;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
@@ -20,6 +21,7 @@ using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Utils;
+using Action = System.Action;
 
 namespace UntarnishedHeart.Windows;
 
@@ -77,10 +79,14 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
                 Executor.Start(
                     SelectedPresetIndex > Service.Config.Presets.Count - 1
                         ? null
-                        : Service.Config.Presets[SelectedPresetIndex], Service.Config.RunTimes);
+                        : Service.Config.Presets[SelectedPresetIndex], Service.Config.RunTimes,
+                    Service.Config.AutoOpenTreasure);
 
             if (Service.Config.LeaderMode)
-                ImGuiOm.TooltipHover("你已开启队长模式, 请确认好要刷取的副本已在任务搜索器内选取完毕, 且相关设置已经配置完成");
+                ImGuiOm.TooltipHover("你已开启队长模式, 请阅读并确认下列注意事项:\n" +
+                                     "1. 确认并在任务搜索器内选取完成你所选择的副本\n" +
+                                     "2. 配置好相关的任务搜索器设置 (如: 解除限制)\n" +
+                                     "3. 首次运作需要你手动排本, 后续为插件自动排本\n");
         }
 
         if (ImGuiOm.ButtonSelectable("结束"))
@@ -98,6 +104,10 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
 
             ImGui.SameLine();
             ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+
+            if (SelectedPresetIndex > Service.Config.Presets.Count - 1)
+                SelectedPresetIndex = 0;
+
             var selectedPreset = Service.Config.Presets[SelectedPresetIndex];
             using (var combo = ImRaii.Combo("###PresetSelectCombo", $"{selectedPreset.Name}", ImGuiComboFlags.HeightLarge))
             {
@@ -193,6 +203,17 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
 
         using (ImRaii.Group())
         {
+            if (SelectedPresetIndex > Service.Config.Presets.Count - 1)
+                SelectedPresetIndex = 0;
+
+            var selectedPreset = Service.Config.Presets[SelectedPresetIndex];
+
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text("已选预设:");
+
+            ImGui.SameLine();
+            ImGui.Text($"{selectedPreset.Name}");
+
             ImGui.AlignTextToFramePadding();
             ImGui.Text("移动方式:");
 
@@ -213,6 +234,7 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
                 Service.Config.RunTimes = runTimes;
                 Service.Config.Save();
             }
+            ImGuiOm.TooltipHover("若输入 -1, 则为无限运行");
 
             ImGui.SameLine();
             var isLeaderMode = Service.Config.LeaderMode;
@@ -221,12 +243,22 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
                 Service.Config.LeaderMode = isLeaderMode;
                 Service.Config.Save();
             }
+            ImGuiOm.HelpMarker("启用队长模式时, 副本结束后会自动尝试排入同一副本", 20f, FontAwesomeIcon.InfoCircle, true);
 
-            ImGuiOm.HelpMarker("启用队长模式后, 意味着副本结束后会自动尝试排入同一副本", 20f, FontAwesomeIcon.InfoCircle, true);
+            var autoOpenTreasure = Service.Config.AutoOpenTreasure;
+            if (ImGui.Checkbox("副本结束时, 自动开启宝箱", ref autoOpenTreasure))
+            {
+                Service.Config.AutoOpenTreasure = autoOpenTreasure;
+                Service.Config.Save();
+            }
+            ImGuiOm.HelpMarker("请确保目标副本的确有宝箱, 否则流程将卡死", 20f, FontAwesomeIcon.InfoCircle, true);
         }
-        
+
+        var groupSize = ImGui.GetItemRectSize();
+
         ImGui.SameLine();
-        if (ImGuiOm.ButtonIconWithTextVertical(FontAwesomeIcon.Eye, "选择预设", true))
+        if (ImGuiOm.ButtonIconWithTextVertical(FontAwesomeIcon.Eye, "选择预设",
+                                               groupSize with { X = ImGui.CalcTextSize("选择预设").X * 1.5f }, true))
             IsSelectorDisplay ^= true;
     }
 
@@ -238,24 +270,25 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
 
 public class Executor
 {
-    public bool            IsRunning      { get; private set; }
-    public uint            CurrentRound   { get; private set; }
-    public int             MaxRound       { get; set; }
-    public string          RunningMessage => TaskHelper.CurrentTaskName;
-    public ExecutorPreset? ExecutorPreset { get; set; }
+    public bool            IsRunning        { get; private set; }
+    public uint            CurrentRound     { get; private set; }
+    public int             MaxRound         { get; set; }
+    public bool            AutoOpenTreasure { get; set; }
+    public string          RunningMessage   => TaskHelper?.CurrentTaskName ?? string.Empty;
+    public ExecutorPreset? ExecutorPreset   { get; set; }
 
     public TaskHelper? TaskHelper { get; private set; }
 
     public void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = int.MaxValue };
+        TaskHelper ??= new() { TimeLimitMS = 30_000 };
 
         DService.ClientState.TerritoryChanged += OnZoneChanged;
         DService.DutyState.DutyCompleted += OnDutyCompleted;
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "ContentsFinderConfirm", OnAddonSetup);
     }
 
-    public void Start(ExecutorPreset? preset, int maxRound = -1)
+    public void Start(ExecutorPreset? preset, int maxRound = -1, bool autoOpenTreasure = false)
     {
         if (preset is not { IsValid: true })
         {
@@ -268,6 +301,7 @@ public class Executor
         IsRunning = true;
         CurrentRound = 0;
         MaxRound = maxRound;
+        AutoOpenTreasure = autoOpenTreasure;
         ExecutorPreset = preset;
         OnZoneChanged(DService.ClientState.TerritoryType);
     }
@@ -288,6 +322,9 @@ public class Executor
     private void OnZoneChanged(ushort zone)
     {
         if (ExecutorPreset == null || zone != ExecutorPreset.Zone || !IsRunning) return;
+        TaskHelper.Abort();
+        GameFunctions.PathFindCancel();
+
         EnqueueTPTasks();
     }
 
@@ -303,30 +340,35 @@ public class Executor
             return director != null;
         }, "等待副本开始");
 
-        var counter = 0;
-        foreach (var task in ExecutorPreset.GetTasks(Service.Config.MoveType))
-        {
-            TaskHelper.Enqueue(task, $"运行预设步骤: {counter}");
-            counter++;
-        }
+        foreach (var task in ExecutorPreset.GetTasks(TaskHelper, Service.Config.MoveType))
+            task();
     }
 
     private void OnDutyCompleted(object? sender, ushort zone)
     {
         if (ExecutorPreset == null || zone != ExecutorPreset.Zone || !IsRunning) return;
+        TaskHelper.Abort();
 
-        GameFunctions.LeaveDuty();
-        CurrentRound++;
+        if (AutoOpenTreasure)
+            EnqueueTreasureHunt();
 
-        if (MaxRound != -1 && CurrentRound >= MaxRound)
+        TaskHelper.Enqueue(() =>
         {
-            Stop();
-            return;
-        }
+            GameFunctions.PathFindCancel();
+            GameFunctions.LeaveDuty();
+            CurrentRound++;
 
-        TaskHelper?.Abort();
-        if (!Service.Config.LeaderMode) return;
-        EnqueueRegDuty();
+            if (MaxRound != -1 && CurrentRound >= MaxRound)
+            {
+                Stop();
+                return;
+            }
+
+            TaskHelper.Abort();
+
+            if (!Service.Config.LeaderMode) return;
+            EnqueueRegDuty();
+        });
     }
 
     private unsafe void EnqueueRegDuty()
@@ -339,6 +381,36 @@ public class Executor
             GameFunctions.RegisterToEnterDuty();
             return DService.Condition[ConditionFlag.WaitingForDutyFinder] || DService.Condition[ConditionFlag.WaitingForDuty];
         }, "等待进入下一局");
+    }
+
+    private unsafe void EnqueueTreasureHunt()
+    {
+        var localPlayer = DService.ClientState.LocalPlayer;
+        var origPosition = localPlayer?.Position ?? default;
+
+        TaskHelper.Enqueue(() =>
+        {
+            var isAnyTreasureFound = false;
+            foreach (var obj in DService.ObjectTable)
+            {
+                if (obj.ObjectKind != ObjectKind.Treasure) continue;
+                isAnyTreasureFound = true;
+
+                TaskHelper.Enqueue(() => GameFunctions.Teleport(obj.Position), "传送至宝箱", null, null, 2);
+                TaskHelper.Enqueue(() =>
+                                   {
+                                       TargetSystem.Instance()->Target = obj.ToStruct();
+                                       SendKeypress(Keys.W);
+                                   }, "选中宝箱目标", null, null, 2);
+                TaskHelper.DelayNext(50, "等待位置确认", false, 2);
+                TaskHelper.Enqueue(() => TargetSystem.Instance()->InteractWithObject(obj.ToStruct(), false) != 0,
+                                   "与宝箱交互", null, null, 2);
+            }
+
+            return isAnyTreasureFound;
+        }, "搜寻宝箱中");
+
+        TaskHelper.Enqueue(() => GameFunctions.Teleport(origPosition), "传送回原始位置");
     }
 
     public void Uninit()
@@ -398,8 +470,8 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         }
     }
 
-    public List<Func<bool?>> GetTasks(MoveType moveType)
-        => Steps.SelectMany(x => x.GetTasks(moveType)).ToList();
+    public List<Action> GetTasks(TaskHelper t, MoveType moveType)
+        => Steps.SelectMany(x => x.GetTasks(t, moveType)).ToList();
 
     public override string ToString() => $"ExecutorPreset_{Name}_{Zone}_{Steps.Count}Steps";
 
@@ -470,10 +542,10 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         return false;
     }
 
-    public List<Func<bool?>> GetTasks(MoveType moveType)
+    public List<Action> GetTasks(TaskHelper t, MoveType moveType)
         =>
         [
-            () =>
+            () => t.Enqueue(() =>
             {
                 if (DService.Condition[ConditionFlag.InCombat]) return false;
 
@@ -481,7 +553,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 switch (moveType)
                 {
                     case MoveType.寻路 when obj != null:
-                        GameFunctions.Move(obj.GameObjectId);
+                        GameFunctions.PathFindStart(Position);
                         break;
                     default:
                         GameFunctions.Teleport(Position);
@@ -489,14 +561,21 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 }
 
                 return true;
-            },
-            () =>
+            }, "移动至目标位置"),
+            () => t.Enqueue(() =>
             {
-                if (DService.Condition[ConditionFlag.InCombat]) return false;
                 if (DataID == 0) return true;
                 TargetObject();
                 return DService.Targets.Target != null;
-            },
+            }, "选中目标"),
+            () => t.Enqueue(() =>
+            {
+                var localPlayer = DService.ClientState.LocalPlayer;
+                if (localPlayer == null) return false;
+                
+                return Vector2.DistanceSquared(localPlayer.Position.ToVector2(), Position.ToVector2()) <= 4;
+            }, "等待接近目标位置"),
+            () => t.DelayNext(5_000, "等待 5 秒")
         ];
 
     public unsafe void TargetObject()
