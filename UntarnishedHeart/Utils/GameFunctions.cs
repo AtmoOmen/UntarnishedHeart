@@ -26,14 +26,10 @@ public static class GameFunctions
     public static unsafe void RegisterToEnterDuty()
         => SendEvent(AgentId.ContentsFinder, 0, 12, 0);
 
-    public static void Teleport(Vector3 pos)
+    public static unsafe void Teleport(Vector3 pos)
     {
         if (DService.ClientState.LocalPlayer is not { } localPlayer) return;
-
-        var address = localPlayer.Address + 176;
-        MemoryHelper.Write(address, pos.X);
-        MemoryHelper.Write(address + 4, pos.Y);
-        MemoryHelper.Write(address + 8, pos.Z);
+        localPlayer.ToStruct()->SetPosition(pos.X, pos.Y, pos.Z);
     }
 
     /// <summary>
