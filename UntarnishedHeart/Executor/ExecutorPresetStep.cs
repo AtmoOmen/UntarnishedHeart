@@ -24,7 +24,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
     public bool Draw(int i)
     {
-        using var id = ImRaii.PushId($"{this}-{i}");
+        using var id = ImRaii.PushId($"Step-{i}");
 
         ImGui.AlignTextToFramePadding();
         ImGui.Text($"步骤 {i + 1}:");

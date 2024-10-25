@@ -2,16 +2,11 @@ using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using FFXIVClientStructs.FFXIV.Client.Game.Event;
-using FFXIVClientStructs.FFXIV.Client.UI;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 using System.Linq;
-using System.Windows.Forms;
 using System;
 using Dalamud.Game.ClientState.Objects.Enums;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Utils;
-using System.Security.Policy;
 
 namespace UntarnishedHeart.Executor;
 
@@ -32,7 +27,7 @@ public class Executor : IDisposable
 
         TaskHelper ??= new() { TimeLimitMS = 30_000 };
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "ContentsFinderConfirm", OnAddonSetup);
+        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "ContentsFinderConfirm", OnAddonDraw);
 
         DService.ClientState.TerritoryChanged += OnZoneChanged;
 
@@ -55,7 +50,7 @@ public class Executor : IDisposable
         DService.DutyState.DutyCompleted -= OnDutyCompleted;
         DService.DutyState.DutyStarted -= OnDutyStarted;
         DService.DutyState.DutyRecommenced -= OnDutyStarted;
-        DService.AddonLifecycle.UnregisterListener(OnAddonSetup);
+        DService.AddonLifecycle.UnregisterListener(OnAddonDraw);
 
         TaskHelper?.Abort();
         TaskHelper?.Dispose();
@@ -65,8 +60,10 @@ public class Executor : IDisposable
     }
 
     // 自动确认进入副本
-    private static unsafe void OnAddonSetup(AddonEvent type, AddonArgs args)
+    private static unsafe void OnAddonDraw(AddonEvent type, AddonArgs args)
     {
+        if (!Throttler.Throttle("自动确认进入副本节流")) return;
+
         if (args.Addon == nint.Zero) return;
         Callback(args.Addon.ToAtkUnitBase(), true, 8);
     }
