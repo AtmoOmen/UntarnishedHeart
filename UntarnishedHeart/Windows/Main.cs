@@ -1,33 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
-using System.Windows.Forms;
-using Dalamud.Game.Addon.Lifecycle;
-using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
-using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
-using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using FFXIVClientStructs.FFXIV.Client.Game.Event;
-using FFXIVClientStructs.FFXIV.Client.UI;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
 using UntarnishedHeart.Managers;
-using UntarnishedHeart.Utils;
-using Action = System.Action;
+using UntarnishedHeart.Executor;
 
 namespace UntarnishedHeart.Windows;
 
 public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow", ImGuiWindowFlags.AlwaysAutoResize), IDisposable
 {
-    private static readonly Executor Executor = new();
+    private static Executor.Executor? PresetExecutor;
 
     private static int SelectedPresetIndex;
     private static bool IsSelectorDisplay;
@@ -37,11 +26,9 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
     static Main()
     {
         ZonePlaceNames = LuminaCache.Get<TerritoryType>()
-                                    .Select(x => (x.RowId, x?.ExtractPlaceName()))
+                                    .Select(x => (x.RowId, x.ExtractPlaceName()))
                                     .Where(x => !string.IsNullOrWhiteSpace(x.Item2))
-                                    .ToDictionary(x => x.RowId, x => x.Item2)!;
-
-        Executor.Init();
+                                    .ToDictionary(x => x.RowId, x => x.Item2);
     }
 
     public override void Draw()
@@ -51,10 +38,8 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
 
         if (Service.Config.Presets.Count == 0)
         {
-            Service.Config.Presets.Add(new()
-            {
-                Name = "O5 魔列车", Zone = 748, Steps = [new() { DataID = 8510, Note = "魔列车", Position = new(0, 0, -15) }]
-            });
+            Service.Config.Presets.Add(Configuration.ExamplePreset0);
+            Service.Config.Presets.Add(Configuration.ExamplePreset1);
             Service.Config.Save();
         }
 
@@ -73,14 +58,17 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
         ImGui.Separator();
         ImGui.Spacing();
 
-        using (ImRaii.Disabled(Executor.IsRunning))
+        using (ImRaii.Disabled(PresetExecutor is { IsDisposed: false }))
         {
             if (ImGuiOm.ButtonSelectable("开始"))
-                Executor.Start(
-                    SelectedPresetIndex > Service.Config.Presets.Count - 1
-                        ? null
-                        : Service.Config.Presets[SelectedPresetIndex], Service.Config.RunTimes,
-                    Service.Config.AutoOpenTreasure);
+            {
+                PresetExecutor?.Dispose();
+                PresetExecutor = null;
+
+                PresetExecutor ??= new(Service.Config.Presets[SelectedPresetIndex],
+                                 Service.Config.RunTimes,
+                                 Service.Config.AutoOpenTreasure);
+            }
 
             if (Service.Config.LeaderMode)
                 ImGuiOm.TooltipHover("你已开启队长模式, 请阅读并确认下列注意事项:\n" +
@@ -90,7 +78,10 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
         }
 
         if (ImGuiOm.ButtonSelectable("结束"))
-            Executor.Stop();
+        {
+            PresetExecutor?.Dispose();
+            PresetExecutor = null;
+        }
 
         if (!IsSelectorDisplay) return;
 
@@ -156,8 +147,8 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
         ImGui.Text("当前状态:");
 
         ImGui.SameLine();
-        ImGui.TextColored(!Executor.IsRunning ? ImGuiColors.DalamudRed : ImGuiColors.ParsedGreen,
-                          !Executor.IsRunning ? "等待中" : "运行中");
+        ImGui.TextColored(PresetExecutor == null || PresetExecutor.IsDisposed ? ImGuiColors.DalamudRed : ImGuiColors.ParsedGreen,
+                          PresetExecutor == null || PresetExecutor.IsDisposed ? "等待中" : "运行中");
 
         ImGui.SameLine();
         ImGui.TextDisabled("|");
@@ -166,12 +157,12 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
         ImGui.Text("次数:");
 
         ImGui.SameLine();
-        ImGui.Text($"{Executor.CurrentRound} / {Executor.MaxRound}");
+        ImGui.Text($"{PresetExecutor?.CurrentRound ?? 0} / {PresetExecutor?.MaxRound ?? 0}");
 
         ImGui.Text("运行信息:");
 
         ImGui.SameLine();
-        ImGui.Text($"{Executor.RunningMessage}");
+        ImGui.Text($"{PresetExecutor?.RunningMessage ?? string.Empty}");
     }
 
     private static void DrawNesscaryInfo()
@@ -203,9 +194,6 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
 
         using (ImRaii.Group())
         {
-            if (SelectedPresetIndex > Service.Config.Presets.Count - 1)
-                SelectedPresetIndex = 0;
-
             var selectedPreset = Service.Config.Presets[SelectedPresetIndex];
 
             ImGui.AlignTextToFramePadding();
@@ -264,348 +252,7 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
 
     public void Dispose()
     {
-        Executor.Uninit();
+        PresetExecutor?.Dispose();
+        PresetExecutor = null;
     }
-}
-
-public class Executor
-{
-    public bool            IsRunning        { get; private set; }
-    public uint            CurrentRound     { get; private set; }
-    public int             MaxRound         { get; set; }
-    public bool            AutoOpenTreasure { get; set; }
-    public string          RunningMessage   => TaskHelper?.CurrentTaskName ?? string.Empty;
-    public ExecutorPreset? ExecutorPreset   { get; set; }
-
-    public TaskHelper? TaskHelper { get; private set; }
-
-    public void Init()
-    {
-        TaskHelper ??= new() { TimeLimitMS = 30_000 };
-
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
-        DService.DutyState.DutyCompleted += OnDutyCompleted;
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "ContentsFinderConfirm", OnAddonSetup);
-    }
-
-    public void Start(ExecutorPreset? preset, int maxRound = -1, bool autoOpenTreasure = false)
-    {
-        if (preset is not { IsValid: true })
-        {
-            IsRunning = false;
-            return;
-        }
-
-        if (IsRunning) return;
-
-        IsRunning = true;
-        CurrentRound = 0;
-        MaxRound = maxRound;
-        AutoOpenTreasure = autoOpenTreasure;
-        ExecutorPreset = preset;
-        OnZoneChanged(DService.ClientState.TerritoryType);
-    }
-
-    public void Stop()
-    {
-        IsRunning = false;
-        TaskHelper?.Abort();
-    }
-
-    private unsafe void OnAddonSetup(AddonEvent type, AddonArgs args)
-    {
-        if (!IsRunning || args.Addon == nint.Zero) return;
-        var button = ((AddonContentsFinderConfirm*)args.Addon)->CommenceButton;
-        button->ClickAddonButton((AtkComponentBase*)args.Addon, 8);
-    }
-
-    private void OnZoneChanged(ushort zone)
-    {
-        if (ExecutorPreset == null || zone != ExecutorPreset.Zone || !IsRunning) return;
-        TaskHelper.Abort();
-        GameFunctions.PathFindCancel();
-
-        EnqueueTPTasks();
-    }
-
-    private unsafe void EnqueueTPTasks()
-    {
-        TaskHelper.Enqueue(() => IsScreenReady(), "等待区域切换加载结束");
-
-        TaskHelper.Enqueue(() =>
-        {
-            var framework = EventFramework.Instance();
-            if (framework == null) return false;
-            var director = framework->GetContentDirector();
-            return director != null;
-        }, "等待副本开始");
-
-        foreach (var task in ExecutorPreset.GetTasks(TaskHelper, Service.Config.MoveType))
-            task();
-    }
-
-    private void OnDutyCompleted(object? sender, ushort zone)
-    {
-        if (ExecutorPreset == null || zone != ExecutorPreset.Zone || !IsRunning) return;
-        TaskHelper.Abort();
-
-        if (AutoOpenTreasure)
-            EnqueueTreasureHunt();
-
-        TaskHelper.Enqueue(() =>
-        {
-            GameFunctions.PathFindCancel();
-            GameFunctions.LeaveDuty();
-            CurrentRound++;
-
-            if (MaxRound != -1 && CurrentRound >= MaxRound)
-            {
-                Stop();
-                return;
-            }
-
-            TaskHelper.Abort();
-
-            if (!Service.Config.LeaderMode) return;
-            EnqueueRegDuty();
-        });
-    }
-
-    private unsafe void EnqueueRegDuty()
-    {
-        TaskHelper.Enqueue(() => EventFramework.Instance()->GetContentDirector() == null, "等待副本结束");
-        TaskHelper.Enqueue(() => IsScreenReady(), "等待区域切换加载结束");
-        TaskHelper.Enqueue(() =>
-        {
-            if (!Throttler.Throttle("进入副本节流")) return false;
-            GameFunctions.RegisterToEnterDuty();
-            return DService.Condition[ConditionFlag.WaitingForDutyFinder] || DService.Condition[ConditionFlag.WaitingForDuty];
-        }, "等待进入下一局");
-    }
-
-    private unsafe void EnqueueTreasureHunt()
-    {
-        var localPlayer = DService.ClientState.LocalPlayer;
-        var origPosition = localPlayer?.Position ?? default;
-
-        TaskHelper.Enqueue(() =>
-        {
-            var isAnyTreasureFound = false;
-            foreach (var obj in DService.ObjectTable)
-            {
-                if (obj.ObjectKind != ObjectKind.Treasure) continue;
-                isAnyTreasureFound = true;
-
-                TaskHelper.Enqueue(() => GameFunctions.Teleport(obj.Position), "传送至宝箱", null, null, 2);
-                TaskHelper.Enqueue(() =>
-                                   {
-                                       TargetSystem.Instance()->Target = obj.ToStruct();
-                                       SendKeypress(Keys.W);
-                                   }, "选中宝箱目标", null, null, 2);
-                TaskHelper.DelayNext(50, "等待位置确认", false, 2);
-                TaskHelper.Enqueue(() => TargetSystem.Instance()->InteractWithObject(obj.ToStruct(), false) != 0,
-                                   "与宝箱交互", null, null, 2);
-            }
-
-            return isAnyTreasureFound;
-        }, "搜寻宝箱中");
-
-        TaskHelper.Enqueue(() => GameFunctions.Teleport(origPosition), "传送回原始位置");
-    }
-
-    public void Uninit()
-    {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        DService.DutyState.DutyCompleted -= OnDutyCompleted;
-        DService.AddonLifecycle.UnregisterListener(OnAddonSetup);
-
-        TaskHelper?.Abort();
-        TaskHelper = null;
-
-        IsRunning = false;
-    }
-}
-
-public class ExecutorPreset : IEquatable<ExecutorPreset>
-{
-    public string                   Name  { get; set; } = string.Empty;
-    public ushort                   Zone  { get; set; }
-    public List<ExecutorPresetStep> Steps { get; set; } = [];
-
-    public bool IsValid => Zone != 0 && Steps.Count > 0 && Main.ZonePlaceNames.ContainsKey(Zone);
-
-    public void Draw()
-    {
-        var name = Name;
-        if (ImGuiOm.CompLabelLeft(
-                "名称:", 200f * ImGuiHelpers.GlobalScale,
-                () => ImGui.InputText("###PresetNameInput", ref name, 128)))
-            Name = name;
-
-        var zone = (int)Zone;
-        if (ImGuiOm.CompLabelLeft(
-                "区域:", 200f * ImGuiHelpers.GlobalScale,
-                () => ImGui.InputInt("###PresetZoneInput", ref zone, 0, 0)))
-            Zone = (ushort)Math.Clamp(zone, 0, ushort.MaxValue);
-
-        ImGui.SameLine();
-        if (ImGuiOm.ButtonIcon("GetZone", FontAwesomeIcon.MapMarkedAlt, "取当前区域", true))
-            Zone = DService.ClientState.TerritoryType;
-
-        using (ImRaii.PushIndent())
-        {
-            var zoneName = Main.ZonePlaceNames.GetValueOrDefault(Zone, "未知区域");
-            ImGui.Text($"({zoneName})");
-        }
-
-        ImGui.Dummy(new(8f));
-
-        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, "添加新步骤", true))
-            Steps.Add(new());
-
-        for (var i = 0; i < Steps.Count; i++)
-        {
-            var step = Steps[i];
-            if (step.Draw(i)) Steps.RemoveAt(i);
-        }
-    }
-
-    public List<Action> GetTasks(TaskHelper t, MoveType moveType)
-        => Steps.SelectMany(x => x.GetTasks(t, moveType)).ToList();
-
-    public override string ToString() => $"ExecutorPreset_{Name}_{Zone}_{Steps.Count}Steps";
-
-    public bool Equals(ExecutorPreset? other)
-    {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-
-        return Name == other.Name && Zone == other.Zone && Steps.SequenceEqual(other.Steps);
-    }
-
-    public override bool Equals(object? obj) => Equals(obj as ExecutorPreset);
-
-    public override int GetHashCode() => HashCode.Combine(Name, Zone, Steps);
-}
-
-public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
-{
-    public string  Note     { get; set; } = string.Empty;
-    public uint    DataID   { get; set; }
-    public Vector3 Position { get; set; }
-
-    public bool Draw(int i)
-    {
-        using var id = ImRaii.PushId($"{this}-{i}");
-
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text($"步骤 {i + 1}:");
-
-        ImGui.SameLine();
-        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, "删除本步", true))
-            return true;
-
-        var stepName = Note;
-        ImGuiOm.CompLabelLeft(
-            "备注:", 200f * ImGuiHelpers.GlobalScale,
-            () => ImGui.InputText("###StepNoteInput", ref stepName, 128));
-        if (ImGui.IsItemDeactivatedAfterEdit())
-            Note = stepName;
-
-        var stepDataID = DataID;
-        if (ImGuiOm.CompLabelLeft(
-                "目标:", 200f * ImGuiHelpers.GlobalScale,
-                () => ImGuiOm.InputUInt("###StepDatIDInput", ref stepDataID)))
-            DataID = stepDataID;
-        ImGuiOm.TooltipHover("此处应输入指定 BattleNPC 的 DataID");
-
-        ImGui.SameLine();
-        if (ImGuiOm.ButtonIcon("GetTarget", FontAwesomeIcon.Crosshairs, "取当前目标", true))
-        {
-            if (DService.Targets.Target is { ObjectKind: ObjectKind.BattleNpc } battleNpc)
-                DataID = battleNpc.DataId;
-        }
-
-        var stepPosition = Position;
-        if (ImGuiOm.CompLabelLeft(
-                "位置:", 200f * ImGuiHelpers.GlobalScale,
-                () => ImGui.InputFloat3("###StepDatIDInput", ref stepPosition)))
-            Position = stepPosition;
-
-        ImGui.SameLine();
-        if (ImGuiOm.ButtonIcon("GetPosition", FontAwesomeIcon.Bullseye, "取当前位置", true))
-        {
-            if (DService.ClientState.LocalPlayer is { } localPlayer)
-                Position = localPlayer.Position;
-        }
-
-        return false;
-    }
-
-    public List<Action> GetTasks(TaskHelper t, MoveType moveType)
-        =>
-        [
-            () => t.Enqueue(() =>
-            {
-                if (DService.Condition[ConditionFlag.InCombat]) return false;
-
-                var obj = FindObject();
-                switch (moveType)
-                {
-                    case MoveType.寻路 when obj != null:
-                        GameFunctions.PathFindStart(Position);
-                        break;
-                    default:
-                        GameFunctions.Teleport(Position);
-                        break;
-                }
-
-                return true;
-            }, "移动至目标位置"),
-            () => t.Enqueue(() =>
-            {
-                if (DataID == 0) return true;
-                TargetObject();
-                return DService.Targets.Target != null;
-            }, "选中目标"),
-            () => t.Enqueue(() =>
-            {
-                var localPlayer = DService.ClientState.LocalPlayer;
-                if (localPlayer == null) return false;
-                
-                return Vector2.DistanceSquared(localPlayer.Position.ToVector2(), Position.ToVector2()) <= 4;
-            }, "等待接近目标位置"),
-            () => t.DelayNext(5_000, "等待 5 秒")
-        ];
-
-    public unsafe void TargetObject()
-    {
-        var obj = FindObject();
-        if (obj == null) return;
-
-        TargetSystem.Instance()->Target = obj.ToStruct();
-    }
-
-    public IGameObject? FindObject()
-        => DService.ObjectTable.FirstOrDefault(x => x is { ObjectKind: ObjectKind.BattleNpc } && x.DataId == DataID);
-
-    public override string ToString() => $"ExecutorPresetStep_{Note}_{DataID}_{Position}";
-
-    public bool Equals(ExecutorPresetStep? other)
-    {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-
-        return Note == other.Note && DataID == other.DataID && Position.Equals(other.Position);
-    }
-
-    public override bool Equals(object? obj) => Equals(obj as ExecutorPresetStep);
-
-    public override int GetHashCode() => HashCode.Combine(Note, DataID, Position);
-}
-
-public enum MoveType
-{
-    寻路,
-    传送
 }

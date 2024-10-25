@@ -13,19 +13,19 @@ public class Service
         Config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         Config.Init();
 
+        GameFunctions.Init();
+
         WindowManager.Init();
         CommandManager.Init();
     }
 
     public static void Uninit()
     {
-        GameFunctions.PathFindHelper.Dispose();
-        GameFunctions.PathFindTask?.Dispose();
-        GameFunctions.PathFindTask = null;
-
         CommandManager.Uninit();
         WindowManager.Uninit();
         Config.Uninit();
+
+        GameFunctions.Uninit();
 
         DService.Uninit();
     }

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Dalamud.Configuration;
-using UntarnishedHeart.Windows;
+using UntarnishedHeart.Executor;
 
 namespace UntarnishedHeart;
 
@@ -16,12 +16,12 @@ public class Configuration : IPluginConfiguration
     public List<ExecutorPreset> Presets          { get; set; } = [];
 
 
-    private static readonly ExecutorPreset ExamplePreset0 = new()
+    public static readonly ExecutorPreset ExamplePreset0 = new()
     {
         Name = "O5 魔列车", Zone = 748, Steps = [new() { DataID = 8510, Note = "魔列车", Position = new(0, 0, -15) }]
     };
 
-    private static readonly ExecutorPreset ExamplePreset1 = new()
+    public static readonly ExecutorPreset ExamplePreset1 = new()
     {
         Name = "假火 (测试用)", Zone = 1045, Steps = [new() { DataID = 207, Note = "伊弗利特", Position = new(11, 0, 0) }]
     };
