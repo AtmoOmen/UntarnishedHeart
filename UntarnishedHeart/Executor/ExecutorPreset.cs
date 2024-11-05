@@ -7,9 +7,8 @@ using System;
 using System.Linq;
 using UntarnishedHeart.Windows;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
 using System.Windows.Forms;
-using Dalamud.Interface.ImGuiNotification;
 using UntarnishedHeart.Utils;
 
 namespace UntarnishedHeart.Executor;
@@ -79,7 +78,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
     {
         try
         {
-            var json = JsonSerializer.Serialize(this, JsonOptions);
+            var json = JsonConvert.SerializeObject(this);
             var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
             Clipboard.SetText(base64);
             NotifyHelper.NotificationSuccess("已成功导出预设至剪贴板");
@@ -99,7 +98,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             {
                 var json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
 
-                var config = JsonSerializer.Deserialize<ExecutorPreset>(json, JsonOptions);
+                var config = JsonConvert.DeserializeObject<ExecutorPreset>(json);
                 if (config != null)
                     NotifyHelper.NotificationSuccess("已成功从剪贴板导入预设");
                 return config;
