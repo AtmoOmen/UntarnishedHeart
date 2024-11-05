@@ -10,6 +10,8 @@ using System.Text;
 using Newtonsoft.Json;
 using System.Windows.Forms;
 using UntarnishedHeart.Utils;
+using FFXIVClientStructs.FFXIV.Common.Lua;
+using System.Diagnostics;
 
 namespace UntarnishedHeart.Executor;
 
@@ -56,9 +58,31 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             for (var i = 0; i < Steps.Count; i++)
             {
                 var step = Steps[i];
-                if (step.Draw(i)) Steps.RemoveAt(i);
+                // if (step.Draw(i, Steps.Count) == ExecutorOperationType.DELETE) Steps.RemoveAt(i);
+                var ret = step.Draw(i, Steps.Count);
+                Action executorOperationAction = ret switch
+                {
+                    ExecutorOperationType.DELETE => () => Steps.RemoveAt(i),
+                    ExecutorOperationType.MOVEDOWN => () => Swap(Steps, i, i + 1),
+                    ExecutorOperationType.MOVEUP => () => Swap(Steps, i, i - 1),
+                    ExecutorOperationType.PASS => () => {},
+                    _ => () => {}
+                };
+
+                executorOperationAction();
+                
             }
         }
+    }
+
+    public static void Swap<T>(List<T> list, int index1, int index2)
+    {
+        if (index1 < 0 || index1 >= list.Count || index2 < 0 || index2 >= list.Count)
+        {
+            NotifyHelper.NotificationError("无法移动步骤，因为索引超出范围");
+            return;
+        }
+        (list[index1], list[index2]) = (list[index2], list[index1]);
     }
 
     public List<Action> GetTasks(TaskHelper t, MoveType moveType)
