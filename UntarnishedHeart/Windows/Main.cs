@@ -111,7 +111,7 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
                         if (ImGui.Selectable($"{preset.Name}###{preset}-{i}"))
                             SelectedPresetIndex = i;
 
-                        using var popup = ImRaii.ContextPopup($"{preset}-{i}ContextPopup");
+                        using var popup = ImRaii.ContextPopupItem($"{preset}-{i}ContextPopup");
                         if (popup)
                         {
                             using (ImRaii.Disabled(Service.Config.Presets.Count == 1))
