@@ -6,6 +6,11 @@ using System.Collections.Generic;
 using System;
 using System.Linq;
 using UntarnishedHeart.Windows;
+using System.Text;
+using System.Text.Json;
+using System.Windows.Forms;
+using Dalamud.Interface.ImGuiNotification;
+using UntarnishedHeart.Utils;
 
 namespace UntarnishedHeart.Executor;
 
@@ -68,6 +73,43 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         if (ReferenceEquals(this, other)) return true;
 
         return Name == other.Name && Zone == other.Zone && Steps.SequenceEqual(other.Steps);
+    }
+
+    public void ExportToClipboard()
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(this, JsonOptions);
+            var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
+            Clipboard.SetText(base64);
+            NotifyHelper.NotificationSuccess("已成功导出预设至剪贴板");
+        }
+        catch (Exception ex)
+        {
+            NotifyHelper.NotificationError("尝试导出预设至剪贴板时发生错误");
+        }
+    }
+
+    public static ExecutorPreset? ImportFromClipboard()
+    {
+        try
+        {
+            var base64 = Clipboard.GetText();
+            if (!string.IsNullOrEmpty(base64))
+            {
+                var json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+
+                var config = JsonSerializer.Deserialize<ExecutorPreset>(json, JsonOptions);
+                if (config != null)
+                    NotifyHelper.NotificationSuccess("已成功从剪贴板导入预设");
+                return config;
+            }
+        }
+        catch (Exception ex)
+        {
+            NotifyHelper.NotificationError("尝试从剪贴板导入预设时发生错误");
+        }
+        return null;
     }
 
     public override bool Equals(object? obj) => Equals(obj as ExecutorPreset);

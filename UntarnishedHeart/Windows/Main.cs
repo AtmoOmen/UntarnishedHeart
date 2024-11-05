@@ -124,10 +124,30 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
             }
 
             ImGui.SameLine();
-            if (ImGuiOm.ButtonIcon("AddNewPreset", FontAwesomeIcon.FileCirclePlus, "添加新预设", true))
+            if (ImGuiOm.ButtonIcon("AddNewPreset", FontAwesomeIcon.FileCirclePlus, "添加预设", true))
             {
                 Service.Config.Presets.Add(new());
                 SelectedPresetIndex = Service.Config.Presets.Count - 1;
+            }
+
+            ImGui.SameLine();
+            if (ImGuiOm.ButtonIcon("ImportNewPreset", FontAwesomeIcon.FileImport, "导入预设", true))
+            {
+                var config = ExecutorPreset.ImportFromClipboard();
+                if (config != null)
+                {
+                    Service.Config.Presets.Add(config);
+                    Service.Config.Save();
+
+                    SelectedPresetIndex = Service.Config.Presets.Count - 1;
+                }
+            }
+
+            ImGui.SameLine();
+            if (ImGuiOm.ButtonIcon("ExportPreset", FontAwesomeIcon.FileExport, "导出预设", true))
+            {
+                var selectedPresetExported = Service.Config.Presets[SelectedPresetIndex];
+                selectedPresetExported.ExportToClipboard();
             }
 
             ImGui.Separator();
