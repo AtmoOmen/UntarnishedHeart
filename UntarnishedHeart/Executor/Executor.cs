@@ -26,7 +26,7 @@ public class Executor : IDisposable
     {
         if (preset is not { IsValid: true }) return;
 
-        TaskHelper ??= new() { TimeLimitMS = 30_000 };
+        TaskHelper ??= new() { TimeLimitMS = int.MaxValue };
 
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "ContentsFinderConfirm", OnAddonDraw);
 
