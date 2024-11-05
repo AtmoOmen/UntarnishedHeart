@@ -66,8 +66,9 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
                 PresetExecutor = null;
 
                 PresetExecutor ??= new(Service.Config.Presets[SelectedPresetIndex],
-                                 Service.Config.RunTimes,
-                                 Service.Config.AutoOpenTreasure);
+                                       Service.Config.RunTimes,
+                                       Service.Config.AutoOpenTreasure,
+                                       Service.Config.LeaveDutyDelay);
             }
 
             if (Service.Config.LeaderMode)
@@ -260,6 +261,13 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
                 Service.Config.Save();
             }
             ImGuiOm.HelpMarker("请确保目标副本的确有宝箱, 否则流程将卡死", 20f, FontAwesomeIcon.InfoCircle, true);
+
+            var leaveDutyDelay = (int)Service.Config.LeaveDutyDelay;
+            ImGui.SetNextItemWidth(125f * ImGuiHelpers.GlobalScale);
+            if (ImGui.InputInt("退本延迟 (ms)", ref leaveDutyDelay))
+                Service.Config.LeaveDutyDelay = (uint)Math.Max(0, leaveDutyDelay);
+            if (ImGui.IsItemDeactivatedAfterEdit())
+                Service.Config.Save();
         }
 
         var groupSize = ImGui.GetItemRectSize();

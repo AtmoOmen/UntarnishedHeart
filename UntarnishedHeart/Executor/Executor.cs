@@ -15,13 +15,14 @@ public class Executor : IDisposable
     public uint            CurrentRound     { get; private set; }
     public int             MaxRound         { get; init; }
     public bool            AutoOpenTreasure { get; init; }
+    public uint            LeaveDutyDelay   { get; init; }
     public ExecutorPreset? ExecutorPreset   { get; init; }
     public string          RunningMessage   => TaskHelper?.CurrentTaskName ?? string.Empty;
     public bool            IsDisposed       { get; private set; }
 
     private TaskHelper? TaskHelper;
 
-    public Executor(ExecutorPreset? preset, int maxRound = -1, bool autoOpenTreasure = false)
+    public Executor(ExecutorPreset? preset, int maxRound = -1, bool autoOpenTreasure = false, uint leaveDutyDelay = 0)
     {
         if (preset is not { IsValid: true }) return;
 
@@ -37,6 +38,7 @@ public class Executor : IDisposable
 
         MaxRound = maxRound;
         AutoOpenTreasure = autoOpenTreasure;
+        LeaveDutyDelay = leaveDutyDelay;
         ExecutorPreset = preset;
         
         OnDutyStarted(null, DService.ClientState.TerritoryType);
@@ -107,6 +109,9 @@ public class Executor : IDisposable
 
         if (AutoOpenTreasure)
             EnqueueTreasureHunt();
+
+        if (LeaveDutyDelay > 0)
+            TaskHelper.DelayNext((int)LeaveDutyDelay);
 
         TaskHelper.Enqueue(() =>
         {

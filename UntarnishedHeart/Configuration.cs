@@ -12,6 +12,7 @@ public class Configuration : IPluginConfiguration
     public MoveType             MoveType         { get; set; } = MoveType.传送;
     public bool                 LeaderMode       { get; set; } = false;
     public bool                 AutoOpenTreasure { get; set; } = false;
+    public uint                 LeaveDutyDelay   { get; set; } = 0;
     public int                  RunTimes         { get; set; } = -1;
     public List<ExecutorPreset> Presets          { get; set; } = [];
 
