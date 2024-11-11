@@ -8,11 +8,13 @@ public class WindowManager
 {
     private static WindowSystem? _windowSystem;
     private static Main? _main;
+    private static PresetEditor? _presetEditor;
 
     private static readonly object _windowLock = new();
 
     public static WindowSystem? WindowSystem => _windowSystem;
     public static Main?         Main         => _main;
+    public static PresetEditor? PresetEditor => _presetEditor;
 
     internal void Init()
     {
@@ -21,6 +23,9 @@ public class WindowManager
 
         _main = new Main();
         AddWindows(_main);
+
+        _presetEditor = new PresetEditor();
+        AddWindows(_presetEditor);
 
         DService.UiBuilder.Draw += DrawWindows;
         DService.UiBuilder.OpenMainUi += ToggleMainWindow;
@@ -78,5 +83,7 @@ public class WindowManager
 
         _main?.Dispose();
         _main = null;
+
+        _presetEditor = null;
     }
 }

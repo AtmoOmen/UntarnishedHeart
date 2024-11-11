@@ -1,6 +1,6 @@
 namespace UntarnishedHeart.Executor
 {
-    public enum ExecutorOperationType
+    public enum ExecutorStepOperationType
     {
         DELETE, MOVEUP, MOVEDOWN, PASS
     }

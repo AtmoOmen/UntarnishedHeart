@@ -10,8 +10,6 @@ using System.Text;
 using Newtonsoft.Json;
 using System.Windows.Forms;
 using UntarnishedHeart.Utils;
-using FFXIVClientStructs.FFXIV.Common.Lua;
-using System.Diagnostics;
 
 namespace UntarnishedHeart.Executor;
 
@@ -44,6 +42,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         using (ImRaii.PushIndent())
         {
             var zoneName = Main.ZonePlaceNames.GetValueOrDefault(Zone, "未知区域");
+            ImGui.SameLine();
             ImGui.Text($"({zoneName})");
         }
 
@@ -52,26 +51,20 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, "添加新步骤", true))
             Steps.Add(new());
 
-        using var child = ImRaii.Child("StepChild", new(300f * ImGuiHelpers.GlobalScale, 200f * ImGuiHelpers.GlobalScale));
-        if (child)
+        for (var i = 0; i < Steps.Count; i++)
         {
-            for (var i = 0; i < Steps.Count; i++)
+            var step = Steps[i];
+            var ret = step.Draw(i, Steps.Count);
+            Action executorOperationAction = ret switch
             {
-                var step = Steps[i];
-                // if (step.Draw(i, Steps.Count) == ExecutorOperationType.DELETE) Steps.RemoveAt(i);
-                var ret = step.Draw(i, Steps.Count);
-                Action executorOperationAction = ret switch
-                {
-                    ExecutorOperationType.DELETE => () => Steps.RemoveAt(i),
-                    ExecutorOperationType.MOVEDOWN => () => Swap(Steps, i, i + 1),
-                    ExecutorOperationType.MOVEUP => () => Swap(Steps, i, i - 1),
-                    ExecutorOperationType.PASS => () => {},
-                    _ => () => {}
-                };
-
-                executorOperationAction();
-                
-            }
+                ExecutorStepOperationType.DELETE => () => Steps.RemoveAt(i),
+                ExecutorStepOperationType.MOVEDOWN => () => Swap(Steps, i, i + 1),
+                ExecutorStepOperationType.MOVEUP => () => Swap(Steps, i, i - 1),
+                ExecutorStepOperationType.PASS => () => { }
+                ,
+                _ => () => { }
+            };
+            executorOperationAction();
         }
     }
 

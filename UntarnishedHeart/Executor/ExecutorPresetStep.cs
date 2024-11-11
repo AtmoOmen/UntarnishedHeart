@@ -22,7 +22,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
     public int     Delay        { get; set; } = 5000;
     public bool    StopInCombat { get; set; } = true;
 
-    public ExecutorOperationType Draw(int i, int count)
+    public ExecutorStepOperationType Draw(int i, int count)
     {
         using var id = ImRaii.PushId($"Step-{i}");
 
@@ -30,21 +30,21 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         ImGui.Text($"步骤 {i + 1}:");
 
         ImGui.SameLine();
-        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, "删除本步", true))
-            return ExecutorOperationType.DELETE;
+        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, "删除", true))
+            return ExecutorStepOperationType.DELETE;
 
         if (i > 0)
         {
             ImGui.SameLine();
             if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.ArrowUp, "上移", true))
-                return ExecutorOperationType.MOVEUP;
+                return ExecutorStepOperationType.MOVEUP;
         }
 
         if (i < count - 1)
         {
             ImGui.SameLine();
             if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.ArrowDown, "下移", true))
-                return ExecutorOperationType.MOVEDOWN;
+                return ExecutorStepOperationType.MOVEDOWN;
         }
 
         var stepName = Note;
@@ -101,7 +101,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 () => ImGui.Checkbox("###StepStopInCombatInput", ref stepStopInCombat)))
             StopInCombat = stepStopInCombat;
 
-        return ExecutorOperationType.PASS;
+        return ExecutorStepOperationType.PASS;
     }
 
     public List<Action> GetTasks(TaskHelper t, MoveType moveType)

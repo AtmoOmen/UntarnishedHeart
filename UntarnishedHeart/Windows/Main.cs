@@ -14,12 +14,11 @@ using UntarnishedHeart.Executor;
 
 namespace UntarnishedHeart.Windows;
 
-public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow", ImGuiWindowFlags.AlwaysAutoResize), IDisposable
+public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize), IDisposable
 {
     private static Executor.Executor? PresetExecutor;
 
     private static int SelectedPresetIndex;
-    private static bool IsSelectorDisplay;
 
     public static readonly Dictionary<uint, string> ZonePlaceNames;
 
@@ -82,81 +81,6 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
         {
             PresetExecutor?.Dispose();
             PresetExecutor = null;
-        }
-
-        if (!IsSelectorDisplay) return;
-
-        var windowWidth = ImGui.GetWindowWidth();
-        var windowPos = ImGui.GetWindowPos();
-        ImGui.SetNextWindowPos(windowPos with { X = windowPos.X + windowWidth });
-        if (ImGui.Begin($"预设选择器###{PluginName}-PresetSelector", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.AlwaysAutoResize))
-        {
-            ImGui.AlignTextToFramePadding();
-            ImGui.Text("选择预设:");
-
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
-
-            if (SelectedPresetIndex > Service.Config.Presets.Count - 1)
-                SelectedPresetIndex = 0;
-
-            var selectedPreset = Service.Config.Presets[SelectedPresetIndex];
-            using (var combo = ImRaii.Combo("###PresetSelectCombo", $"{selectedPreset.Name}", ImGuiComboFlags.HeightLarge))
-            {
-                if (combo)
-                {
-                    for (var i = 0; i < Service.Config.Presets.Count; i++)
-                    {
-                        var preset = Service.Config.Presets[i];
-                        if (ImGui.Selectable($"{preset.Name}###{preset}-{i}"))
-                            SelectedPresetIndex = i;
-
-                        using var popup = ImRaii.ContextPopupItem($"{preset}-{i}ContextPopup");
-                        if (popup)
-                        {
-                            using (ImRaii.Disabled(Service.Config.Presets.Count == 1))
-                            {
-                                if (ImGui.MenuItem($"删除##{preset}-{i}"))
-                                    Service.Config.Presets.Remove(preset);
-                            }
-                        }
-                    }
-                }
-            }
-
-            ImGui.SameLine();
-            if (ImGuiOm.ButtonIcon("AddNewPreset", FontAwesomeIcon.FileCirclePlus, "添加预设", true))
-            {
-                Service.Config.Presets.Add(new());
-                SelectedPresetIndex = Service.Config.Presets.Count - 1;
-            }
-
-            ImGui.SameLine();
-            if (ImGuiOm.ButtonIcon("ImportNewPreset", FontAwesomeIcon.FileImport, "导入预设", true))
-            {
-                var config = ExecutorPreset.ImportFromClipboard();
-                if (config != null)
-                {
-                    Service.Config.Presets.Add(config);
-                    Service.Config.Save();
-
-                    SelectedPresetIndex = Service.Config.Presets.Count - 1;
-                }
-            }
-
-            ImGui.SameLine();
-            if (ImGuiOm.ButtonIcon("ExportPreset", FontAwesomeIcon.FileExport, "导出预设", true))
-            {
-                var selectedPresetExported = Service.Config.Presets[SelectedPresetIndex];
-                selectedPresetExported.ExportToClipboard();
-            }
-
-            ImGui.Separator();
-            ImGui.Spacing();
-
-            selectedPreset.Draw();
-
-            ImGui.End();
         }
     }
 
@@ -221,7 +145,32 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
             ImGui.Text("已选预设:");
 
             ImGui.SameLine();
-            ImGui.Text($"{selectedPreset.Name}");
+            using (ImRaii.Group())
+            {
+                ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+                using (var combo = ImRaii.Combo("###PresetSelectCombo", $"{selectedPreset.Name}", ImGuiComboFlags.HeightLarge))
+                {
+                    if (combo)
+                    {
+                        for (var i = 0; i < Service.Config.Presets.Count; i++)
+                        {
+                            var preset = Service.Config.Presets[i];
+                            if (ImGui.Selectable($"{preset.Name}###{preset}-{i}"))
+                                SelectedPresetIndex = i;
+
+                            using var popup = ImRaii.ContextPopupItem($"{preset}-{i}ContextPopup");
+                            if (popup)
+                            {
+                                using (ImRaii.Disabled(Service.Config.Presets.Count == 1))
+                                {
+                                    if (ImGui.MenuItem($"删除##{preset}-{i}"))
+                                        Service.Config.Presets.Remove(preset);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             ImGui.AlignTextToFramePadding();
             ImGui.Text("移动方式:");
@@ -273,9 +222,9 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
         var groupSize = ImGui.GetItemRectSize();
 
         ImGui.SameLine();
-        if (ImGuiOm.ButtonIconWithTextVertical(FontAwesomeIcon.Eye, "选择预设",
-                                               groupSize with { X = ImGui.CalcTextSize("选择预设").X * 1.5f }, true))
-            IsSelectorDisplay ^= true;
+        if (ImGuiOm.ButtonIconWithTextVertical(FontAwesomeIcon.Eye, "编辑预设",
+                                               groupSize with { X = ImGui.CalcTextSize("编辑预设").X * 1.5f }, true))
+            WindowManager.PresetEditor.IsOpen ^= true;
     }
 
     public void Dispose()
