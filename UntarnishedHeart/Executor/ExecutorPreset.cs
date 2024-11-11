@@ -54,6 +54,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         for (var i = 0; i < Steps.Count; i++)
         {
             var step = Steps[i];
+            if (i % 2 != 0) ImGui.SameLine();
             var ret = step.Draw(i, Steps.Count);
             Action executorOperationAction = ret switch
             {

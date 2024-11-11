@@ -20,11 +20,13 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
     public uint    DataID       { get; set; }
     public Vector3 Position     { get; set; }
     public int     Delay        { get; set; } = 5000;
+    public string  Commands     { get; set; } = string.Empty;
     public bool    StopInCombat { get; set; } = true;
 
     public ExecutorStepOperationType Draw(int i, int count)
     {
         using var id = ImRaii.PushId($"Step-{i}");
+        using var group = ImRaii.Group();
 
         ImGui.AlignTextToFramePadding();
         ImGui.Text($"步骤 {i + 1}:");
@@ -101,6 +103,13 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 () => ImGui.Checkbox("###StepStopInCombatInput", ref stepStopInCombat)))
             StopInCombat = stepStopInCombat;
 
+        var stepCommands = Commands;
+        ImGui.Text("文本指令: (一行一条)");
+        if (ImGui.InputTextMultiline("###CommandsInput", ref stepCommands, 1024,
+                                     new(250f * ImGuiHelpers.GlobalScale, ImGui.GetTextLineHeightWithSpacing() * 2.5f)))
+            Commands = stepCommands;
+        ImGuiOm.TooltipHover(Commands);
+
         return ExecutorStepOperationType.PASS;
     }
 
@@ -130,6 +139,11 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 TargetObject();
                 return DService.Targets.Target != null;
             }, "选中目标"),
+            () => t.Enqueue(() =>
+            {
+                foreach (var command in Commands.Split('\n'))
+                    ChatHelper.Instance.SendMessage(command);
+            }, "使用文本指令"),
             () => t.Enqueue(() =>
             {
                 var localPlayer = DService.ClientState.LocalPlayer;
