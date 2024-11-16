@@ -48,6 +48,10 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
             if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.ArrowDown, "下移", true))
                 return ExecutorStepOperationType.MOVEDOWN;
         }
+        
+        ImGui.SameLine();
+        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Copy, "复制", true))
+            return ExecutorStepOperationType.COPY;
 
         var stepName = Note;
         ImGuiOm.CompLabelLeft(
@@ -184,4 +188,18 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
     }
 
     public override int GetHashCode() => HashCode.Combine(Note, DataID, Position, Delay, StopInCombat);
+    
+    public ExecutorPresetStep Copy()
+    {
+        return new ExecutorPresetStep
+        {
+            Note = this.Note,
+            DataID = this.DataID,
+            Position = this.Position,
+            Delay = this.Delay,
+            Commands = this.Commands,
+            StopInCombat = this.StopInCombat
+        };
+    }
+    
 }

@@ -61,6 +61,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 ExecutorStepOperationType.DELETE => () => Steps.RemoveAt(i),
                 ExecutorStepOperationType.MOVEDOWN => () => Swap(Steps, i, i + 1),
                 ExecutorStepOperationType.MOVEUP => () => Swap(Steps, i, i - 1),
+                ExecutorStepOperationType.COPY => () => Steps.Insert(i + 1, step.Copy()),
                 ExecutorStepOperationType.PASS => () => { }
                 ,
                 _ => () => { }
