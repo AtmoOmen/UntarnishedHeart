@@ -166,7 +166,8 @@ public class Executor : IDisposable
             foreach (var obj in treasures)
             {
                 TaskHelper.Enqueue(() => GameFunctions.Teleport(obj.Position), "传送至宝箱", null, null, 2);
-                TaskHelper.DelayNext(50, "等待位置确认", false, 2);
+                var delayTime = Service.Config.IsHardDuty ? 2500 : 50;
+                TaskHelper.DelayNext(delayTime, "等待位置确认", false, 2);
                 TaskHelper.Enqueue(() =>
                 {
                     if (!Throttler.Throttle("交互宝箱节流")) return false;

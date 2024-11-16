@@ -14,6 +14,7 @@ public class Configuration : IPluginConfiguration
     public bool                 AutoOpenTreasure { get; set; } = false;
     public uint                 LeaveDutyDelay   { get; set; } = 0;
     public int                  RunTimes         { get; set; } = -1;
+    public bool                 IsHardDuty       { get; set; } = false; 
     public List<ExecutorPreset> Presets          { get; set; } = [];
 
 

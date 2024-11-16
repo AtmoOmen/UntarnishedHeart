@@ -210,6 +210,14 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
                 Service.Config.Save();
             }
             ImGuiOm.HelpMarker("请确保目标副本的确有宝箱, 否则流程将卡死", 20f, FontAwesomeIcon.InfoCircle, true);
+            
+            var isHardDuty = Service.Config.IsHardDuty;
+            if (ImGui.Checkbox("是否是八人/大型副本", ref isHardDuty))
+            {
+                Service.Config.IsHardDuty = isHardDuty;
+                Service.Config.Save();
+            }
+            ImGuiOm.HelpMarker("依赖于是否自动开启宝箱，请确保你的勾选是正确的，这有关于你能否拿到副本宝箱", 20f, FontAwesomeIcon.InfoCircle, true);
 
             var leaveDutyDelay = (int)Service.Config.LeaveDutyDelay;
             ImGui.SetNextItemWidth(125f * ImGuiHelpers.GlobalScale);
