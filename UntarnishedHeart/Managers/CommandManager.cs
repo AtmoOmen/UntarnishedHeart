@@ -8,6 +8,7 @@ namespace UntarnishedHeart.Managers;
 public sealed class CommandManager
 {
     public const string CommandPDR = "/utheart";
+    public const string CommandPDRShort = "/uth";
     private static readonly ConcurrentDictionary<string, CommandInfo> _addedCommands = [];
     private static readonly ConcurrentDictionary<string, CommandInfo> _subCommandArgs = [];
     private static readonly object _lock = new();
@@ -28,6 +29,7 @@ public sealed class CommandManager
 
             RemoveCommand(CommandPDR);
             AddCommand(CommandPDR, new CommandInfo(OnCommandMain) { HelpMessage = helpMessage.ToString() }, true);
+            AddCommand(CommandPDRShort, new CommandInfo(OnCommandMain) { HelpMessage = helpMessage.ToString() }, true);
         }
     }
 
