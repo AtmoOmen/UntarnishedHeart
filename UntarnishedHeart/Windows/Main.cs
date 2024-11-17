@@ -108,6 +108,25 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
 
         ImGui.SameLine();
         ImGui.Text($"{PresetExecutor?.RunningMessage ?? string.Empty}");
+        
+        var currentZoneType = DService.ClientState.TerritoryType;
+        var contentFinderConditionSheet = LuminaCache.Get<ContentFinderCondition>();
+        
+        if (contentFinderConditionSheet != null)
+        {
+            var contentFinderEntry = contentFinderConditionSheet.FirstOrDefault(entry => entry.TerritoryType.Row == currentZoneType);
+
+            if (contentFinderEntry != null)
+            {
+                ImGui.Text("当前副本类型:");
+                ImGui.SameLine();
+                ImGui.Text($"{contentFinderEntry.ContentType.Value?.Name ?? "未知类型"} (ID: {contentFinderEntry.ContentType.Row})");
+            }
+            else
+            {
+                ImGui.Text("当前副本类型: 未找到对应的副本数据");
+            }
+        }
     }
 
     private static void DrawNesscaryInfo()
