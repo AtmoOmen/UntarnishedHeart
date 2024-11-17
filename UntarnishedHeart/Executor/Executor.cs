@@ -5,6 +5,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using System.Linq;
 using System;
 using Dalamud.Game.ClientState.Objects.Enums;
+using Lumina.Excel.GeneratedSheets;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Utils;
 
@@ -155,6 +156,24 @@ public class Executor : IDisposable
     {
         var localPlayer = DService.ClientState.LocalPlayer;
         var origPosition = localPlayer?.Position ?? default;
+        var currentZoneType = DService.ClientState.TerritoryType;
+        var contentFinderConditionSheet = LuminaCache.Get<ContentFinderCondition>();
+        var setDelayTime = 50;
+        var contentTypeRaid = 4;
+        var contentTypeLarge = 5;
+        
+        if (contentFinderConditionSheet != null)
+        {
+            var contentFinderEntry = contentFinderConditionSheet.FirstOrDefault(entry => entry.TerritoryType.Row == currentZoneType);
+
+            if (contentFinderEntry != null)
+            {
+                if (contentFinderEntry.ContentType.Row == contentTypeRaid || contentFinderEntry.ContentType.Row == contentTypeLarge)
+                {
+                    setDelayTime = 2300;
+                }
+            }
+        }
 
         TaskHelper.Enqueue(() =>
         {
@@ -166,7 +185,7 @@ public class Executor : IDisposable
             foreach (var obj in treasures)
             {
                 TaskHelper.Enqueue(() => GameFunctions.Teleport(obj.Position), "传送至宝箱", null, null, 2);
-                TaskHelper.DelayNext(50, "等待位置确认", false, 2);
+                TaskHelper.DelayNext(setDelayTime, "等待位置确认", false, 2);
                 TaskHelper.Enqueue(() =>
                 {
                     if (!Throttler.Throttle("交互宝箱节流")) return false;
