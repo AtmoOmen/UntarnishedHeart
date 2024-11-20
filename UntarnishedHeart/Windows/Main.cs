@@ -39,6 +39,7 @@ public class Main() : Window($"{PluginName} 主界面###{PluginName}-MainWindow"
         {
             Service.Config.Presets.Add(Configuration.ExamplePreset0);
             Service.Config.Presets.Add(Configuration.ExamplePreset1);
+            Service.Config.Presets.Add(Configuration.ExamplePreset2);
             Service.Config.Save();
         }
 

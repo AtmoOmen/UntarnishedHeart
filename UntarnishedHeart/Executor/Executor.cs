@@ -5,8 +5,6 @@ using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using System.Linq;
 using System;
 using Dalamud.Game.ClientState.Objects.Enums;
-using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using Lumina.Excel.GeneratedSheets;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Utils;
