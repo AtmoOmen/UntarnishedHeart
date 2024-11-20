@@ -122,6 +122,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         [
             () => t.Enqueue(() =>
             {
+                DService.Log.Information($"Executing step: {Note}");
                 if (StopInCombat && DService.Condition[ConditionFlag.InCombat]) return false;
 
                 switch (moveType)
@@ -134,7 +135,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                         break;
                 }
                 return true;
-            }, "移动至目标位置"),
+            }, $"移动至目标位置: {Note}"),
             () => t.Enqueue(() =>
             {
                 if (DataID == 0) return true;
@@ -142,12 +143,12 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
                 TargetObject();
                 return DService.Targets.Target != null;
-            }, "选中目标"),
+            }, $"选中目标: {Note}"),
             () => t.Enqueue(() =>
             {
                 foreach (var command in Commands.Split('\n'))
                     ChatHelper.Instance.SendMessage(command);
-            }, "使用文本指令"),
+            }, $"使用文本指令: {Note}"),
             () => t.Enqueue(() =>
             {
                 var localPlayer = DService.ClientState.LocalPlayer;
@@ -156,7 +157,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
                 return Vector2.DistanceSquared(localPlayer.Position.ToVector2(), Position.ToVector2()) <= 4;
             }, "等待接近目标位置"),
-            () => t.DelayNext(Delay, $"等待 {Delay} 秒")
+            () => t.DelayNext(Delay, $"等待 {Delay} 秒: {Note}")
         ];
 
     public unsafe void TargetObject()

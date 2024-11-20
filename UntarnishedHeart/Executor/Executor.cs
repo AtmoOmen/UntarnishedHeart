@@ -159,8 +159,8 @@ public class Executor : IDisposable
         var currentZoneType = DService.ClientState.TerritoryType;
         var contentFinderConditionSheet = LuminaCache.Get<ContentFinderCondition>();
         var setDelayTime = 50;
-        var contentTypeRaid = 4;
-        var contentTypeLarge = 5;
+        var contentTypeTrial = 4;
+        var contentTypeRaid = 5;
         
         if (contentFinderConditionSheet != null)
         {
@@ -168,7 +168,7 @@ public class Executor : IDisposable
 
             if (contentFinderEntry != null)
             {
-                if (contentFinderEntry.ContentType.Row == contentTypeRaid || contentFinderEntry.ContentType.Row == contentTypeLarge)
+                if (contentFinderEntry.ContentType.Row == contentTypeTrial || contentFinderEntry.ContentType.Row == contentTypeRaid)
                 {
                     setDelayTime = 2300;
                 }
