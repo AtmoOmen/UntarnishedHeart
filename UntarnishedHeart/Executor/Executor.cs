@@ -5,6 +5,8 @@ using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using System.Linq;
 using System;
 using Dalamud.Game.ClientState.Objects.Enums;
+using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using Lumina.Excel.GeneratedSheets;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Utils;
@@ -20,8 +22,10 @@ public class Executor : IDisposable
     public ExecutorPreset? ExecutorPreset   { get; init; }
     public string          RunningMessage   => TaskHelper?.CurrentTaskName ?? string.Empty;
     public bool            IsDisposed       { get; private set; }
+    public  bool           ShowDebug        { get; set; } = false;
 
     private TaskHelper? TaskHelper;
+    private DateTime lastScanTime = DateTime.MinValue;
 
     public Executor(ExecutorPreset? preset, int maxRound = -1, bool autoOpenTreasure = false, uint leaveDutyDelay = 0)
     {
@@ -36,6 +40,8 @@ public class Executor : IDisposable
         DService.DutyState.DutyStarted += OnDutyStarted;
         DService.DutyState.DutyRecommenced += OnDutyStarted;
         DService.DutyState.DutyCompleted += OnDutyCompleted;
+        
+        DService.Framework.Update += OnUpdate;
 
         MaxRound = maxRound;
         AutoOpenTreasure = autoOpenTreasure;
@@ -54,12 +60,60 @@ public class Executor : IDisposable
         DService.DutyState.DutyStarted -= OnDutyStarted;
         DService.DutyState.DutyRecommenced -= OnDutyStarted;
         DService.AddonLifecycle.UnregisterListener(OnAddonDraw);
+        
+        DService.Framework.Update -= OnUpdate;
 
         TaskHelper?.Abort();
         TaskHelper?.Dispose();
         TaskHelper = null;
 
         IsDisposed = true;
+    }
+
+    private void OnUpdate(IFramework framework)
+    {
+        if ((DateTime.UtcNow - lastScanTime).TotalSeconds < 1)
+            return;
+    
+        lastScanTime = DateTime.UtcNow;
+        ScanTreasures();
+    }
+
+    private unsafe void ScanTreasures()
+    {
+        var currentZoneType = DService.ClientState.TerritoryType;
+        var contentFinderConditionSheet = LuminaCache.Get<ContentFinderCondition>();
+        var contentTypeDungeons = 2;
+        
+        if (contentFinderConditionSheet != null)
+        {
+            var contentFinderEntry = contentFinderConditionSheet
+                .FirstOrDefault(entry => entry.TerritoryType.Row == currentZoneType);
+
+            if (contentFinderEntry == null || contentFinderEntry.ContentType.Row != contentTypeDungeons)
+            {
+                return;
+            }
+        }
+        
+        var treasures = DService.ObjectTable
+                                .Where(obj => obj.ObjectKind == ObjectKind.Treasure)
+                                .ToList();
+        if (ShowDebug) DService.Log.Information($"[ScanTreasures] Number of treasures found: {treasures.Count}");
+        if (treasures.Count == 0)
+            return;
+
+        foreach (var obj in treasures)
+        {
+            TaskHelper.Enqueue(() => GameFunctions.Teleport(obj.Position), "传送至宝箱", null, null, 2);
+            TaskHelper.DelayNext(50, "等待位置确认", false, 2);
+            TaskHelper.Enqueue(() =>
+            {
+                if (!Throttler.Throttle("交互宝箱节流")) return false;
+                return TargetSystem.Instance()->InteractWithObject(obj.ToStruct(), false) != 0;
+            }, "与宝箱交互", null, null, 2);
+        }
+        
     }
 
     // 自动确认进入副本
@@ -159,8 +213,8 @@ public class Executor : IDisposable
         var currentZoneType = DService.ClientState.TerritoryType;
         var contentFinderConditionSheet = LuminaCache.Get<ContentFinderCondition>();
         var setDelayTime = 50;
-        var contentTypeRaid = 4;
-        var contentTypeLarge = 5;
+        var contentTypeTrial = 4;
+        var contentTypeRaid = 5;
         
         if (contentFinderConditionSheet != null)
         {
@@ -168,7 +222,7 @@ public class Executor : IDisposable
 
             if (contentFinderEntry != null)
             {
-                if (contentFinderEntry.ContentType.Row == contentTypeRaid || contentFinderEntry.ContentType.Row == contentTypeLarge)
+                if (contentFinderEntry.ContentType.Row == contentTypeTrial || contentFinderEntry.ContentType.Row == contentTypeRaid)
                 {
                     setDelayTime = 2300;
                 }

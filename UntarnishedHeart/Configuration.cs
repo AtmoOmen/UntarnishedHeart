@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Dalamud.Configuration;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using UntarnishedHeart.Executor;
 
 namespace UntarnishedHeart;
