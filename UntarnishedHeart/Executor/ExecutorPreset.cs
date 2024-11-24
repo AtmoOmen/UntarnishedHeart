@@ -59,8 +59,8 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             Action executorOperationAction = ret switch
             {
                 ExecutorStepOperationType.DELETE => () => Steps.RemoveAt(i),
-                ExecutorStepOperationType.MOVEDOWN => () => Swap(Steps, i, i + 1),
-                ExecutorStepOperationType.MOVEUP => () => Swap(Steps, i, i - 1),
+                ExecutorStepOperationType.MOVEDOWN => () => Steps.Swap(i, i + 1),
+                ExecutorStepOperationType.MOVEUP => () => Steps.Swap(i, i - 1),
                 ExecutorStepOperationType.COPY => () => Steps.Insert(i + 1, step.Copy()),
                 ExecutorStepOperationType.PASS => () => { }
                 ,
@@ -68,16 +68,6 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             };
             executorOperationAction();
         }
-    }
-
-    public static void Swap<T>(List<T> list, int index1, int index2)
-    {
-        if (index1 < 0 || index1 >= list.Count || index2 < 0 || index2 >= list.Count)
-        {
-            NotifyHelper.NotificationError("无法移动步骤，因为索引超出范围");
-            return;
-        }
-        (list[index1], list[index2]) = (list[index2], list[index1]);
     }
 
     public List<Action> GetTasks(TaskHelper t, MoveType moveType)
