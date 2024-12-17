@@ -87,6 +87,14 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 Position = localPlayer.Position;
         }
 
+        ImGui.SameLine();
+        if (ImGuiOm.ButtonIcon("GetPosition", FontAwesomeIcon.Flag, "传送到此位置", true))
+        {
+            GameFunctions.Teleport(stepPosition);
+        }
+
+
+
         var stepDelay = Delay;
         if (ImGuiOm.CompLabelLeft(
                 "延迟:", 200f * ImGuiHelpers.GlobalScale,
