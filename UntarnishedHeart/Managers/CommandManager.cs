@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Text;
+using DailyRoutines.Modules;
 using Dalamud.Game.Command;
+using static FFXIVClientStructs.FFXIV.Client.UI.AddonActionCross;
 
 namespace UntarnishedHeart.Managers;
 
@@ -9,13 +11,16 @@ public sealed class CommandManager
 {
     public const string CommandPDR = "/utheart";
     public const string CommandPDRShort = "/uth";
+    public const string CommandUTHAutoObj = "/uthautoobj";
     private static readonly ConcurrentDictionary<string, CommandInfo> _addedCommands = [];
     private static readonly ConcurrentDictionary<string, CommandInfo> _subCommandArgs = [];
     private static readonly object _lock = new();
-
+    
     internal void Init()
     {
+        DService.Command.AddHandler(CommandUTHAutoObj, new CommandInfo(HandleAutoObj) { HelpMessage = "尝试交互周围对象", });
         RefreshCommandDetails();
+
     }
 
     private void RefreshCommandDetails()
@@ -90,14 +95,23 @@ public sealed class CommandManager
 
     private static void OnCommandMain(string command, string args)
     {
-        WindowManager.Main.IsOpen ^= true;
-
+        if (args.Count() < 1)
+        {
+            WindowManager.Main.IsOpen ^= true;
+        }
         if (string.IsNullOrWhiteSpace(args)) return;
         var spitedArgs = args.Split(' ', 2);
         if (_subCommandArgs.TryGetValue(spitedArgs[0], out var commandInfo))
             commandInfo.Handler(spitedArgs[0], spitedArgs.Length > 1 ? spitedArgs[1] : string.Empty);
         else
             DService.Chat.PrintError($"{spitedArgs[0]} 出现问题：该命令不存在。");
+    }
+
+    private static void HandleAutoObj(string command, string args)
+    {
+        var autoInteract = new AutoObjectInteract();
+        bool success = autoInteract.TryInteractNearestObject();
+
     }
 
     internal void Uninit()
