@@ -51,20 +51,23 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, "添加新步骤", true))
             Steps.Add(new());
 
+        
         for (var i = 0; i < Steps.Count; i++)
         {
             var step = Steps[i];
-            if (i % 2 != 0) ImGui.SameLine();
+            
+            using var node = ImRaii.TreeNode($"第 {i + 1} 步: {step.Note}");
+            if (!node) continue;
+            
             var ret = step.Draw(i, Steps.Count);
             Action executorOperationAction = ret switch
             {
-                ExecutorStepOperationType.DELETE => () => Steps.RemoveAt(i),
+                ExecutorStepOperationType.DELETE   => () => Steps.RemoveAt(i),
                 ExecutorStepOperationType.MOVEDOWN => () => Steps.Swap(i, i + 1),
-                ExecutorStepOperationType.MOVEUP => () => Steps.Swap(i, i - 1),
-                ExecutorStepOperationType.COPY => () => Steps.Insert(i + 1, step.Copy()),
-                ExecutorStepOperationType.PASS => () => { }
-                ,
-                _ => () => { }
+                ExecutorStepOperationType.MOVEUP   => () => Steps.Swap(i, i - 1),
+                ExecutorStepOperationType.COPY     => () => Steps.Insert(i  + 1, step.Copy()),
+                ExecutorStepOperationType.PASS     => () => { },
+                _                                  => () => { }
             };
             executorOperationAction();
         }
@@ -92,7 +95,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             Clipboard.SetText(base64);
             NotifyHelper.NotificationSuccess("已成功导出预设至剪贴板");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             NotifyHelper.NotificationError("尝试导出预设至剪贴板时发生错误");
         }
@@ -113,7 +116,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 return config;
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             NotifyHelper.NotificationError("尝试从剪贴板导入预设时发生错误");
         }

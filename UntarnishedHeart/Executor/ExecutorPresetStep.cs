@@ -29,7 +29,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         using var group = ImRaii.Group();
 
         ImGui.AlignTextToFramePadding();
-        ImGui.Text($"步骤 {i + 1}:");
+        ImGui.Text("操作:");
 
         ImGui.SameLine();
         if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, "删除", true))
