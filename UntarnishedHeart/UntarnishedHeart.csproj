@@ -26,14 +26,14 @@
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
         <NoWarn>1701;1702;CS0414;CS8601;CS8602;CS8604;CS8603;IDE1006;IDE0300;MSB3270;MSB324</NoWarn>
+        <DebugSymbols>false</DebugSymbols>
+        <DebugType>none</DebugType>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
         <NoWarn>1701;1702;CS0414;CS8601;CS8602;CS8604;CS8603;IDE1006;IDE0300;MSB3270;MSB324</NoWarn>
+        <DebugType>none</DebugType>
     </PropertyGroup>
 
-    <!-- Please modify the DalamudLibPath property based on your XIVLauncher location -->
-    <!-- 请根据你的 XIVLauncher 位置, 修改 DalamudLibPath 属性 -->
-    <!-- 国际服默认: $(appdata)\XIVLauncher\addon\Hooks\dev -->
     <PropertyGroup>
         <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(appdata)\XIVLauncherCN\addon\Hooks\dev\</DalamudLibPath>
         <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('Linux'))">$(HOME)/.xlcore/dalamud/Hooks/dev/</DalamudLibPath>
