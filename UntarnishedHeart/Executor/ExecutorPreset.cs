@@ -15,9 +15,11 @@ namespace UntarnishedHeart.Executor;
 
 public class ExecutorPreset : IEquatable<ExecutorPreset>
 {
-    public string                   Name  { get; set; } = string.Empty;
-    public ushort                   Zone  { get; set; }
-    public List<ExecutorPresetStep> Steps { get; set; } = [];
+    public string                   Name              { get; set; } = string.Empty;
+    public ushort                   Zone              { get; set; }
+    public List<ExecutorPresetStep> Steps             { get; set; } = [];
+    public bool                     AutoOpenTreasures { get; set; }
+    public int                      DutyDelay    { get; set; } = 500;
 
     public bool IsValid => Zone != 0 && Steps.Count > 0 && Main.ZonePlaceNames.ContainsKey(Zone);
 
@@ -46,11 +48,32 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             ImGui.Text($"({zoneName})");
         }
 
+        using (ImRaii.Group())
+        {
+            var delay = DutyDelay;
+            if (ImGuiOm.CompLabelLeft(
+                    "延迟:", 200f * ImGuiHelpers.GlobalScale,
+                    () => ImGui.InputInt("###PresetLeaveDutyDelayInput", ref delay, 0, 0)))
+                DutyDelay = Math.Max(0, delay);
+            
+            ImGui.SameLine();
+            ImGui.Text("(ms)");
+        }
+        ImGuiOm.TooltipHover("完成副本后, 在退出副本前需要等待的时间");
+        
+        ImGui.Spacing();
+        
+        var autoOpenTreasure = AutoOpenTreasures;
+        if (ImGui.Checkbox("副本结束时, 自动开启宝箱", ref autoOpenTreasure))
+            AutoOpenTreasures = autoOpenTreasure;
+        ImGuiOm.HelpMarker("请确保本副本的确有宝箱, 否则流程将卡死", 20f, FontAwesomeIcon.InfoCircle, true);
+
         ImGui.Dummy(new(8f));
 
         if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, "添加新步骤", true))
             Steps.Add(new());
 
+        ImGui.Spacing();
         
         for (var i = 0; i < Steps.Count; i++)
         {
@@ -73,8 +96,8 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         }
     }
 
-    public List<Action> GetTasks(TaskHelper t, MoveType moveType)
-        => Steps.SelectMany(x => x.GetTasks(t, moveType)).ToList();
+    public List<Action> GetTasks(TaskHelper t)
+        => Steps.SelectMany(x => x.GetTasks(t)).ToList();
 
     public override string ToString() => $"ExecutorPreset_{Name}_{Zone}_{Steps.Count}Steps";
 

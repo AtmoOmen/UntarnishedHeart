@@ -1,10 +1,10 @@
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.ClientState.Conditions;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using System.Linq;
 using System;
 using Dalamud.Game.ClientState.Objects.Enums;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using Lumina.Excel.GeneratedSheets;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Utils;
@@ -23,7 +23,7 @@ public class Executor : IDisposable
 
     private TaskHelper? TaskHelper;
 
-    public Executor(ExecutorPreset? preset, int maxRound = -1, bool autoOpenTreasure = false, uint leaveDutyDelay = 0)
+    public Executor(ExecutorPreset? preset, int maxRound = -1)
     {
         if (preset is not { IsValid: true }) return;
 
@@ -37,10 +37,10 @@ public class Executor : IDisposable
         DService.DutyState.DutyRecommenced += OnDutyStarted;
         DService.DutyState.DutyCompleted += OnDutyCompleted;
 
-        MaxRound = maxRound;
-        AutoOpenTreasure = autoOpenTreasure;
-        LeaveDutyDelay = leaveDutyDelay;
-        ExecutorPreset = preset;
+        MaxRound         = maxRound;
+        AutoOpenTreasure = preset.AutoOpenTreasures;
+        LeaveDutyDelay   = (uint)preset.DutyDelay;
+        ExecutorPreset   = preset;
         
         OnDutyStarted(null, DService.ClientState.TerritoryType);
     }
@@ -98,7 +98,7 @@ public class Executor : IDisposable
             return DService.DutyState.IsDutyStarted;
         }, "等待副本开始");
 
-        foreach (var task in ExecutorPreset.GetTasks(TaskHelper, Service.Config.MoveType))
+        foreach (var task in ExecutorPreset.GetTasks(TaskHelper))
             task.Invoke();
     }
 
@@ -154,26 +154,14 @@ public class Executor : IDisposable
     // 填装搜寻宝箱
     private unsafe void EnqueueTreasureHunt()
     {
-        var localPlayer = DService.ClientState.LocalPlayer;
+        var localPlayer  = DService.ClientState.LocalPlayer;
         var origPosition = localPlayer?.Position ?? default;
-        var currentZoneType = DService.ClientState.TerritoryType;
-        var contentFinderConditionSheet = LuminaCache.Get<ContentFinderCondition>();
         var setDelayTime = 50;
-        var contentTypeTrial = 4;
-        var contentTypeRaid = 5;
-        
-        if (contentFinderConditionSheet != null)
-        {
-            var contentFinderEntry = contentFinderConditionSheet.FirstOrDefault(entry => entry.TerritoryType.Row == currentZoneType);
 
-            if (contentFinderEntry != null)
-            {
-                if (contentFinderEntry.ContentType.Row == contentTypeTrial || contentFinderEntry.ContentType.Row == contentTypeRaid)
-                {
-                    setDelayTime = 2300;
-                }
-            }
-        }
+        if (LuminaCache.TryGetRow<ContentFinderCondition>(
+                GameMain.Instance()->CurrentContentFinderConditionId, out var data) &&
+            data.ContentType.Row is 4 or 5)
+            setDelayTime = 2300;
 
         TaskHelper.Enqueue(() =>
         {
@@ -189,7 +177,7 @@ public class Executor : IDisposable
                 TaskHelper.Enqueue(() =>
                 {
                     if (!Throttler.Throttle("交互宝箱节流")) return false;
-                    return TargetSystem.Instance()->InteractWithObject(obj.ToStruct(), false) != 0;
+                    return obj.TargetInteract();
                 }, "与宝箱交互", null, null, 2);
             }
 
