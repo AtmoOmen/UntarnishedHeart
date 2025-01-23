@@ -15,7 +15,7 @@ using UntarnishedHeart.Executor;
 namespace UntarnishedHeart.Windows;
 
 public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-MainWindow", 
-                             ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize), IDisposable
+                             ImGuiWindowFlags.NoScrollbar), IDisposable
 {
     private static Executor.Executor? PresetExecutor;
 
@@ -73,8 +73,8 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             }
 
             if (Service.Config.LeaderMode)
-                ImGuiOm.TooltipHover("你已开启队长模式, 请阅读并确认下列注意事项:\n" +
-                                     "1. 确认并在任务搜索器内选取完成你所选择的副本\n" +
+                ImGuiOm.TooltipHover("你已开启队长模式, 请阅读并确认下列注意事项:\n\n" +
+                                     "1. 在任务搜索器内选取完成你所选择的副本\n" +
                                      "2. 配置好相关的任务搜索器设置 (如: 解除限制)\n" +
                                      "3. 首次运作需要你手动排本, 后续为插件自动排本\n");
         }
