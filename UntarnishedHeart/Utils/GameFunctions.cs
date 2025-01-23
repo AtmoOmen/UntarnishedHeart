@@ -44,8 +44,13 @@ public static class GameFunctions
         PathFindHelper.Dispose();
     }
 
-    public static unsafe void RegisterToEnterDuty()
-        => SendEvent(AgentId.ContentsFinder, 0, 12, 0);
+    public static unsafe void RegisterToEnterDuty(bool isHighEnd = false)
+    {
+        if (isHighEnd)
+            SendEvent(AgentId.RaidFinder, 81, 11);
+        else
+            SendEvent(AgentId.ContentsFinder, 0, 12, 0);
+    }
 
     public static unsafe void Teleport(Vector3 pos)
     {

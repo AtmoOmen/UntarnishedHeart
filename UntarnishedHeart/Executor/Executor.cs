@@ -146,7 +146,8 @@ public class Executor : IDisposable
         TaskHelper.Enqueue(() =>
         {
             if (!Throttler.Throttle("进入副本节流")) return false;
-            GameFunctions.RegisterToEnterDuty();
+            GameFunctions.RegisterToEnterDuty(
+                LuminaCache.GetRow<TerritoryType>(ExecutorPreset.Zone).ContentFinderCondition.Value?.HighEndDuty ?? false);
             return DService.Condition[ConditionFlag.WaitingForDutyFinder] || DService.Condition[ConditionFlag.WaitingForDuty];
         }, "等待进入下一局");
     }
