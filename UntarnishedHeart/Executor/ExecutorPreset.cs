@@ -9,7 +9,9 @@ using UntarnishedHeart.Windows;
 using System.Text;
 using Newtonsoft.Json;
 using System.Windows.Forms;
+using Lumina.Excel.GeneratedSheets;
 using UntarnishedHeart.Utils;
+using Action = System.Action;
 
 namespace UntarnishedHeart.Executor;
 
@@ -19,9 +21,11 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
     public ushort                   Zone              { get; set; }
     public List<ExecutorPresetStep> Steps             { get; set; } = [];
     public bool                     AutoOpenTreasures { get; set; }
-    public int                      DutyDelay    { get; set; } = 500;
+    public int                      DutyDelay         { get; set; } = 500;
 
     public bool IsValid => Zone != 0 && Steps.Count > 0 && Main.ZonePlaceNames.ContainsKey(Zone);
+    
+    private string contentZoneSearchInput = string.Empty;
 
     public void Draw()
     {
@@ -31,21 +35,31 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 () => ImGui.InputText("###PresetNameInput", ref name, 128)))
             Name = name;
 
-        var zone = (int)Zone;
-        if (ImGuiOm.CompLabelLeft(
-                "区域:", 200f * ImGuiHelpers.GlobalScale,
-                () => ImGui.InputInt("###PresetZoneInput", ref zone, 0, 0)))
-            Zone = (ushort)Math.Clamp(zone, 0, ushort.MaxValue);
-
-        ImGui.SameLine();
-        if (ImGuiOm.ButtonIcon("GetZone", FontAwesomeIcon.MapMarkedAlt, "取当前区域", true))
-            Zone = DService.ClientState.TerritoryType;
-
-        using (ImRaii.PushIndent())
+        using (ImRaii.Group())
         {
-            var zoneName = Main.ZonePlaceNames.GetValueOrDefault(Zone, "未知区域");
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text("区域:");
+        
+            var zone = (uint)Zone;
             ImGui.SameLine();
-            ImGui.Text($"({zoneName})");
+            ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+            if (ContentSelectCombo(ref zone, ref contentZoneSearchInput))
+                Zone = (ushort)zone;
+
+            ImGui.SameLine();
+            if (ImGuiOm.ButtonIcon("GetZone", FontAwesomeIcon.MapMarkedAlt, "取当前区域", true))
+                Zone = DService.ClientState.TerritoryType;
+
+            using (ImRaii.PushIndent())
+            {
+                if (LuminaCache.TryGetRow<TerritoryType>(Zone, out var zoneData))
+                {
+                    var zoneName    = zoneData.PlaceName.Value.Name.ExtractText()              ?? "未知区域";
+                    var contentName = zoneData.ContentFinderCondition.Value.Name.ExtractText() ?? "未知副本";
+                
+                    ImGui.Text($"({zoneName} / {contentName})");
+                }
+            }
         }
 
         using (ImRaii.Group())

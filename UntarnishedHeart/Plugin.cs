@@ -6,6 +6,7 @@ global using OmenTools.ImGuiOm;
 global using OmenTools.Helpers;
 global using OmenTools;
 global using static UntarnishedHeart.Plugin;
+global using static UntarnishedHeart.Utils.Widgets;
 using System;
 using System.Reflection;
 using Dalamud.Plugin;
