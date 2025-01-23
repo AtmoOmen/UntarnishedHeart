@@ -17,16 +17,18 @@ namespace UntarnishedHeart.Executor;
 
 public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 {
-    public string     Note            { get; set; } = string.Empty;
-    public bool       StopInCombat    { get; set; } = true;
-    public Vector3    Position        { get; set; }
-    public MoveType   MoveType        { get; set; } = MoveType.无;
-    public bool       WaitForGetClose { get; set; }
-    public uint       DataID          { get; set; }
-    public ObjectKind ObjectKind      { get; set; } = ObjectKind.BattleNpc;
-    public bool       WaitForTarget   { get; set; } = true;
-    public string     Commands        { get; set; } = string.Empty;
-    public int        Delay           { get; set; } = 5000;
+    public string     Note               { get; set; } = string.Empty;
+    public bool       StopWhenBusy       { get; set; }
+    public bool       StopInCombat       { get; set; } = true;
+    public Vector3    Position           { get; set; }
+    public MoveType   MoveType           { get; set; } = MoveType.无;
+    public bool       WaitForGetClose    { get; set; }
+    public uint       DataID             { get; set; }
+    public ObjectKind ObjectKind         { get; set; } = ObjectKind.BattleNpc;
+    public bool       WaitForTarget      { get; set; } = true;
+    public bool       InteractWithTarget { get; set; }
+    public string     Commands           { get; set; } = string.Empty;
+    public int        Delay              { get; set; } = 5000;
 
     public ExecutorStepOperationType Draw(int i, int count)
     {
@@ -76,6 +78,13 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 () => ImGui.Checkbox("###StepStopInCombatInput", ref stepStopInCombat)))
             StopInCombat = stepStopInCombat;
         ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否进入战斗状态, 若已进入, 则阻塞步骤执行");
+        
+        var stepStopWhenBusy = StopWhenBusy;
+        if (ImGuiOm.CompLabelLeft(
+                "若为忙碌状态, 则等待:", 200f * ImGuiHelpers.GlobalScale,
+                () => ImGui.Checkbox("###StepStopWhenBusyInput", ref stepStopWhenBusy)))
+            StopWhenBusy = stepStopWhenBusy;
+        ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否正处于忙碌状态 (如: 过图加载, 交互等), 若已进入, 则阻塞步骤执行");
 
         ImGui.Spacing();
         
@@ -191,22 +200,33 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                         ImGui.SameLine();
                         if (ImGuiOm.ButtonIcon("GetTarget", FontAwesomeIcon.Crosshairs, "取当前目标", true))
                         {
-                            if (DService.Targets.Target is { ObjectKind: ObjectKind.BattleNpc } battleNpc)
-                                DataID = battleNpc.DataId;
+                            if (DService.Targets.Target is { } target)
+                            {
+                                DataID     = target.DataId;
+                                ObjectKind = target.ObjectKind;
+                            }
                         }
                     }
                 }
                 
                 ImGui.Spacing();
+
+                using (ImRaii.PushColor(ImGuiCol.Text, LightSkyBlue))
+                {
+                    var waitForTarget = WaitForTarget;
+                    if (ImGui.Checkbox("等待目标被选中", ref waitForTarget))
+                        WaitForTarget = waitForTarget;
+                }
+                ImGuiOm.TooltipHover("勾选后, 则会阻塞进程持续查找对应目标并尝试选中, 直至任一目标被选中");
                 
-                ImGui.AlignTextToFramePadding();
-                ImGui.TextColored(LightSkyBlue, "等待目标被选中:");
-                ImGuiOm.TooltipHover("若勾选, 则会强制等待任一目标被选中后再继续向后执行");
-                
-                ImGui.SameLine();
-                var waitForTarget = WaitForTarget;
-                if (ImGui.Checkbox("###WaitForTargetCheckbox", ref waitForTarget))
-                    WaitForTarget = waitForTarget;
+                using (ImRaii.PushColor(ImGuiCol.Text, LightSkyBlue))
+                {
+                    var interactWithTarget = InteractWithTarget;
+                    if (ImGui.Checkbox("交互此目标", ref interactWithTarget))
+                        InteractWithTarget = interactWithTarget;
+                }
+                ImGuiOm.TooltipHover("勾选后, 则会尝试与当前目标进行交互, 若未选中任一目标则跳过\n\n" +
+                                     "注: 请自行确保位于一个可交互到目标的坐标");
             }
             else
                 ImGuiOm.TooltipHover("在开始向上方配置的坐标移动后, 会按照此处的配置选中指定的目标");
@@ -258,7 +278,9 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         =>
         [
             // 检查进战状态
-            () => t.Enqueue(() => !StopInCombat || !DService.Condition[ConditionFlag.InCombat]),
+            () => t.Enqueue(() => !StopInCombat || !DService.Condition[ConditionFlag.InCombat], $"检查进战状态: {Note}"),
+            // 检查忙碌状态
+            () => t.Enqueue(() => !StopWhenBusy || (!OccupiedInEvent && IsScreenReady()), $"检查忙碌状态: {Note}"),
             // 执行移动
             () => t.Enqueue(() =>
             {
@@ -298,6 +320,15 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 TargetObject();
                 return !WaitForTarget || DService.Targets.Target != null;
             }, $"选中目标: {Note}"),
+            // 执行目标交互
+            () => t.Enqueue(() =>
+            {
+                if (DataID == 0 || !InteractWithTarget || DService.Targets.Target is not { } target) return true;
+                return target.TargetInteract();
+            }, $"交互预设目标: {Note}"),
+            // 等待目标交互完成
+            () => t.DelayNext(InteractWithTarget ? 200 : 0, $"延迟 200 毫秒, 等待交互开始: {Note}"),
+            () => t.Enqueue(() => !InteractWithTarget || (!OccupiedInEvent && IsScreenReady()), $"等待目标交互完成: {Note}"),
             // 执行文本指令
             () => t.Enqueue(() =>
             {
@@ -313,6 +344,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
                 return Vector2.DistanceSquared(localPlayer.Position.ToVector2(), Position.ToVector2()) <= 4;
             }, "等待接近目标位置"),
+            // 延迟
             () => t.DelayNext(Delay, $"等待 {Delay} 秒: {Note}")
         ];
 
