@@ -86,6 +86,8 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         }
     }
 
+    public override void OnClose() => Service.Config.Save();
+
     private static void DrawExecutorInfo()
     {
         ImGui.TextColored(LightBlue, "运行状态:");
