@@ -5,7 +5,7 @@ using System.Linq;
 using System;
 using Dalamud.Game.ClientState.Objects.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Utils;
 
@@ -147,7 +147,7 @@ public class Executor : IDisposable
         {
             if (!Throttler.Throttle("进入副本节流")) return false;
             GameFunctions.RegisterToEnterDuty(
-                LuminaCache.GetRow<TerritoryType>(ExecutorPreset.Zone).ContentFinderCondition.Value?.HighEndDuty ?? false);
+                LuminaCache.GetRow<TerritoryType>(ExecutorPreset.Zone)?.ContentFinderCondition.Value.HighEndDuty ?? false);
             return DService.Condition[ConditionFlag.WaitingForDutyFinder] || DService.Condition[ConditionFlag.WaitingForDuty];
         }, "等待进入下一局");
     }
@@ -161,7 +161,7 @@ public class Executor : IDisposable
 
         if (LuminaCache.TryGetRow<ContentFinderCondition>(
                 GameMain.Instance()->CurrentContentFinderConditionId, out var data) &&
-            data.ContentType.Row is 4 or 5)
+            data.ContentType.RowId is 4 or 5)
             setDelayTime = 2300;
 
         TaskHelper.Enqueue(() =>
