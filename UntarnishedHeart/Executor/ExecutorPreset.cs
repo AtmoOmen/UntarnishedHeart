@@ -9,7 +9,7 @@ using UntarnishedHeart.Windows;
 using System.Text;
 using Newtonsoft.Json;
 using System.Windows.Forms;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using UntarnishedHeart.Utils;
 using Action = System.Action;
 

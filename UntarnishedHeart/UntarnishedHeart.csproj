@@ -3,7 +3,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <Authors>AtmoOmen</Authors>
-        <Version>0.1.1.0</Version>
+        <Version>0.1.2.0</Version>
         <Description>Sample Plugin Template based on goatcorp's.</Description>
         <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
         <IsPackable>false</IsPackable>
@@ -48,7 +48,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="DalamudPackager" Version="2.1.13" />
+        <PackageReference Include="DalamudPackager" Version="11.0.0" />
         <ProjectReference Include="..\OmenTools\OmenTools.csproj" />
         <Reference Include="FFXIVClientStructs">
             <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>

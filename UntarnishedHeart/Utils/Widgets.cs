@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 
 namespace UntarnishedHeart.Utils;
 
@@ -17,7 +17,7 @@ public static class Widgets
         var selectState = false;
 
         var previewText =
-            LuminaCache.TryGetRow<TerritoryType>(selected, out var zone) && zone.ContentFinderCondition.Value != null
+            LuminaCache.TryGetRow<TerritoryType>(selected, out var zone) && zone.ContentFinderCondition.IsValid
                 ? $"{zone.ContentFinderCondition.Value.Name.ExtractText()}"
                 : "未选择任何有效副本";
         
