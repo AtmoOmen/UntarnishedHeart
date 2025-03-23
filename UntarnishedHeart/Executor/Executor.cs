@@ -147,7 +147,7 @@ public class Executor : IDisposable
         {
             if (!Throttler.Throttle("进入副本节流")) return false;
             GameFunctions.RegisterToEnterDuty(
-                LuminaCache.GetRow<TerritoryType>(ExecutorPreset.Zone)?.ContentFinderCondition.Value.HighEndDuty ?? false);
+                LuminaGetter.GetRow<TerritoryType>(ExecutorPreset.Zone)?.ContentFinderCondition.Value.HighEndDuty ?? false);
             return DService.Condition[ConditionFlag.WaitingForDutyFinder] || DService.Condition[ConditionFlag.WaitingForDuty];
         }, "等待进入下一局");
     }
@@ -159,7 +159,7 @@ public class Executor : IDisposable
         var origPosition = localPlayer?.Position ?? default;
         var setDelayTime = 50;
 
-        if (LuminaCache.TryGetRow<ContentFinderCondition>(
+        if (LuminaGetter.TryGetRow<ContentFinderCondition>(
                 GameMain.Instance()->CurrentContentFinderConditionId, out var data) &&
             data.ContentType.RowId is 4 or 5)
             setDelayTime = 2300;

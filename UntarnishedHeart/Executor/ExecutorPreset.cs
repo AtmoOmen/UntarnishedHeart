@@ -52,7 +52,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
 
             using (ImRaii.PushIndent())
             {
-                if (LuminaCache.TryGetRow<TerritoryType>(Zone, out var zoneData))
+                if (LuminaGetter.TryGetRow<TerritoryType>(Zone, out var zoneData))
                 {
                     var zoneName    = zoneData.PlaceName.Value.Name.ExtractText()              ?? "未知区域";
                     var contentName = zoneData.ContentFinderCondition.Value.Name.ExtractText() ?? "未知副本";

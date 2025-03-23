@@ -17,7 +17,7 @@ public static class Widgets
         var selectState = false;
 
         var previewText =
-            LuminaCache.TryGetRow<TerritoryType>(selected, out var zone) && zone.ContentFinderCondition.IsValid
+            LuminaGetter.TryGetRow<TerritoryType>(selected, out var zone) && zone.ContentFinderCondition.IsValid
                 ? $"{zone.ContentFinderCondition.Value.Name.ExtractText()}"
                 : "未选择任何有效副本";
         

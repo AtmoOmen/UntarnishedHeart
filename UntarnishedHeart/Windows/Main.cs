@@ -27,7 +27,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 
     static Main()
     {
-        ZonePlaceNames = LuminaCache.Get<TerritoryType>()
+        ZonePlaceNames = LuminaGetter.Get<TerritoryType>()
                                     .Select(x => (x.RowId, x.ExtractPlaceName()))
                                     .Where(x => !string.IsNullOrWhiteSpace(x.Item2))
                                     .ToDictionary(x => x.RowId, x => x.Item2);
