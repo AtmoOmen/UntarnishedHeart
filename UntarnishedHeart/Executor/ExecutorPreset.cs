@@ -94,7 +94,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         {
             var step = Steps[i];
             
-            using var node = ImRaii.TreeNode($"第 {i + 1} 步: {step.Note}###Step-{i}");
+            using var node = ImRaii.TreeNode($"第 {i + 1} 步: {step.Note} (延迟: {step.Delay}ms)###Step-{i}");
             if (!node) continue;
             
             var ret = step.Draw(i, Steps.Count);

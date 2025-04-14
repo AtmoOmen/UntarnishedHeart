@@ -27,13 +27,13 @@ public class CommandCondition
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
-        using (var combo = ImRaii.Combo("###ExecuteTypeCombo", ExecuteType.ToString(), ImGuiComboFlags.HeightLargest))
+        using (var combo = ImRaii.Combo("###ExecuteTypeCombo", ExecuteType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
             {
                 foreach (var executeType in Enum.GetValues<CommandExecuteType>())
                 {
-                    if (ImGui.Selectable($"{executeType.ToString()}", ExecuteType == executeType))
+                    if (ImGui.Selectable($"{executeType.GetDescription()}", ExecuteType == executeType))
                         ExecuteType = executeType;
                     ImGuiOm.TooltipHover($"{executeType.GetDescription()}");
                 }
@@ -58,13 +58,13 @@ public class CommandCondition
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(100f * ImGuiHelpers.GlobalScale);
-        using (var combo = ImRaii.Combo("###RelationTypeCombo", RelationType.ToString(), ImGuiComboFlags.HeightLargest))
+        using (var combo = ImRaii.Combo("###RelationTypeCombo", RelationType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
             {
                 foreach (var relationType in Enum.GetValues<CommandRelationType>())
                 {
-                    if (ImGui.Selectable($"{relationType.ToString()}", RelationType == relationType))
+                    if (ImGui.Selectable($"{relationType.GetDescription()}", RelationType == relationType))
                         RelationType = relationType;
                     ImGuiOm.TooltipHover($"{relationType.GetDescription()}");
                 }
@@ -164,13 +164,13 @@ public class CommandSingleCondition
         
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
-        using (var combo = ImRaii.Combo("###DetectTypeCombo", DetectType.ToString(), ImGuiComboFlags.HeightLargest))
+        using (var combo = ImRaii.Combo("###DetectTypeCombo", DetectType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
             {
                 foreach (var detectType in Enum.GetValues<CommandDetectType>())
                 {
-                    if (ImGui.Selectable($"{detectType.ToString()}", DetectType == detectType))
+                    if (ImGui.Selectable($"{detectType.GetDescription()}", DetectType == detectType))
                         DetectType = detectType;
                     ImGuiOm.TooltipHover($"{detectType.GetDescription()}");
                 }
@@ -185,13 +185,13 @@ public class CommandSingleCondition
         
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
-        using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.ToString(), ImGuiComboFlags.HeightLargest))
+        using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
             {
                 foreach (var comparisonType in Enum.GetValues<CommandComparisonType>())
                 {
-                    if (ImGui.Selectable($"{comparisonType.ToString()}", ComparisonType == comparisonType))
+                    if (ImGui.Selectable($"{comparisonType.GetDescription()}", ComparisonType == comparisonType))
                         ComparisonType = comparisonType;
                     ImGuiOm.TooltipHover($"{comparisonType.GetDescription()}");
                 }
@@ -206,13 +206,13 @@ public class CommandSingleCondition
         
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
-        using (var combo = ImRaii.Combo("###TargetTypeCombo", TargetType.ToString(), ImGuiComboFlags.HeightLargest))
+        using (var combo = ImRaii.Combo("###TargetTypeCombo", TargetType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
             {
                 foreach (var targetType in Enum.GetValues<CommandTargetType>())
                 {
-                    if (ImGui.Selectable($"{targetType.ToString()}", TargetType == targetType))
+                    if (ImGui.Selectable($"{targetType.GetDescription()}", TargetType == targetType))
                         TargetType = targetType;
                     ImGuiOm.TooltipHover($"{targetType.GetDescription()}");
                 }
@@ -275,7 +275,6 @@ public class CommandSingleCondition
                     CommandTargetType.Self => Control.GetLocalPlayer()->StatusManager.HasStatus(statusID),
                     _                      => null
                 };
-                Debug($"测试判断状态: {statusID} {hasStatus}");
                 if (hasStatus == null) return false;
 
                 return ComparisonType switch
@@ -303,9 +302,9 @@ public class CommandSingleCondition
 
 public enum CommandDetectType
 {
-    [Description("生命值百分比, 有效比较值: GreaterThan / LessThan / EqualTo / NotEqualTo")]
+    [Description("生命值百分比")]
     Health,
-    [Description("状态效果, 有效比较值: Has / NotHas")]
+    [Description("状态效果")]
     Status,
 }
 
