@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -23,9 +24,9 @@ public static class GameFunctions
 
     public static void Init()
     {
-        ExecuteCommand ??= Marshal.GetDelegateForFunctionPointer<ExecuteCommandDelegate>(ExecuteCommandSig.ScanText());
+        ExecuteCommand ??= ExecuteCommandSig.GetDelegate<ExecuteCommandDelegate>();
         PathFindHelper ??= new();
-        TaskHelper ??= new() { TimeLimitMS = int.MaxValue };
+        TaskHelper     ??= new() { TimeLimitMS = int.MaxValue };
     }
 
     public static void Uninit()
@@ -42,14 +43,6 @@ public static class GameFunctions
         PathFindTask = null;
 
         PathFindHelper.Dispose();
-    }
-
-    public static unsafe void RegisterToEnterDuty(bool isHighEnd = false)
-    {
-        if (isHighEnd)
-            SendEvent(AgentId.RaidFinder, 81, 11);
-        else
-            SendEvent(AgentId.ContentsFinder, 0, 12, 0);
     }
 
     public static unsafe void Teleport(Vector3 pos)
@@ -77,8 +70,8 @@ public static class GameFunctions
             if (!Throttler.Throttle("寻路节流")) return false;
 
             PathFindTask ??= DService.Framework.RunOnTick(
-                async () => await Task.Run(() => PathFindInternalTask(pos), PathFindCancelSource.Token), 
-                default, 0, PathFindCancelSource.Token);
+                async () => await Task.Run(async () => await PathFindInternalTask(pos), PathFindCancelSource.Token), 
+                TimeSpan.Zero, 0, PathFindCancelSource.Token);
 
             return PathFindTask.IsCompleted;
         });
@@ -102,7 +95,7 @@ public static class GameFunctions
         PathFindHelper.DesiredPosition = default;
     }
 
-    private static async void PathFindInternalTask(Vector3 targetPos)
+    private static async Task PathFindInternalTask(Vector3 targetPos)
     {
         PathFindHelper.DesiredPosition = targetPos;
         PathFindHelper.Enabled = true;

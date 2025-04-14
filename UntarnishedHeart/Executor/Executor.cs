@@ -90,7 +90,7 @@ public class Executor : IDisposable
     // 填装预设步骤
     private void EnqueuePreset()
     {
-        TaskHelper.Enqueue(() => DService.ClientState.LocalPlayer != null, "等待区域加载结束");
+        TaskHelper.Enqueue(() => DService.ClientState.LocalPlayer != null && IsScreenReady(), "等待区域加载结束");
 
         TaskHelper.Enqueue(() =>
         {
@@ -147,8 +147,9 @@ public class Executor : IDisposable
         {
             if (!Throttler.Throttle("进入副本节流")) return false;
             if (!LuminaGetter.TryGetRow<TerritoryType>(ExecutorPreset.Zone, out var zone)) return false;
+            
             ContentsFinderHelper.RequestDutyNormal(zone.ContentFinderCondition.RowId, ContentsFinderHelper.ContentsFinderOption.Get());
-            return DService.Condition[ConditionFlag.WaitingForDutyFinder] || DService.Condition[ConditionFlag.WaitingForDuty];
+            return DService.Condition.Any(ConditionFlag.WaitingForDutyFinder, ConditionFlag.WaitingForDuty, ConditionFlag.InDutyQueue);
         }, "等待进入下一局");
     }
 
@@ -159,8 +160,7 @@ public class Executor : IDisposable
         var origPosition = localPlayer?.Position ?? default;
         var setDelayTime = 50;
 
-        if (LuminaGetter.TryGetRow<ContentFinderCondition>(
-                GameMain.Instance()->CurrentContentFinderConditionId, out var data) &&
+        if (LuminaGetter.TryGetRow<ContentFinderCondition>(GameMain.Instance()->CurrentContentFinderConditionId, out var data) &&
             data.ContentType.RowId is 4 or 5)
             setDelayTime = 2300;
 
@@ -173,7 +173,11 @@ public class Executor : IDisposable
 
             foreach (var obj in treasures)
             {
-                TaskHelper.Enqueue(() => GameFunctions.Teleport(obj.Position), "传送至宝箱", null, null, 2);
+                TaskHelper.Enqueue(() =>
+                {
+                    GameFunctions.Teleport(obj.Position);
+                    localPlayer.ToStruct()->RotationModified();
+                }, "传送至宝箱", null, null, 2);
                 TaskHelper.DelayNext(setDelayTime, "等待位置确认", false, 2);
                 TaskHelper.Enqueue(() =>
                 {

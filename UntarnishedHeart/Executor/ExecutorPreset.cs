@@ -86,6 +86,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
 
         if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, "添加新步骤", true))
             Steps.Add(new());
+        ImGuiOm.HelpMarker("每一步骤内的各判断, 都遵循界面绘制顺序, 从上到下依次判断执行", useStaticFont: true);
 
         ImGui.Spacing();
         

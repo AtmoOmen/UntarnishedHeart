@@ -248,7 +248,9 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                                    "支持多条文本指令, 一行一条"
                                  : Commands);
         
-        ImGui.TextColored(RoyalBlue2, "(等待完全接近坐标)");
+        ImGui.Text("等待接近目标位置");
+        ImGuiOm.HelpMarker("只要上方 \"坐标\" 内的坐标设置不为 <0, 0, 0>, 则始终会执行接近检测并堵塞, 直至目标 2D 距离 ≤ 2",
+                           20f * ImGuiHelpers.GlobalScale, useStaticFont: true);
         
         ImGui.Spacing();
 
@@ -256,7 +258,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         {
             var stepDelay = Delay;
             if (ImGuiOm.CompLabelLeft(
-                    "延迟:", 200f * ImGuiHelpers.GlobalScale,
+                    "等待:", 200f * ImGuiHelpers.GlobalScale,
                     () =>
                     {
                         var input            = ImGui.InputInt("###StepDelayInput", ref stepDelay, 0, 0);
@@ -330,11 +332,14 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
             () => t.DelayNext(InteractWithTarget ? 200 : 0, $"延迟 200 毫秒, 等待交互开始: {Note}"),
             () => t.Enqueue(() => !InteractWithTarget || (!OccupiedInEvent && IsScreenReady()), $"等待目标交互完成: {Note}"),
             // 执行文本指令
-            () => t.Enqueue(() =>
+            () =>
             {
                 foreach (var command in Commands.Split('\n'))
-                    ChatHelper.Instance.SendMessage(command);
-            }, $"使用文本指令: {Note}"),
+                {
+                    t.Enqueue(() => ChatHelper.Instance.SendMessage(command), $"使用文本指令: {Note} {command}");
+                    t.DelayNext(100, $"使用文本指令节流: {Note} {command}");
+                }
+            },
             // 等待接近目标位置
             () => t.Enqueue(() =>
             {
@@ -343,7 +348,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 if (!Throttler.Throttle("接近目标位置节流")) return false;
 
                 return Vector2.DistanceSquared(localPlayer.Position.ToVector2(), Position.ToVector2()) <= 4;
-            }, "等待接近目标位置"),
+            }, $"等待接近目标位置 {Note}"),
             // 延迟
             () => t.DelayNext(Delay, $"等待 {Delay} 秒: {Note}")
         ];
@@ -351,19 +356,26 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
     public unsafe void TargetObject()
     {
         if (FindObject() is not { } obj) return;
+        
         TargetSystem.Instance()->Target = obj.ToStruct();
     }
 
     public IGameObject? FindObject() 
         => DService.ObjectTable.FirstOrDefault(x => x.ObjectKind == ObjectKind && x.DataId == DataID);
 
-    public override string ToString() => $"ExecutorPresetStep_{Note}_{DataID}_{Position}_{Delay}_{StopInCombat}";
+    public override string ToString() => 
+        $"ExecutorPresetStep_{Note}_{DataID}_{Position}_{Delay}_{StopInCombat}";
 
     public bool Equals(ExecutorPresetStep? other)
     {
         if(ReferenceEquals(null, other)) return false;
         if(ReferenceEquals(this, other)) return true;
-        return Note == other.Note && DataID == other.DataID && Position.Equals(other.Position) && Delay.Equals(other.Delay) && StopInCombat == other.StopInCombat;
+        
+        return Note == other.Note && 
+               DataID == other.DataID && 
+               Position.Equals(other.Position) && 
+               Delay.Equals(other.Delay) && 
+               StopInCombat == other.StopInCombat;
     }
 
     public override bool Equals(object? obj)
@@ -371,22 +383,21 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         if(ReferenceEquals(null, obj)) return false;
         if(ReferenceEquals(this, obj)) return true;
         if(obj.GetType() != this.GetType()) return false;
+        
         return Equals((ExecutorPresetStep)obj);
     }
 
-    public override int GetHashCode() => HashCode.Combine(Note, DataID, Position, Delay, StopInCombat);
+    public override int GetHashCode() => 
+        HashCode.Combine(Note, DataID, Position, Delay, StopInCombat);
     
-    public ExecutorPresetStep Copy()
-    {
-        return new ExecutorPresetStep
+    public ExecutorPresetStep Copy() =>
+        new()
         {
-            Note = this.Note,
-            DataID = this.DataID,
-            Position = this.Position,
-            Delay = this.Delay,
-            Commands = this.Commands,
+            Note         = this.Note,
+            DataID       = this.DataID,
+            Position     = this.Position,
+            Delay        = this.Delay,
+            Commands     = this.Commands,
             StopInCombat = this.StopInCombat
         };
-    }
-    
 }
