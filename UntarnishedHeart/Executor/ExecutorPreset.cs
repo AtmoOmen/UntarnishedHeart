@@ -94,59 +94,16 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         {
             var step = Steps[i];
 
-            var contextOperation = StepOperationType.Pass;
-            
             using var node = ImRaii.TreeNode($"第 {i + 1} 步: {step.Note} (延迟: {step.Delay}ms)###Step-{i}");
             if (!node)
             {
-                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-                    ImGui.OpenPopup($"StepContentMenu_{i}");
-
-                using var context = ImRaii.ContextPopupItem($"StepContentMenu_{i}");
-                if (!context) continue;
-
-                if (ImGui.MenuItem("删除"))
-                    contextOperation = StepOperationType.Delete;
-                
-                if (i > 0)
-                    if (ImGui.MenuItem("上移"))
-                        contextOperation = StepOperationType.MoveUp;
-
-                if (i < Steps.Count - 1)
-                    if (ImGui.MenuItem("下移"))
-                        contextOperation = StepOperationType.MoveDown;
-                
-                ImGui.Separator();
-                
-                if (ImGui.MenuItem("向上插入新步骤"))
-                    Steps.Insert(Math.Max(i - 1, 0), new());
-
-                if (ImGui.MenuItem("向下插入新步骤"))
-                    Steps.Insert(i + 1, new());
-                
-                ImGui.Separator();
-
-                if (ImGui.MenuItem("向上复制本步骤"))
-                    Steps.Insert(Math.Max(i - 1, 0), step.Copy());
-
-                if (ImGui.MenuItem("向下复制本步骤"))
-                    Steps.Insert(i + 1, step.Copy());
-                
-                Action contextOperationAction = contextOperation switch
-                {
-                    StepOperationType.Delete   => () => Steps.RemoveAt(i),
-                    StepOperationType.MoveDown => () => Steps.Swap(i, i + 1),
-                    StepOperationType.MoveUp   => () => Steps.Swap(i, i - 1),
-                    StepOperationType.Copy     => () => Steps.Insert(i  + 1, step.Copy()),
-                    StepOperationType.Pass     => () => { },
-                    _                          => () => { }
-                };
-                contextOperationAction();
-                
+                DrawStepContextMenu(i, step);
                 continue;
             }
             
             var ret = step.Draw(i, Steps.Count);
+            DrawStepContextMenu(i, step);
+            
             Action executorOperationAction = ret switch
             {
                 StepOperationType.Delete   => () => Steps.RemoveAt(i),
@@ -157,6 +114,59 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 _                          => () => { }
             };
             executorOperationAction();
+        }
+
+        void DrawStepContextMenu(int i, ExecutorPresetStep step)
+        {
+            var contextOperation = StepOperationType.Pass;
+            
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                ImGui.OpenPopup($"StepContentMenu_{i}");
+
+            using var context = ImRaii.ContextPopupItem($"StepContentMenu_{i}");
+            if (!context) return;
+
+            ImGui.Text($"第 {i + 1} 步: {step.Note}");
+            
+            ImGui.Separator();
+            
+            if (ImGui.MenuItem("删除"))
+                contextOperation = StepOperationType.Delete;
+
+            if (i > 0)
+                if (ImGui.MenuItem("上移"))
+                    contextOperation = StepOperationType.MoveUp;
+
+            if (i < Steps.Count - 1)
+                if (ImGui.MenuItem("下移"))
+                    contextOperation = StepOperationType.MoveDown;
+
+            ImGui.Separator();
+
+            if (ImGui.MenuItem("向上插入新步骤"))
+                Steps.Insert(Math.Max(i - 1, 0), new());
+
+            if (ImGui.MenuItem("向下插入新步骤"))
+                Steps.Insert(i + 1, new());
+
+            ImGui.Separator();
+
+            if (ImGui.MenuItem("向上复制本步骤"))
+                Steps.Insert(Math.Max(i - 1, 0), step.Copy());
+
+            if (ImGui.MenuItem("向下复制本步骤"))
+                Steps.Insert(i + 1, step.Copy());
+
+            Action contextOperationAction = contextOperation switch
+            {
+                StepOperationType.Delete   => () => Steps.RemoveAt(i),
+                StepOperationType.MoveDown => () => Steps.Swap(i, i + 1),
+                StepOperationType.MoveUp   => () => Steps.Swap(i, i - 1),
+                StepOperationType.Copy     => () => Steps.Insert(i  + 1, step.Copy()),
+                StepOperationType.Pass     => () => { },
+                _                          => () => { }
+            };
+            contextOperationAction();
         }
     }
 
