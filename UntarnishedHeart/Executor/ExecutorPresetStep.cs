@@ -53,36 +53,6 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         using var id = ImRaii.PushId($"Step-{i}");
         using var group = ImRaii.Group();
 
-        #region 步骤信息
-
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("操作:");
-
-        using (ImRaii.Group())
-        {
-            ImGui.SameLine();
-            if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, "删除", true))
-                return StepOperationType.Delete;
-
-            if (i > 0)
-            {
-                ImGui.SameLine();
-                if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.ArrowUp, "上移", true))
-                    return StepOperationType.MoveUp;
-            }
-
-            if (i < count - 1)
-            {
-                ImGui.SameLine();
-                if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.ArrowDown, "下移", true))
-                    return StepOperationType.MoveDown;
-            }
-        
-            ImGui.SameLine();
-            if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Copy, "复制", true))
-                return StepOperationType.Copy;
-        }
-
         var stepName = Note;
         ImGuiOm.CompLabelLeft(
             "备注:", 200f * ImGuiHelpers.GlobalScale,
@@ -90,8 +60,6 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         if (ImGui.IsItemDeactivatedAfterEdit())
             Note = stepName;
 
-        #endregion
-        
         ImGui.Spacing();
 
         using (var treeNode = ImRaii.TreeNode("状态检查"))
