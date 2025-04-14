@@ -24,8 +24,10 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
     public int                      DutyDelay         { get; set; } = 500;
 
     public bool IsValid => Zone != 0 && Steps.Count > 0 && Main.ZonePlaceNames.ContainsKey(Zone);
-    
-    private string contentZoneSearchInput = string.Empty;
+
+    private ExecutorPresetStep? StepToCopy;
+
+    private string ZoneSearchInput = string.Empty;
 
     public void Draw()
     {
@@ -43,7 +45,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             var zone = (uint)Zone;
             ImGui.SameLine();
             ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
-            if (ContentSelectCombo(ref zone, ref contentZoneSearchInput))
+            if (ContentSelectCombo(ref zone, ref ZoneSearchInput))
                 Zone = (ushort)zone;
 
             ImGui.SameLine();
@@ -129,6 +131,25 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             ImGui.Text($"第 {i + 1} 步: {step.Note}");
             
             ImGui.Separator();
+            
+            if (ImGui.MenuItem("复制"))
+                StepToCopy = step;
+            
+            if (StepToCopy != null)
+            {
+                using (ImRaii.Group())
+                {
+                    if (ImGui.MenuItem("粘贴至本步"))
+                        Steps[i] = StepToCopy;
+                    
+                    if (ImGui.MenuItem("向上插入粘贴"))
+                        Steps.Insert(Math.Max(i - 1, 0), StepToCopy);
+
+                    if (ImGui.MenuItem("向下插入粘贴"))
+                        Steps.Insert(i + 1, StepToCopy);
+                }
+                ImGuiOm.TooltipHover($"已复制步骤: {StepToCopy.Note}");
+            }
             
             if (ImGui.MenuItem("删除"))
                 contextOperation = StepOperationType.Delete;
