@@ -3,7 +3,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <Authors>AtmoOmen</Authors>
-        <Version>0.1.3.0</Version>
+        <Version>0.1.4.0</Version>
         <Description>Sample Plugin Template based on goatcorp's.</Description>
         <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
         <IsPackable>false</IsPackable>
