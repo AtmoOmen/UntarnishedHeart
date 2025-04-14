@@ -237,6 +237,8 @@ public class CommandSingleCondition
 
     public unsafe bool IsConditionTrue()
     {
+        if (TargetType == CommandTargetType.Target && TargetSystem.Instance()->Target == null) return true;
+        
         switch (DetectType)
         {
             case CommandDetectType.Health:
