@@ -1,13 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using ImGuiNET;
 using Lumina.Excel.Sheets;
 using UntarnishedHeart.Managers;
@@ -19,10 +24,15 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 {
     public static Executor.Executor? PresetExecutor { get; private set; }
 
+    public static SeString UTHPrefix { get; } = new SeStringBuilder()
+                                                .AddUiForeground(SeIconChar.BoxedLetterU.ToIconString(), 31)
+                                                .AddUiForeground(SeIconChar.BoxedLetterT.ToIconString(), 31)
+                                                .AddUiForeground(SeIconChar.BoxedLetterH.ToIconString(), 31)
+                                                .AddUiForegroundOff().Build();
+
     public static readonly Dictionary<uint, string> ZonePlaceNames;
     
     private static int  SelectedPresetIndex;
-    private static bool IsDrawConfig = true;
 
     static Main()
     {
@@ -52,13 +62,18 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         {
             if (mainPageItem)
             {
-                DrawExecutorInfo();
+                DrawHomeExecutorInfo();
 
                 ImGui.Separator();
                 ImGui.Spacing();
 
-                DrawExecutorConfig();
+                DrawHomeExecutorConfig();
 
+                ImGui.Separator();
+                ImGui.Spacing();
+
+                DrawHomeContentConfig();
+                
                 ImGui.Separator();
                 ImGui.Spacing();
 
@@ -72,19 +87,21 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                         PresetExecutor ??= new(Service.Config.Presets[SelectedPresetIndex],
                                                Service.Config.RunTimes);
                     }
-
-                    if (Service.Config.LeaderMode)
-                        ImGuiOm.TooltipHover("你已开启队长模式, 请阅读并确认下列注意事项:\n\n"  +
-                                             "1. 在任务搜索器内选取完成你所选择的副本\n"      +
-                                             "2. 配置好相关的任务搜索器设置 (如: 解除限制)\n" +
-                                             "3. 首次运作需要你手动排本, 后续为插件自动排本\n"  +
-                                             "4. 如果你目标副本是多变迷宫且为单人进本, 请先在任务搜索器内启用解除限制, 不然无法进本");
                 }
 
                 if (ImGuiOm.ButtonSelectable("结束"))
                 {
                     PresetExecutor?.Dispose();
                     PresetExecutor = null;
+
+                    // 如果在排本就取消
+                    if (DService.Condition[ConditionFlag.InDutyQueue])
+                    {
+                        unsafe
+                        {
+                            SendEvent(AgentId.ContentsFinder, 0, 12, 0);
+                        }
+                    }
                 }
             }
         }
@@ -106,11 +123,14 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                 DrawDebugStatusInfo();
             }
         }
+
+        if (ImGui.TabItemButton("预设"))
+            WindowManager.Get<PresetEditor>().IsOpen ^= true;
     }
 
     public override void OnClose() => Service.Config.Save();
 
-    private static void DrawExecutorInfo()
+    private static void DrawHomeExecutorInfo()
     {
         ImGui.TextColored(LightBlue, "运行状态:");
         using var indent = ImRaii.PushIndent();
@@ -136,93 +156,181 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         ImGui.TextWrapped($"{PresetExecutor?.RunningMessage ?? string.Empty}");
     }
     
-    private static void DrawExecutorConfig()
+    private static void DrawHomeExecutorConfig()
     {
         ImGui.TextColored(LightBlue, "运行设置:");
-        if (ImGui.IsItemHovered())
-            ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-        if (ImGui.IsItemClicked())
-            IsDrawConfig ^= true;
-        
-        if (!IsDrawConfig) return;
         
         using var indent = ImRaii.PushIndent();
+        using var group  = ImRaii.Group();
 
+        var selectedPreset = Service.Config.Presets[SelectedPresetIndex];
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("已选预设:");
+
+        ImGui.SameLine();
         using (ImRaii.Group())
         {
-            var selectedPreset = Service.Config.Presets[SelectedPresetIndex];
-
-            ImGui.AlignTextToFramePadding();
-            ImGui.Text("已选预设:");
-
-            ImGui.SameLine();
-            using (ImRaii.Group())
+            ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+            using (var combo = ImRaii.Combo("###PresetSelectCombo", $"{selectedPreset.Name}", ImGuiComboFlags.HeightLarge))
             {
-                ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
-                using (var combo = ImRaii.Combo("###PresetSelectCombo", $"{selectedPreset.Name}", ImGuiComboFlags.HeightLarge))
+                if (combo)
                 {
-                    if (combo)
+                    for (var i = 0; i < Service.Config.Presets.Count; i++)
                     {
-                        for (var i = 0; i < Service.Config.Presets.Count; i++)
-                        {
-                            var preset = Service.Config.Presets[i];
-                            if (ImGui.Selectable($"{preset.Name}###{preset}-{i}"))
-                                SelectedPresetIndex = i;
+                        var preset = Service.Config.Presets[i];
+                        if (ImGui.Selectable($"{preset.Name}###{preset}-{i}"))
+                            SelectedPresetIndex = i;
 
-                            using var popup = ImRaii.ContextPopupItem($"{preset}-{i}ContextPopup");
-                            if (popup)
+                        using var popup = ImRaii.ContextPopupItem($"{preset}-{i}ContextPopup");
+                        if (popup)
+                        {
+                            using (ImRaii.Disabled(Service.Config.Presets.Count == 1))
                             {
-                                using (ImRaii.Disabled(Service.Config.Presets.Count == 1))
-                                {
-                                    if (ImGui.MenuItem($"删除##{preset}-{i}"))
-                                        Service.Config.Presets.Remove(preset);
-                                }
+                                if (ImGui.MenuItem($"删除##{preset}-{i}"))
+                                    Service.Config.Presets.Remove(preset);
                             }
                         }
                     }
                 }
             }
-
-            ImGui.AlignTextToFramePadding();
-            ImGui.Text("移动方式:");
-
-            foreach (var moveType in Enum.GetValues<MoveType>())
-            {
-                if (moveType == MoveType.无) continue;
-                
-                ImGui.SameLine();
-                if (ImGui.RadioButton(moveType.ToString(), moveType == Service.Config.MoveType))
-                {
-                    Service.Config.MoveType = moveType;
-                    Service.Config.Save();
-                }
-            }
-
-            var runTimes = Service.Config.RunTimes;
-            if (ImGuiOm.CompLabelLeft("运行次数:", 50f * ImGuiHelpers.GlobalScale,
-                                      () => ImGui.InputInt("###", ref runTimes, 0, 0)))
-            {
-                Service.Config.RunTimes = runTimes;
-                Service.Config.Save();
-            }
-            ImGuiOm.TooltipHover("若输入 -1, 则为无限运行");
-
-            ImGui.SameLine();
-            var isLeaderMode = Service.Config.LeaderMode;
-            if (ImGui.Checkbox("队长模式", ref isLeaderMode))
-            {
-                Service.Config.LeaderMode = isLeaderMode;
-                Service.Config.Save();
-            }
-            ImGuiOm.HelpMarker("启用队长模式时, 副本结束后会自动尝试排入同一副本", 20f, FontAwesomeIcon.InfoCircle, true);
         }
 
-        var groupSize = ImGui.GetItemRectSize();
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("移动方式:");
+
+        foreach (var moveType in Enum.GetValues<MoveType>())
+        {
+            if (moveType == MoveType.无) continue;
+                
+            ImGui.SameLine();
+            if (ImGui.RadioButton(moveType.ToString(), moveType == Service.Config.MoveType))
+            {
+                Service.Config.MoveType = moveType;
+                Service.Config.Save();
+            }
+        }
+
+        var runTimes = Service.Config.RunTimes;
+        if (ImGuiOm.CompLabelLeft("运行次数:", 50f * ImGuiHelpers.GlobalScale,
+                                  () => ImGui.InputInt("###", ref runTimes, 0, 0)))
+        {
+            Service.Config.RunTimes = runTimes;
+            Service.Config.Save();
+        }
+        ImGuiOm.TooltipHover("若输入 -1, 则为无限运行");
 
         ImGui.SameLine();
-        if (ImGuiOm.ButtonIconWithTextVertical(FontAwesomeIcon.Eye, "编辑预设",
-                                               groupSize with { X = ImGui.CalcTextSize("编辑预设").X * 1.5f }, true))
-            WindowManager.Get<PresetEditor>().IsOpen ^= true;
+        var isLeaderMode = Service.Config.LeaderMode;
+        if (ImGui.Checkbox("队长模式", ref isLeaderMode))
+        {
+            Service.Config.LeaderMode = isLeaderMode;
+            Service.Config.Save();
+        }
+        ImGuiOm.HelpMarker("启用队长模式时, 副本结束后会自动尝试排入同一副本", 20f, FontAwesomeIcon.InfoCircle, true);
+    }
+
+    private static void DrawHomeContentConfig()
+    {
+        ImGui.TextColored(LightBlue, "副本选项:");
+        
+        using var indent = ImRaii.PushIndent();
+        using var group  = ImRaii.Group();
+
+        using (ImRaii.Group())
+        {
+            ImGui.Text("副本设置");
+
+            var isUnrest = Service.Config.ContentsFinderOption.UnrestrictedParty;
+            if (ImGui.Checkbox("解除限制", ref isUnrest))
+            {
+                var newOption = Service.Config.ContentsFinderOption.Clone();
+                newOption.UnrestrictedParty = isUnrest;
+
+                Service.Config.ContentsFinderOption = newOption;
+                Service.Config.Save();
+            }
+
+            ImGui.SameLine();
+            var isSync = Service.Config.ContentsFinderOption.LevelSync;
+            if (ImGui.Checkbox("等级同步", ref isSync))
+            {
+                var newOption = Service.Config.ContentsFinderOption.Clone();
+                newOption.LevelSync = isSync;
+
+                Service.Config.ContentsFinderOption = newOption;
+                Service.Config.Save();
+            }
+
+            ImGui.SameLine();
+            var isMinIL = Service.Config.ContentsFinderOption.MinimalIL;
+            if (ImGui.Checkbox("最低品级", ref isMinIL))
+            {
+                var newOption = Service.Config.ContentsFinderOption.Clone();
+                newOption.MinimalIL = isMinIL;
+
+                Service.Config.ContentsFinderOption = newOption;
+                Service.Config.Save();
+            }
+
+            var isNoEcho = Service.Config.ContentsFinderOption.SilenceEcho;
+            if (ImGui.Checkbox("超越之力无效", ref isNoEcho))
+            {
+                var newOption = Service.Config.ContentsFinderOption.Clone();
+                newOption.SilenceEcho = isNoEcho;
+
+                Service.Config.ContentsFinderOption = newOption;
+                Service.Config.Save();
+            }
+
+            var lootRule = Service.Config.ContentsFinderOption.LootRules;
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(100f * ImGuiHelpers.GlobalScale);
+            using (var combo = ImRaii.Combo("分配规则###ContentLootRuleCombo", lootRule.ToString()))
+            {
+                if (combo)
+                {
+                    foreach (var loot in Enum.GetValues<ContentsFinder.LootRule>())
+                    {
+                        if (ImGui.Selectable(loot.ToString(), loot == lootRule))
+                        {
+                            var newOption = Service.Config.ContentsFinderOption.Clone();
+                            newOption.LootRules = loot;
+
+                            Service.Config.ContentsFinderOption = newOption;
+                            Service.Config.Save();
+                        }
+                    }
+                }
+            }
+        }
+        
+        ImGui.Spacing();
+
+        using (ImRaii.Group())
+        {
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text("副本入口:");
+            
+            var contentEntry = Service.Config.ContentEntryType;
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+            using (var combo = ImRaii.Combo("###ContentEntryCombo", contentEntry.GetDescription()))
+            {
+                if (combo)
+                {
+                    foreach (var entryType in Enum.GetValues<ContentEntryType>())
+                    {
+                        if (ImGui.Selectable(entryType.GetDescription(), entryType == contentEntry))
+                        {
+                            Service.Config.ContentEntryType = entryType;
+                            Service.Config.Save();
+                        }
+                    }
+                }
+            }
+            ImGuiOm.TooltipHover("典型用例:\n" +
+                                 "单人进入多变迷宫: 勾选解除限制, 入口选择一般副本");
+        }
     }
     
     private static void DrawDebugGeneralInfo()

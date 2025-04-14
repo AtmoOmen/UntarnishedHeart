@@ -8,7 +8,7 @@ using UntarnishedHeart.Managers;
 
 namespace UntarnishedHeart.Windows;
 
-public class PresetEditor() : Window($"预设编辑器###{PluginName}-PresetEditor", ImGuiWindowFlags.NoScrollbar)
+public class PresetEditor() : Window($"预设编辑器###{PluginName}-PresetEditor")
 {
     private static int SelectedPresetIndex;
 

@@ -8,6 +8,7 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using Lumina.Excel.Sheets;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Utils;
+using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Executor;
 
@@ -15,8 +16,6 @@ public class Executor : IDisposable
 {
     public uint            CurrentRound     { get; private set; }
     public int             MaxRound         { get; init; }
-    public bool            AutoOpenTreasure { get; init; }
-    public uint            LeaveDutyDelay   { get; init; }
     public ExecutorPreset? ExecutorPreset   { get; init; }
     public string          RunningMessage   => TaskHelper?.CurrentTaskName ?? string.Empty;
     public bool            IsDisposed       { get; private set; }
@@ -33,16 +32,17 @@ public class Executor : IDisposable
 
         DService.ClientState.TerritoryChanged += OnZoneChanged;
 
-        DService.DutyState.DutyStarted += OnDutyStarted;
+        DService.DutyState.DutyStarted     += OnDutyStarted;
         DService.DutyState.DutyRecommenced += OnDutyStarted;
-        DService.DutyState.DutyCompleted += OnDutyCompleted;
+        DService.DutyState.DutyCompleted   += OnDutyCompleted;
 
-        MaxRound         = maxRound;
-        AutoOpenTreasure = preset.AutoOpenTreasures;
-        LeaveDutyDelay   = (uint)preset.DutyDelay;
-        ExecutorPreset   = preset;
-        
-        OnDutyStarted(null, DService.ClientState.TerritoryType);
+        MaxRound       = maxRound;
+        ExecutorPreset = preset;
+
+        if (DService.ClientState.TerritoryType == ExecutorPreset.Zone)
+            OnDutyStarted(null, DService.ClientState.TerritoryType);
+        else if (!OccupiedInEvent && Service.Config.LeaderMode)
+            EnqueueRegDuty();
     }
 
     public void Dispose()
@@ -108,11 +108,11 @@ public class Executor : IDisposable
         AbortPrevious();
         if (ExecutorPreset == null || zone != ExecutorPreset.Zone) return;
 
-        if (AutoOpenTreasure)
+        if (ExecutorPreset.AutoOpenTreasures)
             EnqueueTreasureHunt();
 
-        if (LeaveDutyDelay > 0)
-            TaskHelper.DelayNext((int)LeaveDutyDelay);
+        if (ExecutorPreset.DutyDelay > 0)
+            TaskHelper.DelayNext(ExecutorPreset.DutyDelay);
 
         TaskHelper.Enqueue(() =>
         {
@@ -147,8 +147,25 @@ public class Executor : IDisposable
         {
             if (!Throttler.Throttle("进入副本节流", 2000)) return false;
             if (!LuminaGetter.TryGetRow<TerritoryType>(ExecutorPreset.Zone, out var zone)) return false;
+
+            switch (Service.Config.ContentEntryType)
+            {
+                case ContentEntryType.Normal:
+                    ContentsFinderHelper.RequestDutyNormal(zone.ContentFinderCondition.RowId, Service.Config.ContentsFinderOption);
+                    break;
+                case ContentEntryType.Support:
+                    var supportRow = LuminaGetter.Get<DawnContent>()
+                                                 .FirstOrDefault(x => x.Content.RowId == zone.ContentFinderCondition.RowId);
+                    if (supportRow.RowId == 0)
+                    {
+                        Chat("无法找到对应的剧情辅助器副本, 请检查修正后重新运行", Main.UTHPrefix);
+                        return true;
+                    }
+                    
+                    ContentsFinderHelper.RequestDutySupport(supportRow.RowId);
+                    break;
+            }
             
-            ContentsFinderHelper.RequestDutyNormal(zone.ContentFinderCondition.RowId, ContentsFinderHelper.ContentsFinderOption.Get());
             return DService.Condition.Any(ConditionFlag.WaitingForDutyFinder, ConditionFlag.WaitingForDuty, ConditionFlag.InDutyQueue);
         }, "等待进入下一局");
     }

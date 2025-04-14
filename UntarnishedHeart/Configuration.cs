@@ -8,11 +8,13 @@ namespace UntarnishedHeart;
 [Serializable]
 public class Configuration : IPluginConfiguration
 {
-    public int                  Version          { get; set; } = 0;
-    public MoveType             MoveType         { get; set; } = MoveType.传送;
-    public bool                 LeaderMode       { get; set; }
-    public int                  RunTimes         { get; set; } = -1;
-    public List<ExecutorPreset> Presets          { get; set; } = [];
+    public int                  Version              { get; set; } = 0;
+    public MoveType             MoveType             { get; set; } = MoveType.传送;
+    public bool                 LeaderMode           { get; set; }
+    public int                  RunTimes             { get; set; } = -1;
+    public List<ExecutorPreset> Presets              { get; set; } = [];
+    public ContentsFinderOption ContentsFinderOption { get; set; } = ContentsFinderHelper.DefaultOption;
+    public ContentEntryType     ContentEntryType     { get; set; } = ContentEntryType.Normal;
 
 
     public static readonly ExecutorPreset ExamplePreset0 = new()
@@ -24,11 +26,14 @@ public class Configuration : IPluginConfiguration
     {
         Name = "假火 (测试用)", Zone = 1045, Steps = [new() { DataID = 207, Note = "伊弗利特", Position = new(11, 0, 0) }]
     };
-    
+
     public static readonly ExecutorPreset ExamplePreset2 = new()
     {
-        Name = "极风 (测试用)", Zone = 297, Steps = [new() { DataID = 245, Note = "Note1", Position = new (-0.24348414f, -1.9395045f, -14.213441f), Delay = 8000, StopInCombat = false},
-                                                   new() { DataID = 245, Note = "Note2", Position = new(-0.63603175f, -1.8021163f, 0.6449276f), Delay = 5000, StopInCombat = false}]
+        Name = "极风 (测试用)", Zone = 297, Steps =
+        [
+            new() { DataID = 245, Note = "Note1", Position = new(-0.24348414f, -1.9395045f, -14.213441f), Delay = 8000, StopInCombat = false },
+            new() { DataID = 245, Note = "Note2", Position = new(-0.63603175f, -1.8021163f, 0.6449276f), Delay  = 5000, StopInCombat = false }
+        ]
     };
 
     public void Init()
