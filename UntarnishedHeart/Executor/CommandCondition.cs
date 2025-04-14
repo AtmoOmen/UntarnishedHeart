@@ -317,9 +317,9 @@ public enum CommandComparisonType
      EqualTo,
      [Description("不等于")]
      NotEqualTo,
-     [Description("不拥有")]
-     Has,
      [Description("拥有")]
+     Has,
+     [Description("不拥有")]
      NotHas,
 }
 
