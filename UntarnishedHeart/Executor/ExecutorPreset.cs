@@ -94,18 +94,18 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         {
             var step = Steps[i];
             
-            using var node = ImRaii.TreeNode($"第 {i + 1} 步: {step.Note}");
+            using var node = ImRaii.TreeNode($"第 {i + 1} 步: {step.Note}###Step-{i}");
             if (!node) continue;
             
             var ret = step.Draw(i, Steps.Count);
             Action executorOperationAction = ret switch
             {
-                ExecutorStepOperationType.DELETE   => () => Steps.RemoveAt(i),
-                ExecutorStepOperationType.MOVEDOWN => () => Steps.Swap(i, i + 1),
-                ExecutorStepOperationType.MOVEUP   => () => Steps.Swap(i, i - 1),
-                ExecutorStepOperationType.COPY     => () => Steps.Insert(i  + 1, step.Copy()),
-                ExecutorStepOperationType.PASS     => () => { },
-                _                                  => () => { }
+                StepOperationType.Delete   => () => Steps.RemoveAt(i),
+                StepOperationType.MoveDown => () => Steps.Swap(i, i + 1),
+                StepOperationType.MoveUp   => () => Steps.Swap(i, i - 1),
+                StepOperationType.Copy     => () => Steps.Insert(i  + 1, step.Copy()),
+                StepOperationType.Pass     => () => { },
+                _                          => () => { }
             };
             executorOperationAction();
         }

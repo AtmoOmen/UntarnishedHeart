@@ -198,4 +198,7 @@ public class Executor : IDisposable
         TaskHelper.Abort();
         GameFunctions.PathFindCancel();
     }
+
+    public void ManualEnqueueNewRound() => 
+        OnDutyCompleted(null, ExecutorPreset?.Zone ?? DService.ClientState.TerritoryType);
 }

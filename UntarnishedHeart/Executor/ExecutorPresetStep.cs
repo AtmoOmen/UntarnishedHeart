@@ -17,23 +17,43 @@ namespace UntarnishedHeart.Executor;
 
 public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 {
-    public string     Note               { get; set; } = string.Empty;
-    public bool       StopWhenBusy       { get; set; }
-    public bool       StopInCombat       { get; set; } = true;
-    public Vector3    Position           { get; set; }
-    public MoveType   MoveType           { get; set; } = MoveType.无;
-    public bool       WaitForGetClose    { get; set; }
-    public uint       DataID             { get; set; }
-    public ObjectKind ObjectKind         { get; set; } = ObjectKind.BattleNpc;
-    public bool       WaitForTarget      { get; set; } = true;
-    public bool       InteractWithTarget { get; set; }
-    public string     Commands           { get; set; } = string.Empty;
-    public int        Delay              { get; set; } = 5000;
+    /// <summary>
+    /// 步骤名称
+    /// </summary>
+    public string Note { get; set; } = string.Empty;
 
-    public ExecutorStepOperationType Draw(int i, int count)
+    /// <summary>
+    /// 若为忙碌状态, 则等待
+    /// </summary>
+    public bool StopWhenBusy { get; set; }
+
+    /// <summary>
+    /// 若为战斗状态, 则等待
+    /// </summary>
+    public bool StopInCombat { get; set; } = true;
+
+    /// <summary>
+    /// 若任一队友不在无法战斗状态, 则等待
+    /// </summary>
+    public bool StopWhenAnyAlive { get; set; }
+
+    public Vector3          Position           { get; set; }
+    public MoveType         MoveType           { get; set; } = MoveType.无;
+    public bool             WaitForGetClose    { get; set; }
+    public uint             DataID             { get; set; }
+    public ObjectKind       ObjectKind         { get; set; } = ObjectKind.BattleNpc;
+    public bool             WaitForTarget      { get; set; } = true;
+    public bool             InteractWithTarget { get; set; }
+    public string           Commands           { get; set; } = string.Empty;
+    public CommandCondition CommandCondition   { get; set; } = new();
+    public int              Delay              { get; set; } = 5000;
+
+    public StepOperationType Draw(int i, int count)
     {
         using var id = ImRaii.PushId($"Step-{i}");
         using var group = ImRaii.Group();
+
+        #region 步骤信息
 
         ImGui.AlignTextToFramePadding();
         ImGui.Text("操作:");
@@ -42,25 +62,25 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         {
             ImGui.SameLine();
             if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, "删除", true))
-                return ExecutorStepOperationType.DELETE;
+                return StepOperationType.Delete;
 
             if (i > 0)
             {
                 ImGui.SameLine();
                 if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.ArrowUp, "上移", true))
-                    return ExecutorStepOperationType.MOVEUP;
+                    return StepOperationType.MoveUp;
             }
 
             if (i < count - 1)
             {
                 ImGui.SameLine();
                 if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.ArrowDown, "下移", true))
-                    return ExecutorStepOperationType.MOVEDOWN;
+                    return StepOperationType.MoveDown;
             }
         
             ImGui.SameLine();
             if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Copy, "复制", true))
-                return ExecutorStepOperationType.COPY;
+                return StepOperationType.Copy;
         }
 
         var stepName = Note;
@@ -69,22 +89,42 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
             () => ImGui.InputText("###StepNoteInput", ref stepName, 128));
         if (ImGui.IsItemDeactivatedAfterEdit())
             Note = stepName;
+
+        #endregion
         
         ImGui.Spacing();
-        
-        var stepStopInCombat = StopInCombat;
-        if (ImGuiOm.CompLabelLeft(
-                "若已进入战斗, 则等待:", 200f * ImGuiHelpers.GlobalScale,
-                () => ImGui.Checkbox("###StepStopInCombatInput", ref stepStopInCombat)))
-            StopInCombat = stepStopInCombat;
-        ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否进入战斗状态, 若已进入, 则阻塞步骤执行");
-        
-        var stepStopWhenBusy = StopWhenBusy;
-        if (ImGuiOm.CompLabelLeft(
-                "若为忙碌状态, 则等待:", 200f * ImGuiHelpers.GlobalScale,
-                () => ImGui.Checkbox("###StepStopWhenBusyInput", ref stepStopWhenBusy)))
-            StopWhenBusy = stepStopWhenBusy;
-        ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否正处于忙碌状态 (如: 过图加载, 交互等), 若已进入, 则阻塞步骤执行");
+
+        using (var treeNode = ImRaii.TreeNode("状态检查"))
+        {
+            if (treeNode)
+            {
+                var stepStopWhenAnyAlive = StopWhenAnyAlive;
+                using (ImRaii.PushColor(ImGuiCol.Text, LightSkyBlue))
+                {
+                    if (ImGui.Checkbox("若任一队友不在无法战斗状态, 则等待###StepStopWhenAnyAliveInput", ref stepStopWhenAnyAlive))
+                        StopWhenAnyAlive = stepStopWhenAnyAlive;
+                }
+                ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否存在任一队友不在无法战斗状态, 若存在, 则阻塞步骤执行");
+                
+                var stepStopInCombat = StopInCombat;
+                using (ImRaii.PushColor(ImGuiCol.Text, LightSkyBlue))
+                {
+                    if (ImGui.Checkbox("若已进入战斗, 则等待###StepStopInCombatInput", ref stepStopInCombat))
+                        StopInCombat = stepStopInCombat;
+                }
+                ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否进入战斗状态, 若已进入, 则阻塞步骤执行");
+                
+                var stepStopWhenBusy = StopWhenBusy;
+                using (ImRaii.PushColor(ImGuiCol.Text, LightSkyBlue))
+                {
+                    if (ImGui.Checkbox("若为忙碌状态, 则等待###StepStopWhenBusyInput", ref stepStopWhenBusy))
+                        StopWhenBusy = stepStopWhenBusy;
+                }
+                ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否正处于忙碌状态 (如: 过图加载, 交互等), 若已进入, 则阻塞步骤执行");
+            }
+            else
+                ImGuiOm.TooltipHover("各类状态检查, 每一步骤开始时顺序执行此处每一项状态检查");
+        }
 
         ImGui.Spacing();
         
@@ -147,7 +187,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 ImGuiOm.TooltipHover("若勾选, 则会等待完全接近坐标后再继续执行下面的操作");
             }
             else
-                ImGuiOm.TooltipHover("在执行完上方的战斗状态检查后, 会按照此处的配置移动到指定的坐标");
+                ImGuiOm.TooltipHover("在执行完上方的状态检查后, 会按照此处的配置移动到指定的坐标");
         }
         
         ImGui.Spacing();
@@ -233,20 +273,27 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         }
         
         ImGui.Spacing();
-        
-        using (ImRaii.Group())
+
+        using (var treeNode = ImRaii.TreeNode("文本指令"))
         {
-            var stepCommands = Commands;
-            ImGui.Text("文本指令:");
-            if (ImGui.InputTextMultiline("###CommandsInput", ref stepCommands, 1024,
-                                         new(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X,
-                                             ImGui.GetTextLineHeightWithSpacing() * 2.5f)))
-                Commands = stepCommands;
+            if (treeNode)
+            {
+                var stepCommands = Commands;
+                if (ImGui.InputTextMultiline("###CommandsInput", ref stepCommands, 1024,
+                                             new(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X,
+                                                 ImGui.GetTextLineHeightWithSpacing() * 3f)))
+                    Commands = stepCommands;
+                ImGuiOm.TooltipHover("支持以下特殊指令:\n" +
+                                     "/wait <时间(ms)> - 等待指定毫秒的时间 (如: /wait 2000 - 等待 2 秒)");
+                
+                CommandCondition.Draw();
+            }
+            else
+                ImGuiOm.TooltipHover(string.IsNullOrWhiteSpace(Commands)
+                                         ? "在执行完上方的目标选择后, 会按照此处的配置选中自定义文本指令\n" +
+                                           "支持多条文本指令, 一行一条"
+                                         : Commands);
         }
-        ImGuiOm.TooltipHover(string.IsNullOrWhiteSpace(Commands)
-                                 ? "在执行完上方的目标选择后, 会按照此处的配置选中自定义文本指令\n" +
-                                   "支持多条文本指令, 一行一条"
-                                 : Commands);
         
         ImGui.Text("等待接近目标位置");
         ImGuiOm.HelpMarker("只要上方 \"坐标\" 内的坐标设置不为 <0, 0, 0>, 则始终会执行接近检测并堵塞, 直至目标 2D 距离 ≤ 2",
@@ -273,85 +320,155 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         ImGuiOm.TooltipHover("在开始下一步骤前, 需要等待的时间");
 
 
-        return ExecutorStepOperationType.PASS;
+        return StepOperationType.Pass;
     }
 
-    public List<Action> GetTasks(TaskHelper t)
-        =>
+    public unsafe List<Action> GetTasks(TaskHelper t)
+    {
+        return
         [
+            // 检查队友存活状态
+            () => t.Enqueue(() =>
+                            {
+                                if (!StopWhenAnyAlive || DService.PartyList.Length < 2) return true;
+                                if (DService.ClientState.LocalPlayer is not { } localPlayer) return false;
+
+                                foreach (var member in DService.PartyList)
+                                {
+                                    if (member.ObjectId  == localPlayer.ToStruct()->EntityId) continue;
+                                    if (member.CurrentHP != 0) return false;
+                                }
+
+                                return true;
+                            }, $"检查队友存活状态: {Note}"),
             // 检查进战状态
             () => t.Enqueue(() => !StopInCombat || !DService.Condition[ConditionFlag.InCombat], $"检查进战状态: {Note}"),
             // 检查忙碌状态
             () => t.Enqueue(() => !StopWhenBusy || (!OccupiedInEvent && IsScreenReady()), $"检查忙碌状态: {Note}"),
             // 执行移动
             () => t.Enqueue(() =>
-            {
-                if (Position == default(Vector3)) return true;
-                
-                var finalMoveType = MoveType == MoveType.无 ? Service.Config.MoveType : MoveType;
-                if (finalMoveType == MoveType.无) return true;
-                
-                switch (finalMoveType)
-                {
-                    case MoveType.寻路:
-                        GameFunctions.PathFindStart(Position);
-                        break;
-                    case MoveType.传送:
-                        GameFunctions.Teleport(Position);
-                        break;
-                }
-                return true;
-            }, $"移动至目标位置: {Note}"),
+                            {
+                                if (Position == default(Vector3)) return true;
+
+                                var finalMoveType = MoveType == MoveType.无 ? Service.Config.MoveType : MoveType;
+                                if (finalMoveType == MoveType.无) return true;
+
+                                switch (finalMoveType)
+                                {
+                                    case MoveType.寻路:
+                                        GameFunctions.PathFindStart(Position);
+                                        break;
+                                    case MoveType.传送:
+                                        GameFunctions.Teleport(Position);
+                                        break;
+                                }
+
+                                return true;
+                            }, $"移动至目标位置: {Note}"),
             // 执行完全接近目标等待
             () => t.Enqueue(() =>
-            {
-                if (Position == default(Vector3) || !WaitForGetClose) return true;
-                
-                if (DService.ClientState.LocalPlayer is not { } localPlayer) return false;
-                if (!Throttler.Throttle("接近目标位置节流")) return false;
+                            {
+                                if (Position == default(Vector3) || !WaitForGetClose) return true;
 
-                return Vector2.DistanceSquared(localPlayer.Position.ToVector2(), Position.ToVector2()) <= 4;
-            }, $"等待完全接近目标位置: {Note}"),
+                                if (DService.ClientState.LocalPlayer is not { } localPlayer) return false;
+                                if (!Throttler.Throttle("接近目标位置节流")) return false;
+
+                                return Vector2.DistanceSquared(localPlayer.Position.ToVector2(), Position.ToVector2()) <= 4;
+                            }, $"等待完全接近目标位置: {Note}"),
             // 执行目标选中
             () => t.Enqueue(() =>
-            {
-                // 目标配置为 0, 不选中
-                if (DataID == 0) return true;
-                if (!Throttler.Throttle("选中目标节流")) return false;
+                            {
+                                // 目标配置为 0, 不选中
+                                if (DataID == 0) return true;
+                                if (!Throttler.Throttle("选中目标节流")) return false;
 
-                TargetObject();
-                return !WaitForTarget || DService.Targets.Target != null;
-            }, $"选中目标: {Note}"),
+                                TargetObject();
+                                return !WaitForTarget || DService.Targets.Target != null;
+                            }, $"选中目标: {Note}"),
             // 执行目标交互
             () => t.Enqueue(() =>
-            {
-                if (DataID == 0 || !InteractWithTarget || DService.Targets.Target is not { } target) return true;
-                return target.TargetInteract();
-            }, $"交互预设目标: {Note}"),
+                            {
+                                if (DataID == 0 || !InteractWithTarget || DService.Targets.Target is not { } target) return true;
+                                return target.TargetInteract();
+                            }, $"交互预设目标: {Note}"),
             // 等待目标交互完成
             () => t.DelayNext(InteractWithTarget ? 200 : 0, $"延迟 200 毫秒, 等待交互开始: {Note}"),
             () => t.Enqueue(() => !InteractWithTarget || (!OccupiedInEvent && IsScreenReady()), $"等待目标交互完成: {Note}"),
             // 执行文本指令
             () =>
             {
-                foreach (var command in Commands.Split('\n'))
+                // 没条件
+                if (CommandCondition.Conditions.Count == 0)
+                    EnqueueTextCommands();
+                else
                 {
-                    t.Enqueue(() => ChatHelper.Instance.SendMessage(command), $"使用文本指令: {Note} {command}");
-                    t.DelayNext(100, $"使用文本指令节流: {Note} {command}");
+                    t.Enqueue(() =>
+                    {
+                        switch (CommandCondition.ExecuteType)
+                        {
+                            case CommandExecuteType.Pass:
+                                if (!CommandCondition.IsConditionsTrue()) break;
+                                EnqueueTextCommands(2);
+                                break;
+                            case CommandExecuteType.Wait:
+                                t.Enqueue(() => CommandCondition.IsConditionsTrue(), $"等待文本指令条件变成真: {Note}", weight: 2);
+                                t.Enqueue(() => EnqueueTextCommands(2), $"文本指令条件已为真, 入队指令执行: {Note}", weight: 2);
+                                break;
+                            case CommandExecuteType.Repeat:
+                                // 已满足条件只执行一次
+                                if (CommandCondition.IsConditionsTrue())
+                                {
+                                    EnqueueTextCommands(2);
+                                    break;
+                                }
+                                
+                                EnqueueTextCommandsRepeat(0);
+                                break;
+                        }
+                    }, "入队文本指令条件检查任务群");
                 }
             },
             // 等待接近目标位置
             () => t.Enqueue(() =>
-            {
-                if (Position == default(Vector3)) return true;
-                if (DService.ClientState.LocalPlayer is not { } localPlayer) return false;
-                if (!Throttler.Throttle("接近目标位置节流")) return false;
+                            {
+                                if (Position == default(Vector3)) return true;
+                                if (DService.ClientState.LocalPlayer is not { } localPlayer) return false;
+                                if (!Throttler.Throttle("接近目标位置节流")) return false;
 
-                return Vector2.DistanceSquared(localPlayer.Position.ToVector2(), Position.ToVector2()) <= 4;
-            }, $"等待接近目标位置 {Note}"),
+                                return Vector2.DistanceSquared(localPlayer.Position.ToVector2(), Position.ToVector2()) <= 4;
+                            }, $"等待接近目标位置 {Note}"),
             // 延迟
             () => t.DelayNext(Delay, $"等待 {Delay} 秒: {Note}")
         ];
+
+        void EnqueueTextCommands(uint weight = 0)
+        {
+            foreach (var command in Commands.Split('\n'))
+            {
+                if (command.StartsWith("/wait"))
+                {
+                    var spilted = command.Split(' ');
+                    if (spilted.Length != 2 || !uint.TryParse(spilted[1], out var waitTime)) goto SpecialCommandHandle;
+                    t.DelayNext((int)waitTime, $"特殊文本指令 {command}: {Note}", weight: weight);
+                    continue;
+                }
+                
+                SpecialCommandHandle:
+                t.Enqueue(() => ChatHelper.Instance.SendMessage(command), $"使用文本指令: {Note} {command}", weight: weight);
+                t.DelayNext(100, $"使用文本指令节流: {Note} {command}", weight: weight);
+            }
+        }
+
+        void EnqueueTextCommandsRepeat(uint repeatCount)
+        {
+            if (CommandCondition.IsConditionsTrue()) return;
+            t.Enqueue(() => EnqueueTextCommands(2), $"文本指令不为真, 入队指令执行第 {repeatCount + 1} 次: {Note}", weight: 2);
+            if (CommandCondition.TimeValue > 0)
+                t.DelayNext((int)CommandCondition.TimeValue, $"文本指令第 {repeatCount + 1} 轮完成, 等待: {Note}", weight: 2);
+            var newRepeatCount = repeatCount++;
+            t.Enqueue(() => EnqueueTextCommandsRepeat(newRepeatCount), "开始新一轮重复检查", weight: 2);
+        }
+    }
 
     public unsafe void TargetObject()
     {

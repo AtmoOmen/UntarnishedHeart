@@ -17,12 +17,11 @@ namespace UntarnishedHeart.Windows;
 public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-MainWindow", 
                              ImGuiWindowFlags.NoScrollbar), IDisposable
 {
-    private static Executor.Executor? PresetExecutor;
-
-    private static int SelectedPresetIndex;
+    public static Executor.Executor? PresetExecutor { get; private set; }
 
     public static readonly Dictionary<uint, string> ZonePlaceNames;
-
+    
+    private static int  SelectedPresetIndex;
     private static bool IsDrawConfig = true;
 
     static Main()
@@ -223,7 +222,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         ImGui.SameLine();
         if (ImGuiOm.ButtonIconWithTextVertical(FontAwesomeIcon.Eye, "编辑预设",
                                                groupSize with { X = ImGui.CalcTextSize("编辑预设").X * 1.5f }, true))
-            WindowManager.PresetEditor.IsOpen ^= true;
+            WindowManager.Get<PresetEditor>().IsOpen ^= true;
     }
 
     public void Dispose()

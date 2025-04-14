@@ -6,84 +6,78 @@ namespace UntarnishedHeart.Managers;
 
 public class WindowManager
 {
-    private static WindowSystem? _windowSystem;
-    private static Main? _main;
-    private static PresetEditor? _presetEditor;
-
-    private static readonly object _windowLock = new();
-
-    public static WindowSystem? WindowSystem => _windowSystem;
-    public static Main?         Main         => _main;
-    public static PresetEditor? PresetEditor => _presetEditor;
+    public static WindowSystem? WindowSystem { get; private set; }
 
     internal void Init()
     {
-        _windowSystem = new WindowSystem(PluginName);
-        _windowSystem.RemoveAllWindows();
-
-        _main = new Main();
-        AddWindows(_main);
-
-        _presetEditor = new PresetEditor();
-        AddWindows(_presetEditor);
-
-        DService.UiBuilder.Draw += DrawWindows;
+        WindowSystem ??= new WindowSystem(PluginName);
+        WindowSystem.RemoveAllWindows();
+        
+        InternalWindows.Init();
+        
+        DService.UiBuilder.Draw       += DrawWindows;
         DService.UiBuilder.OpenMainUi += ToggleMainWindow;
     }
 
-    private static void DrawWindows() => _windowSystem?.Draw();
+    private static void DrawWindows() => WindowSystem?.Draw();
 
     private static void ToggleMainWindow()
     {
-        if (_main != null)
-            _main.IsOpen ^= true;
+        var main = Get<Main>();
+        if (main == null) return;
+        
+        main.IsOpen ^= true;
     }
 
-    public bool AddWindows(Window? window)
+    public static bool AddWindow(Window? window)
     {
-        if (window == null || _windowSystem == null)
+        if (WindowSystem == null || window == null) return false;
+
+        var addedWindows = WindowSystem.Windows;
+        if (addedWindows.Contains(window) || addedWindows.Any(x => x.WindowName == window.WindowName))
             return false;
 
-        lock (_windowLock)
-        {
-            var addedWindows = _windowSystem.Windows;
-
-            if (addedWindows.Contains(window) || addedWindows.Any(x => x.WindowName == window.WindowName))
-                return false;
-
-            _windowSystem.AddWindow(window);
-            return true;
-        }
+        WindowSystem.AddWindow(window);
+        return true;
     }
 
-    public bool RemoveWindows(Window? window)
+    public static bool RemoveWindow(Window? window)
     {
-        if (window == null || _windowSystem == null)
-            return false;
+        if (WindowSystem == null || window == null) return false;
 
-        lock (_windowLock)
-        {
-            var addedWindows = _windowSystem.Windows;
+        var addedWindows = WindowSystem.Windows;
+        if (!addedWindows.Contains(window)) return false;
 
-            if (!addedWindows.Contains(window))
-                return false;
-
-            _windowSystem.RemoveWindow(window);
-            return true;
-        }
+        WindowSystem.RemoveWindow(window);
+        return true;
     }
+
+    public static T? Get<T>() where T : Window
+        => WindowSystem?.Windows.FirstOrDefault(x => x.GetType() == typeof(T)) as T;
 
     internal void Uninit()
     {
-        DService.UiBuilder.Draw -= DrawWindows;
+        DService.UiBuilder.Draw       -= DrawWindows;
         DService.UiBuilder.OpenMainUi -= ToggleMainWindow;
+        
+        InternalWindows.Uninit();
+        
+        WindowSystem?.RemoveAllWindows();
+        WindowSystem = null;
+    }
 
-        _windowSystem?.RemoveAllWindows();
-        _windowSystem = null;
+    private static class InternalWindows
+    {
+        internal static void Init()
+        {
+            AddWindow(new Main());
+            AddWindow(new PresetEditor());
+        }
 
-        _main?.Dispose();
-        _main = null;
-
-        _presetEditor = null;
+        internal static void Uninit()
+        {
+            Get<Main>()?.Dispose();
+            Get<PresetEditor>()?.Dispose();
+        }
     }
 }

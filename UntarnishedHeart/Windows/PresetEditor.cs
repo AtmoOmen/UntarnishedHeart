@@ -46,6 +46,10 @@ public class PresetEditor() : Window($"预设编辑器###{PluginName}-PresetEdit
                 }
             }
         }
+        
+        ImGui.SameLine();
+        if (ImGuiOm.ButtonIcon("SavePresets", FontAwesomeIcon.Save, "保存预设", true))
+            Service.Config.Save();
 
         ImGui.SameLine();
         if (ImGuiOm.ButtonIcon("AddNewPreset", FontAwesomeIcon.FileCirclePlus, "添加预设", true))
@@ -79,4 +83,6 @@ public class PresetEditor() : Window($"预设编辑器###{PluginName}-PresetEdit
 
         selectedPreset.Draw();
     }
+
+    public void Dispose() { }
 }
