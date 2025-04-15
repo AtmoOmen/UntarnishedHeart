@@ -19,6 +19,8 @@ public class CommandCondition
     public CommandRelationType          RelationType { get; set; } = CommandRelationType.And;
     public CommandExecuteType           ExecuteType  { get; set; } = CommandExecuteType.Wait;
     public float                        TimeValue    { get; set; }
+    
+    private CommandSingleCondition? ConditionToCopy;
 
     public void Draw()
     {
@@ -81,19 +83,113 @@ public class CommandCondition
             var step = Conditions[i];
 
             using var node = ImRaii.TreeNode($"第 {i + 1} 条###Step-{i}");
-            if (!node) continue;
-
-            var ret = step.Draw(i, Conditions.Count);
-            Action executorOperationAction = ret switch
+            if (!node)
             {
-                StepOperationType.Delete   => () => Conditions.RemoveAt(i),
-                StepOperationType.MoveDown => () => Conditions.Swap(i, i + 1),
-                StepOperationType.MoveUp   => () => Conditions.Swap(i, i - 1),
-                StepOperationType.Copy     => () => Conditions.Insert(i  + 1, step.Copy()),
-                StepOperationType.Pass     => () => { },
-                _                          => () => { }
+                DrawStepContextMenu(i, step);
+                continue;
+            }
+
+            step.Draw(i);
+            DrawStepContextMenu(i, step);
+        }
+        
+        return;
+
+        void DrawStepContextMenu(int i, CommandSingleCondition step)
+        {
+            var contextOperation = StepOperationType.Pass;
+
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                ImGui.OpenPopup($"ConditionContentMenu_{i}");
+
+            using var context = ImRaii.ContextPopupItem($"ConditionContentMenu_{i}");
+            if (!context) return;
+            
+            if (ImGui.MenuItem("复制"))
+                ConditionToCopy = step.Copy();
+
+            if (ConditionToCopy != null)
+            {
+                using (ImRaii.Group())
+                {
+                    if (ImGui.MenuItem("粘贴至本步"))
+                        contextOperation = StepOperationType.Paste;
+
+                    if (ImGui.MenuItem("向上插入粘贴"))
+                        contextOperation = StepOperationType.PasteUp;
+
+                    if (ImGui.MenuItem("向下插入粘贴"))
+                        contextOperation = StepOperationType.PasteDown;
+                }
+            }
+
+            if (ImGui.MenuItem("删除"))
+                contextOperation = StepOperationType.Delete;
+
+            if (i > 0)
+                if (ImGui.MenuItem("上移"))
+                    contextOperation = StepOperationType.MoveUp;
+
+            if (i < Conditions.Count - 1)
+                if (ImGui.MenuItem("下移"))
+                    contextOperation = StepOperationType.MoveDown;
+
+            ImGui.Separator();
+
+            if (ImGui.MenuItem("向上插入新步骤"))
+                contextOperation = StepOperationType.InsertUp;
+
+            if (ImGui.MenuItem("向下插入新步骤"))
+                contextOperation = StepOperationType.InsertDown;
+
+            ImGui.Separator();
+
+            if (ImGui.MenuItem("复制并插入本步骤"))
+                contextOperation = StepOperationType.PasteCurrent;
+
+            Action contextOperationAction = contextOperation switch
+            {
+                StepOperationType.Delete => () => Conditions.RemoveAt(i),
+                StepOperationType.MoveDown => () =>
+                {
+                    var index = i + 1;
+                    Conditions.Swap(i, index);
+                },
+                StepOperationType.MoveUp => () =>
+                {
+                    var index = i - 1;
+                    Conditions.Swap(i, index);
+                },
+                StepOperationType.Pass => () => { },
+                StepOperationType.Paste => () =>
+                {
+                    Conditions[i]    = ConditionToCopy;
+                },
+                StepOperationType.PasteUp => () =>
+                {
+                    Conditions.Insert(i, ConditionToCopy.Copy());
+                },
+                StepOperationType.PasteDown => () =>
+                {
+                    var index = i + 1;
+                    Conditions.Insert(index, ConditionToCopy.Copy());
+                },
+                StepOperationType.InsertUp => () =>
+                {
+                    Conditions.Insert(i, new());
+                },
+                StepOperationType.InsertDown => () =>
+                {
+                    var index = i + 1;
+                    Conditions.Insert(index, new());
+                },
+                StepOperationType.PasteCurrent => () =>
+                {
+                    Conditions.Insert(i, step.Copy());
+                },
+                _ => () => { }
             };
-            executorOperationAction();
+            contextOperationAction();
         }
     }
 
@@ -113,44 +209,13 @@ public class CommandSingleCondition
     public CommandTargetType     TargetType     { get; set; }
     public float                 Value          { get; set; }
 
-    public StepOperationType Draw(int i, int count)
+    public void Draw(int i)
     {
-        using var id = ImRaii.PushId($"CommandSingleCondition-{i}");
-        
-        #region 步骤信息
-
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("操作:");
-
-        using (ImRaii.Group())
-        {
-            ImGui.SameLine();
-            if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, "删除", true))
-                return StepOperationType.Delete;
-
-            if (i > 0)
-            {
-                ImGui.SameLine();
-                if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.ArrowUp, "上移", true))
-                    return StepOperationType.MoveUp;
-            }
-
-            if (i < count - 1)
-            {
-                ImGui.SameLine();
-                if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.ArrowDown, "下移", true))
-                    return StepOperationType.MoveDown;
-            }
-
-            ImGui.SameLine();
-            if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Copy, "复制", true))
-                return StepOperationType.Copy;
-        }
-
-        #endregion
+        using var id    = ImRaii.PushId($"CommandSingleCondition-{i}");
+        using var group = ImRaii.Group();
         
         using var table = ImRaii.Table("SingleConditionTable", 2);
-        if (!table) return StepOperationType.Pass;
+        if (!table) return;
         
         ImGui.TableSetupColumn("名称", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("六个中国汉字").X);
         ImGui.TableSetupColumn("内容", ImGuiTableColumnFlags.WidthStretch);
@@ -230,8 +295,6 @@ public class CommandSingleCondition
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
         if (ImGui.InputFloat("###ValueInput", ref value, 0, 0))
             Value = value;
-        
-        return StepOperationType.Pass;
     }
 
     public unsafe bool IsConditionTrue()

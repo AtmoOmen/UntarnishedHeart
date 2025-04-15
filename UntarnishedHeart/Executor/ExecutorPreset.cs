@@ -162,19 +162,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 if (CurrentStep == -1) return;
 
                 var step = Steps[CurrentStep];
-                var ret  = step.Draw(CurrentStep, Steps.Count);
-                DrawStepContextMenu(CurrentStep, step);
-
-                Action executorOperationAction = ret switch
-                {
-                    StepOperationType.Delete   => () => Steps.RemoveAt(CurrentStep),
-                    StepOperationType.MoveDown => () => Steps.Swap(CurrentStep, CurrentStep + 1),
-                    StepOperationType.MoveUp   => () => Steps.Swap(CurrentStep, CurrentStep - 1),
-                    StepOperationType.Copy     => () => Steps.Insert(CurrentStep            + 1, step.Copy()),
-                    StepOperationType.Pass     => () => { },
-                    _                          => () => { }
-                };
-                executorOperationAction();
+                step.Draw(CurrentStep);
             }
         }
 
@@ -202,13 +190,13 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 using (ImRaii.Group())
                 {
                     if (ImGui.MenuItem("粘贴至本步"))
-                        Steps[i] = StepToCopy;
+                        contextOperation = StepOperationType.Paste;
 
-                    if (ImGui.MenuItem("向上插入粘贴"))
-                        Steps.Insert(Math.Max(i - 1, 0), StepToCopy.Copy());
+                    if (ImGui.MenuItem("粘贴"))
+                        contextOperation = StepOperationType.PasteUp;
 
                     if (ImGui.MenuItem("向下插入粘贴"))
-                        Steps.Insert(i + 1, StepToCopy.Copy());
+                        contextOperation = StepOperationType.PasteDown;
                 }
 
                 ImGuiOm.TooltipHover($"已复制步骤: {StepToCopy.Note}");
@@ -228,27 +216,66 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             ImGui.Separator();
 
             if (ImGui.MenuItem("向上插入新步骤"))
-                Steps.Insert(Math.Max(i - 1, 0), new());
+                contextOperation = StepOperationType.InsertUp;
 
             if (ImGui.MenuItem("向下插入新步骤"))
-                Steps.Insert(i + 1, new());
+                contextOperation = StepOperationType.InsertDown;
 
             ImGui.Separator();
 
-            if (ImGui.MenuItem("向上复制本步骤"))
-                Steps.Insert(Math.Max(i - 1, 0), step.Copy());
-
-            if (ImGui.MenuItem("向下复制本步骤"))
-                Steps.Insert(i + 1, step.Copy());
+            if (ImGui.MenuItem("复制并插入本步骤"))
+                contextOperation = StepOperationType.PasteCurrent;
 
             Action contextOperationAction = contextOperation switch
             {
                 StepOperationType.Delete   => () => Steps.RemoveAt(i),
-                StepOperationType.MoveDown => () => Steps.Swap(i, i + 1),
-                StepOperationType.MoveUp   => () => Steps.Swap(i, i - 1),
-                StepOperationType.Copy     => () => Steps.Insert(i  + 1, step.Copy()),
-                StepOperationType.Pass     => () => { },
-                _                          => () => { }
+                StepOperationType.MoveDown => () =>
+                {
+                    var index = i + 1;
+                    Steps.Swap(i, index);
+                    CurrentStep = index;
+                },
+                StepOperationType.MoveUp => () =>
+                {
+                    var index = i - 1;
+                    Steps.Swap(i, index);
+                    CurrentStep = index;
+                },
+                StepOperationType.Pass   => () => { },
+                StepOperationType.Paste => () =>
+                {
+                    Steps[i]    = StepToCopy;
+                    CurrentStep = i;
+                },
+                StepOperationType.PasteUp => () =>
+                {
+                    var index = Math.Max(i - 1, 0);
+                    Steps.Insert(index, StepToCopy.Copy());
+                    CurrentStep = index;
+                },
+                StepOperationType.PasteDown => () =>
+                {
+                    var index = i  + 1;
+                    Steps.Insert(index, StepToCopy.Copy());
+                    CurrentStep = index;
+                },
+                StepOperationType.InsertUp => () =>
+                {
+                    Steps.Insert(i, new());
+                    CurrentStep = i;
+                },
+                StepOperationType.InsertDown => () =>
+                {
+                    var index = i  + 1;
+                    Steps.Insert(index, new());
+                    CurrentStep = index;
+                },
+                StepOperationType.PasteCurrent => () =>
+                {
+                    Steps.Insert(i, step.Copy());
+                    CurrentStep = i;
+                },
+                _                        => () => { }
             };
             contextOperationAction();
         }

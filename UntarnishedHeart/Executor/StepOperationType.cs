@@ -6,5 +6,10 @@ public enum StepOperationType
     MoveUp,
     MoveDown,
     Pass,
-    Copy
+    Paste,
+    PasteUp,
+    PasteDown,
+    PasteCurrent,
+    InsertUp,
+    InsertDown,
 }

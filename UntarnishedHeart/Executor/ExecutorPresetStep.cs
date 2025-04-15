@@ -48,7 +48,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
     public CommandCondition CommandCondition   { get; set; } = new();
     public uint             Delay              { get; set; } = 5000;
 
-    public StepOperationType Draw(int i, int count)
+    public void Draw(int i)
     {
         using var id = ImRaii.PushId($"Step-{i}");
         using var group = ImRaii.Group();
@@ -95,9 +95,9 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 Delay = stepDelay;
             ImGuiOm.TooltipHover("在开始下一步骤前, 需要等待的时间");
         }
-
-        return StepOperationType.Pass;
-
+        
+        return;
+        
         void DrawContentChild()
         {
             using var tabBar = ImRaii.TabBar("###StepContentTabBar");
