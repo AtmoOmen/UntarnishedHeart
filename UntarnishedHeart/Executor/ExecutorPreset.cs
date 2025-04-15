@@ -133,7 +133,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             ImGui.Separator();
             
             if (ImGui.MenuItem("复制"))
-                StepToCopy = step;
+                StepToCopy = step.Copy();
             
             if (StepToCopy != null)
             {
@@ -143,10 +143,10 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                         Steps[i] = StepToCopy;
                     
                     if (ImGui.MenuItem("向上插入粘贴"))
-                        Steps.Insert(Math.Max(i - 1, 0), StepToCopy);
+                        Steps.Insert(Math.Max(i - 1, 0), StepToCopy.Copy());
 
                     if (ImGui.MenuItem("向下插入粘贴"))
-                        Steps.Insert(i + 1, StepToCopy);
+                        Steps.Insert(i + 1, StepToCopy.Copy());
                 }
                 ImGuiOm.TooltipHover($"已复制步骤: {StepToCopy.Note}");
             }
