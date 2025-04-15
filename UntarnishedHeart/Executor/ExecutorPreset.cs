@@ -184,7 +184,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             ImGui.Separator();
 
             if (ImGui.MenuItem("复制"))
-                StepToCopy = step.Copy();
+                StepToCopy = ExecutorPresetStep.Copy(step);
 
             if (StepToCopy != null)
             {
@@ -245,18 +245,18 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 StepOperationType.Pass   => () => { },
                 StepOperationType.Paste => () =>
                 {
-                    Steps[i]    = StepToCopy.Copy();
+                    Steps[i]    = ExecutorPresetStep.Copy(StepToCopy);
                     CurrentStep = i;
                 },
                 StepOperationType.PasteUp => () =>
                 {
-                    Steps.Insert(i, StepToCopy.Copy());
+                    Steps.Insert(i, ExecutorPresetStep.Copy(StepToCopy));
                     CurrentStep = i;
                 },
                 StepOperationType.PasteDown => () =>
                 {
                     var index = i + 1;
-                    Steps.Insert(index, StepToCopy.Copy());
+                    Steps.Insert(index, ExecutorPresetStep.Copy(StepToCopy));
                     CurrentStep = index;
                 },
                 StepOperationType.InsertUp => () =>
@@ -272,7 +272,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 },
                 StepOperationType.PasteCurrent => () =>
                 {
-                    Steps.Insert(i, step.Copy());
+                    Steps.Insert(i, ExecutorPresetStep.Copy(step));
                     CurrentStep = i;
                 },
                 _                        => () => { }

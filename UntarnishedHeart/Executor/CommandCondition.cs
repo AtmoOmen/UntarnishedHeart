@@ -6,6 +6,7 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
@@ -106,7 +107,7 @@ public class CommandCondition
             if (!context) return;
             
             if (ImGui.MenuItem("复制"))
-                ConditionToCopy = step.Copy();
+                ConditionToCopy = CommandSingleCondition.Copy(step);
 
             if (ConditionToCopy != null)
             {
@@ -163,16 +164,16 @@ public class CommandCondition
                 StepOperationType.Pass => () => { },
                 StepOperationType.Paste => () =>
                 {
-                    Conditions[i] = ConditionToCopy.Copy();
+                    Conditions[i] = CommandSingleCondition.Copy(ConditionToCopy);
                 },
                 StepOperationType.PasteUp => () =>
                 {
-                    Conditions.Insert(i, ConditionToCopy.Copy());
+                    Conditions.Insert(i, CommandSingleCondition.Copy(ConditionToCopy));
                 },
                 StepOperationType.PasteDown => () =>
                 {
                     var index = i + 1;
-                    Conditions.Insert(index, ConditionToCopy.Copy());
+                    Conditions.Insert(index, CommandSingleCondition.Copy(ConditionToCopy));
                 },
                 StepOperationType.InsertUp => () =>
                 {
@@ -185,7 +186,7 @@ public class CommandCondition
                 },
                 StepOperationType.PasteCurrent => () =>
                 {
-                    Conditions.Insert(i, step.Copy());
+                    Conditions.Insert(i, CommandSingleCondition.Copy(step));
                 },
                 _ => () => { }
             };
@@ -200,6 +201,20 @@ public class CommandCondition
             CommandRelationType.Or  => Conditions.Any(x => x.IsConditionTrue()),
             _                       => false
         };
+
+    public static CommandCondition Copy(CommandCondition source)
+    {
+        var conditions = new List<CommandSingleCondition>();
+        source.Conditions.ForEach(x => conditions.Add(CommandSingleCondition.Copy(x)));
+        
+        return new CommandCondition
+        {
+            Conditions   = conditions.ToList(),
+            RelationType = source.RelationType,
+            ExecuteType  = source.ExecuteType,
+            TimeValue    = source.TimeValue,
+        };
+    }
 }
 
 public class CommandSingleCondition
@@ -345,6 +360,16 @@ public class CommandSingleCondition
                     CommandComparisonType.NotHas => !hasStatus.Value,
                     _                            => false
                 };
+            case CommandDetectType.ActionCooldown:
+                var actionID      = (uint)Value;
+                var isOffCooldown = ActionManager.Instance()->IsActionOffCooldown(ActionType.Action, actionID);
+                
+                return ComparisonType switch
+                {
+                    CommandComparisonType.Finished    => isOffCooldown,
+                    CommandComparisonType.NotFinished => !isOffCooldown,
+                    _                                 => false
+                };
             default:
                 return false;
         }
@@ -352,22 +377,24 @@ public class CommandSingleCondition
 
     public override string ToString() => $"CommandSingleCondition_{DetectType}_{ComparisonType}_{TargetType}_{Value}";
 
-    public CommandSingleCondition Copy() =>
+    public static CommandSingleCondition Copy(CommandSingleCondition source) =>
         new()
         {
-            DetectType     = DetectType,
-            ComparisonType = ComparisonType,
-            TargetType     = TargetType,
-            Value          = Value,
+            DetectType     = source.DetectType,
+            ComparisonType = source.ComparisonType,
+            TargetType     = source.TargetType,
+            Value          = source.Value,
         };
 }
 
 public enum CommandDetectType
 {
-    [Description("生命值百分比")]
+    [Description("生命值百分比 (大于/小于/等于/不等于)")]
     Health,
-    [Description("状态效果")]
+    [Description("状态效果 (拥有/不拥有)")]
     Status,
+    [Description("技能冷却 (自身·完成/未完成)")]
+    ActionCooldown
 }
 
 public enum CommandComparisonType
@@ -384,6 +411,10 @@ public enum CommandComparisonType
      Has,
      [Description("不拥有")]
      NotHas,
+     [Description("完成")]
+     Finished,
+     [Description("未完成")]
+     NotFinished,
 }
 
 public enum CommandTargetType

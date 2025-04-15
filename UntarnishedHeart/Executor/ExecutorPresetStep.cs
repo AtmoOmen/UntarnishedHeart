@@ -485,22 +485,22 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
     public override int GetHashCode() => 
         HashCode.Combine(Note, DataID, Position, Delay, StopInCombat);
 
-    public ExecutorPresetStep Copy() =>
+    public static ExecutorPresetStep Copy(ExecutorPresetStep source) =>
         new()
         {
-            Note               = this.Note,
-            StopInCombat       = this.StopInCombat,
-            StopWhenBusy       = this.StopWhenBusy,
-            StopWhenAnyAlive   = this.StopWhenAnyAlive,
-            Position           = this.Position,
-            MoveType           = this.MoveType,
-            WaitForGetClose    = this.WaitForGetClose,
-            DataID             = this.DataID,
-            ObjectKind         = this.ObjectKind,
-            WaitForTarget      = this.WaitForTarget,
-            InteractWithTarget = this.InteractWithTarget,
-            Commands           = this.Commands,
-            CommandCondition   = this.CommandCondition,
-            Delay              = this.Delay,
+            Note               = source.Note,
+            StopInCombat       = source.StopInCombat,
+            StopWhenBusy       = source.StopWhenBusy,
+            StopWhenAnyAlive   = source.StopWhenAnyAlive,
+            Position           = source.Position,
+            MoveType           = source.MoveType,
+            WaitForGetClose    = source.WaitForGetClose,
+            DataID             = source.DataID,
+            ObjectKind         = source.ObjectKind,
+            WaitForTarget      = source.WaitForTarget,
+            InteractWithTarget = source.InteractWithTarget,
+            Commands           = source.Commands,
+            CommandCondition   = CommandCondition.Copy(source.CommandCondition),
+            Delay              = source.Delay,
         };
 }
