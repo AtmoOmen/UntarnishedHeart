@@ -18,7 +18,7 @@ public class PresetEditor() : Window($"预设编辑器###{PluginName}-PresetEdit
         ImGui.Text("选择预设:");
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
 
         if (SelectedPresetIndex > Service.Config.Presets.Count - 1)
             SelectedPresetIndex = 0;
