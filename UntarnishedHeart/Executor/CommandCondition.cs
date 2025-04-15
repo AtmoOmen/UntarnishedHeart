@@ -26,7 +26,7 @@ public class CommandCondition
         ImGui.TextColored(LightSkyBlue, "处理类型:");
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
         using (var combo = ImRaii.Combo("###ExecuteTypeCombo", ExecuteType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -45,7 +45,7 @@ public class CommandCondition
 
         var timeValue = TimeValue;
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(" (ms) ").X);
         if (ImGui.InputFloat("(ms)###TimeValueInput", ref timeValue, 0, 0))
             TimeValue = timeValue;
         ImGuiOm.TooltipHover("若处理类型为:\n"   +
@@ -57,7 +57,7 @@ public class CommandCondition
         ImGui.TextColored(LightSkyBlue, "关系类型:");
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(100f * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
         using (var combo = ImRaii.Combo("###RelationTypeCombo", RelationType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -71,7 +71,6 @@ public class CommandCondition
             }
         }
 
-        ImGui.SameLine();
         if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, "添加新条件", true))
             Conditions.Add(new());
 
