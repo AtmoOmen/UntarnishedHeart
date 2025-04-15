@@ -273,7 +273,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             }
 
             var isNoEcho = Service.Config.ContentsFinderOption.SilenceEcho;
-            if (ImGui.Checkbox("超越之力无效", ref isNoEcho))
+            if (ImGui.Checkbox("超越之力无效化", ref isNoEcho))
             {
                 var newOption = Service.Config.ContentsFinderOption.Clone();
                 newOption.SilenceEcho = isNoEcho;

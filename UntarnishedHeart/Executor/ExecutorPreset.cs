@@ -18,6 +18,7 @@ namespace UntarnishedHeart.Executor;
 public class ExecutorPreset : IEquatable<ExecutorPreset>
 {
     public string                   Name              { get; set; } = string.Empty;
+    public string                   Remark            { get; set; } = string.Empty;
     public ushort                   Zone              { get; set; }
     public List<ExecutorPresetStep> Steps             { get; set; } = [];
     public bool                     AutoOpenTreasures { get; set; }
@@ -28,8 +29,32 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
     private ExecutorPresetStep? StepToCopy;
 
     private string ZoneSearchInput = string.Empty;
+    
+    private int CurrentStep = -1;
 
     public void Draw()
+    {
+        using var tabBar = ImRaii.TabBar("###ExecutorPresetEditor");
+        if (!tabBar) return;
+
+        using (var basicInfo = ImRaii.TabItem("基本信息"))
+        {
+            if (basicInfo)
+            {
+                DrawBasicInfo();
+            }
+        }
+
+        using (var stepInfo = ImRaii.TabItem("步骤"))
+        {
+            if (stepInfo)
+            {
+                DrawStepInfo();
+            }
+        }
+    }
+
+    private void DrawBasicInfo()
     {
         var name = Name;
         if (ImGuiOm.CompLabelLeft(
@@ -41,7 +66,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         {
             ImGui.AlignTextToFramePadding();
             ImGui.Text("区域:");
-        
+
             var zone = (uint)Zone;
             ImGui.SameLine();
             ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
@@ -58,7 +83,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 {
                     var zoneName    = zoneData.PlaceName.Value.Name.ExtractText()              ?? "未知区域";
                     var contentName = zoneData.ContentFinderCondition.Value.Name.ExtractText() ?? "未知副本";
-                
+
                     ImGui.Text($"({zoneName} / {contentName})");
                 }
             }
@@ -69,59 +94,96 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             var delay = DutyDelay;
             if (ImGuiOm.CompLabelLeft(
                     "延迟:", 200f * ImGuiHelpers.GlobalScale,
-                    () => ImGui.InputInt("###PresetLeaveDutyDelayInput", ref delay, 0, 0)))
+                    () => ImGui.InputInt("(ms)###PresetLeaveDutyDelayInput", ref delay, 0, 0)))
                 DutyDelay = Math.Max(0, delay);
-            
-            ImGui.SameLine();
-            ImGui.Text("(ms)");
         }
+
         ImGuiOm.TooltipHover("完成副本后, 在退出副本前需要等待的时间");
-        
+
         ImGui.Spacing();
-        
+
         var autoOpenTreasure = AutoOpenTreasures;
         if (ImGui.Checkbox("副本结束时, 自动开启宝箱", ref autoOpenTreasure))
             AutoOpenTreasures = autoOpenTreasure;
         ImGuiOm.HelpMarker("请确保本副本的确有宝箱, 否则流程将卡死", 20f, FontAwesomeIcon.InfoCircle, true);
 
-        ImGui.Dummy(new(8f));
+        ImGui.NewLine();
 
-        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, "添加新步骤", true))
-            Steps.Add(new());
-        ImGuiOm.HelpMarker("每一步骤内的各判断, 都遵循界面绘制顺序, 从上到下依次判断执行", useStaticFont: true);
+        ImGui.Text("备注:");
+        var remark = Remark;
+        if (ImGui.InputTextMultiline("###RemarkInput", ref remark, 2056,
+                                     ImGui.GetContentRegionAvail() - ImGui.GetStyle().ItemSpacing))
+            Remark = remark;
+    }
 
-        ImGui.Spacing();
-        
-        for (var i = 0; i < Steps.Count; i++)
+    private void DrawStepInfo()
+    {
+        if (Steps.Count == 0)
+            CurrentStep = -1;
+        else if (CurrentStep >= Steps.Count)
+            CurrentStep = Steps.Count - 1;
+
+        var availableContent  = ImGui.GetContentRegionAvail();
+
+        var leftChildWidth   = Math.Min(175f * ImGuiHelpers.GlobalScale, availableContent.X * 0.3f);
+        var rightChildHeight = availableContent.X - leftChildWidth - ImGui.GetStyle().ItemSpacing.X;
+        var childHeight      = availableContent.Y - ImGui.GetStyle().ItemSpacing.Y;
+
+        using (var child = ImRaii.Child("StepsSelectChild", new(leftChildWidth, childHeight)))
         {
-            var step = Steps[i];
+            if (child)
+            {
+                if (ImGuiOm.ButtonSelectable("添加新步骤"))
+                    Steps.Add(new());
+                ImGuiOm.TooltipHover("每一步骤内的各判断, 都遵循界面绘制顺序, 从上到下、从左到右依次判断执行");
 
-            using var node = ImRaii.TreeNode($"第 {i + 1} 步: {step.Note} (延迟: {step.Delay}ms)###Step-{i}");
-            if (!node)
-            {
-                DrawStepContextMenu(i, step);
-                continue;
+                ImGui.Separator();
+                ImGui.Spacing();
+
+                for (var i = 0; i < Steps.Count; i++)
+                {
+                    var step = Steps[i];
+
+                    var stepName = $"{i + 1}. {step.Note}" + (step.Delay > 0 ? $" ({(float)step.Delay / 1000:F2}s)" : string.Empty);
+                    if (ImGui.Selectable(stepName, i == CurrentStep))
+                        CurrentStep = i;
+                    ImGuiOm.TooltipHover(stepName);
+
+                    DrawStepContextMenu(i, step);
+                }
             }
-            
-            var ret = step.Draw(i, Steps.Count);
-            DrawStepContextMenu(i, step);
-            
-            Action executorOperationAction = ret switch
-            {
-                StepOperationType.Delete   => () => Steps.RemoveAt(i),
-                StepOperationType.MoveDown => () => Steps.Swap(i, i + 1),
-                StepOperationType.MoveUp   => () => Steps.Swap(i, i - 1),
-                StepOperationType.Copy     => () => Steps.Insert(i  + 1, step.Copy()),
-                StepOperationType.Pass     => () => { },
-                _                          => () => { }
-            };
-            executorOperationAction();
         }
+
+        ImGui.SameLine();
+        using (var child = ImRaii.Child("StepsDrawChild", new(rightChildHeight, childHeight)))
+        {
+            if (child)
+            {
+                if (CurrentStep == -1) return;
+
+                var step = Steps[CurrentStep];
+                var ret  = step.Draw(CurrentStep, Steps.Count);
+                DrawStepContextMenu(CurrentStep, step);
+
+                Action executorOperationAction = ret switch
+                {
+                    StepOperationType.Delete   => () => Steps.RemoveAt(CurrentStep),
+                    StepOperationType.MoveDown => () => Steps.Swap(CurrentStep, CurrentStep + 1),
+                    StepOperationType.MoveUp   => () => Steps.Swap(CurrentStep, CurrentStep - 1),
+                    StepOperationType.Copy     => () => Steps.Insert(CurrentStep            + 1, step.Copy()),
+                    StepOperationType.Pass     => () => { },
+                    _                          => () => { }
+                };
+                executorOperationAction();
+            }
+        }
+
+        return;
 
         void DrawStepContextMenu(int i, ExecutorPresetStep step)
         {
             var contextOperation = StepOperationType.Pass;
-            
+
             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                 ImGui.OpenPopup($"StepContentMenu_{i}");
 
@@ -129,28 +191,29 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             if (!context) return;
 
             ImGui.Text($"第 {i + 1} 步: {step.Note}");
-            
+
             ImGui.Separator();
-            
+
             if (ImGui.MenuItem("复制"))
                 StepToCopy = step.Copy();
-            
+
             if (StepToCopy != null)
             {
                 using (ImRaii.Group())
                 {
                     if (ImGui.MenuItem("粘贴至本步"))
                         Steps[i] = StepToCopy;
-                    
+
                     if (ImGui.MenuItem("向上插入粘贴"))
                         Steps.Insert(Math.Max(i - 1, 0), StepToCopy.Copy());
 
                     if (ImGui.MenuItem("向下插入粘贴"))
                         Steps.Insert(i + 1, StepToCopy.Copy());
                 }
+
                 ImGuiOm.TooltipHover($"已复制步骤: {StepToCopy.Note}");
             }
-            
+
             if (ImGui.MenuItem("删除"))
                 contextOperation = StepOperationType.Delete;
 
