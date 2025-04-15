@@ -163,7 +163,7 @@ public class CommandCondition
                 StepOperationType.Pass => () => { },
                 StepOperationType.Paste => () =>
                 {
-                    Conditions[i] = ConditionToCopy;
+                    Conditions[i] = ConditionToCopy.Copy();
                 },
                 StepOperationType.PasteUp => () =>
                 {
@@ -326,7 +326,7 @@ public class CommandSingleCondition
                     _                                 => false
                 };
             case CommandDetectType.Status:
-                var statusID = (uint)Value;
+                var statusID  = (uint)Value;
                 var targetObj = TargetSystem.Instance()->Target;
 
                 bool? hasStatus = TargetType switch

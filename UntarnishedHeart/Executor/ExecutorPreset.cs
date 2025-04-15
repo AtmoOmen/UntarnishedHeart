@@ -162,7 +162,8 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 if (CurrentStep == -1) return;
 
                 var step = Steps[CurrentStep];
-                step.Draw(CurrentStep);
+
+                step.Draw(ref CurrentStep, Steps);
             }
         }
 
@@ -244,7 +245,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 StepOperationType.Pass   => () => { },
                 StepOperationType.Paste => () =>
                 {
-                    Steps[i]    = StepToCopy;
+                    Steps[i]    = StepToCopy.Copy();
                     CurrentStep = i;
                 },
                 StepOperationType.PasteUp => () =>
