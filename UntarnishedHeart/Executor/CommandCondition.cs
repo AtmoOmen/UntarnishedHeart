@@ -163,7 +163,7 @@ public class CommandCondition
                 StepOperationType.Pass => () => { },
                 StepOperationType.Paste => () =>
                 {
-                    Conditions[i]    = ConditionToCopy;
+                    Conditions[i] = ConditionToCopy;
                 },
                 StepOperationType.PasteUp => () =>
                 {

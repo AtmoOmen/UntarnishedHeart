@@ -192,7 +192,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                     if (ImGui.MenuItem("粘贴至本步"))
                         contextOperation = StepOperationType.Paste;
 
-                    if (ImGui.MenuItem("粘贴"))
+                    if (ImGui.MenuItem("向上插入粘贴"))
                         contextOperation = StepOperationType.PasteUp;
 
                     if (ImGui.MenuItem("向下插入粘贴"))
@@ -249,13 +249,12 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 },
                 StepOperationType.PasteUp => () =>
                 {
-                    var index = Math.Max(i - 1, 0);
-                    Steps.Insert(index, StepToCopy.Copy());
-                    CurrentStep = index;
+                    Steps.Insert(i, StepToCopy.Copy());
+                    CurrentStep = i;
                 },
                 StepOperationType.PasteDown => () =>
                 {
-                    var index = i  + 1;
+                    var index = i + 1;
                     Steps.Insert(index, StepToCopy.Copy());
                     CurrentStep = index;
                 },
