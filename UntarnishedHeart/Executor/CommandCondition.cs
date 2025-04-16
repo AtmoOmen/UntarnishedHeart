@@ -322,16 +322,16 @@ public class CommandSingleCondition
                 var health = TargetType switch
                 {
                     CommandTargetType.Target => DService.Targets.Target is IBattleChara target ? 
-                                                    (int)((double)target.CurrentHp / target.MaxHp * 100) : 
+                                                    (float)target.CurrentHp / target.MaxHp * 100 : 
                                                     -1,
                     CommandTargetType.Self   => DService.ClientState.LocalPlayer is IBattleChara target ? 
-                                                    (int)((double)target.CurrentHp / target.MaxHp * 100) : 
-                                                    -1,
+                                                    (float)target.CurrentHp / target.MaxHp * 100 : 
+                                                    -1, 
                     _                        => -1
                 };
                 if (health == -1) return false;
                 
-                var healthValue = (int)Value;
+                var healthValue = Value;
                 return ComparisonType switch
                 {
                     CommandComparisonType.GreaterThan => health > healthValue,
