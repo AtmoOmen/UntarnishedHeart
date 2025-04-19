@@ -370,6 +370,13 @@ public class CommandSingleCondition
                     CommandComparisonType.NotFinished => !isOffCooldown,
                     _                                 => false
                 };
+            case CommandDetectType.ActionCastStart:
+                if (TargetType != CommandTargetType.Target || ComparisonType != CommandComparisonType.Has) return false;
+                if (DService.Targets.Target is not IBattleChara targetCast) return false;
+                if (!targetCast.IsCasting || targetCast.CastActionType != (byte)ActionType.Action) return false;
+
+                var castActionID = (uint)Value;
+                return targetCast.CastActionId == castActionID;
             default:
                 return false;
         }
@@ -394,7 +401,9 @@ public enum CommandDetectType
     [Description("状态效果 (拥有/不拥有)")]
     Status,
     [Description("技能冷却 (自身·完成/未完成)")]
-    ActionCooldown
+    ActionCooldown,
+    [Description("技能咏唱开始 (目标·拥有)")]
+    ActionCastStart,
 }
 
 public enum CommandComparisonType

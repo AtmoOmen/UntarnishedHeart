@@ -11,12 +11,14 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using ImGuiNET;
 using Lumina.Excel.Sheets;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Executor;
+using Status = Lumina.Excel.Sheets.Status;
 
 namespace UntarnishedHeart.Windows;
 
@@ -410,6 +412,12 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             
             ImGui.SameLine();
             ImGui.Text($"{(double)target.CurrentHp / target.MaxHp * 100:F2}%% ({target.CurrentHp} / {target.MaxHp})");
+
+            if (target.IsCasting)
+            {
+                ImGui.Text($"咏唱技能: {LuminaWarpper.GetActionName(target.CastActionId)} ({target.CastActionId} / {(ActionType)target.CastActionType})");
+                ImGui.Text($"咏唱时间: {target.CurrentCastTime:F2} / {target.TotalCastTime:F2}");
+            }
         }
     }
 
