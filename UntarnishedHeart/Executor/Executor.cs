@@ -90,7 +90,7 @@ public class Executor : IDisposable
     // 填装预设步骤
     private void EnqueuePreset()
     {
-        TaskHelper.Enqueue(() => DService.ClientState.LocalPlayer != null && IsScreenReady(), "等待区域加载结束");
+        TaskHelper.Enqueue(() => DService.ObjectTable.LocalPlayer != null && IsScreenReady(), "等待区域加载结束");
 
         TaskHelper.Enqueue(() =>
         {
@@ -140,7 +140,7 @@ public class Executor : IDisposable
         }, "等待副本结束");
 
         TaskHelper.Enqueue(
-            () => DService.ClientState.LocalPlayer != null && !DService.Condition[ConditionFlag.BetweenAreas],
+            () => DService.ObjectTable.LocalPlayer != null && !DService.Condition[ConditionFlag.BetweenAreas],
             "等待区域加载结束");
 
         TaskHelper.Enqueue(() =>
@@ -173,7 +173,7 @@ public class Executor : IDisposable
     // 填装搜寻宝箱
     private unsafe void EnqueueTreasureHunt()
     {
-        var localPlayer  = DService.ClientState.LocalPlayer;
+        var localPlayer  = DService.ObjectTable.LocalPlayer;
         var origPosition = localPlayer?.Position ?? default;
         var setDelayTime = 50;
 

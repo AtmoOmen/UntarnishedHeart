@@ -76,7 +76,7 @@ public static class Widgets
                         ImGui.RadioButton(string.Empty, state);
 
                     ImGui.TableNextColumn();
-                    ImGui.Image(ImageHelper.GetIcon(contentPair.Value.ContentType.Value.Icon).ImGuiHandle,
+                    ImGui.Image(ImageHelper.GetGameIcon(contentPair.Value.ContentType.Value.Icon).ImGuiHandle,
                                 ImGuiHelpers.ScaledVector2(20f));
 
                     ImGui.TableNextColumn();
@@ -89,7 +89,7 @@ public static class Widgets
                         selectState = true;
                     }
 
-                    var image = ImageHelper.GetIcon(contentPair.Value.Image);
+                    var image = ImageHelper.GetGameIcon(contentPair.Value.Image);
                     if (image != null && ImGui.IsItemHovered())
                     {
                         using (ImRaii.Tooltip())

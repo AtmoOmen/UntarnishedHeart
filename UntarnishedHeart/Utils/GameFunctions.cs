@@ -1,11 +1,9 @@
 using System;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Dalamud.Game.ClientState.Conditions;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 
 namespace UntarnishedHeart.Utils;
 
@@ -50,7 +48,7 @@ public static class GameFunctions
         TaskHelper.Abort();
         TaskHelper.Enqueue(() =>
         {
-            if (DService.ClientState.LocalPlayer is not { } localPlayer) return false;
+            if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
             localPlayer.ToStruct()->SetPosition(pos.X, pos.Y, pos.Z);
             SendKeypress(Keys.W);
             return true;
@@ -102,7 +100,7 @@ public static class GameFunctions
 
         while (true)
         {
-            var localPlayer = DService.ClientState.LocalPlayer;
+            var localPlayer = DService.ObjectTable.LocalPlayer;
             if (localPlayer == null) continue;
 
             var distance = Vector3.DistanceSquared(localPlayer.Position, targetPos);

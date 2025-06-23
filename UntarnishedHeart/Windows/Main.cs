@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.ClientState.Objects.Enums;
-using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface;
@@ -16,6 +14,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using ImGuiNET;
 using Lumina.Excel.Sheets;
+using OmenTools.Service;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Executor;
 using Status = Lumina.Excel.Sheets.Status;
@@ -346,7 +345,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             
             ImGui.Text("当前区域:");
             
-            var zoneName = LuminaWarpper.GetZonePlaceName(DService.ClientState.TerritoryType);
+            var zoneName = LuminaWrapper.GetZonePlaceName(DService.ClientState.TerritoryType);
             ImGui.SameLine();
             ImGui.Text($"{zoneName} ({DService.ClientState.TerritoryType})");
 
@@ -354,7 +353,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             {
                 ImGui.Text("副本区域:");
 
-                var contentName = LuminaWarpper.GetContentName(zoneRow.ContentFinderCondition.RowId);
+                var contentName = LuminaWrapper.GetContentName(zoneRow.ContentFinderCondition.RowId);
                 ImGui.SameLine();
                 ImGui.Text($"{contentName} ({zoneRow.ContentFinderCondition.RowId})");
                 
@@ -370,7 +369,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             ImGui.Text("当前位置:");
 
             ImGui.SameLine();
-            ImGui.Text($"{DService.ClientState.LocalPlayer?.Position:F2}");
+            ImGui.Text($"{DService.ObjectTable.LocalPlayer?.Position:F2}");
         }
     }
 
@@ -380,7 +379,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         using var indent = ImRaii.PushIndent();
         using var group = ImRaii.Group();
 
-        if (DService.Targets.Target is IBattleChara target)
+        if (DService.Targets.Target is OmenTools.Service.IBattleChara target)
         {
             ImGui.Text("当前目标:");
 
@@ -415,7 +414,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 
             if (target.IsCasting)
             {
-                ImGui.Text($"咏唱技能: {LuminaWarpper.GetActionName(target.CastActionId)} ({target.CastActionId} / {(ActionType)target.CastActionType})");
+                ImGui.Text($"咏唱技能: {LuminaWrapper.GetActionName(target.CastActionId)} ({target.CastActionId} / {target.CastActionType})");
                 ImGui.Text($"咏唱时间: {target.CurrentCastTime:F2} / {target.TotalCastTime:F2}");
             }
         }
@@ -427,7 +426,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         using var indent = ImRaii.PushIndent();
         using var group  = ImRaii.Group();
         
-        if (DService.ClientState.LocalPlayer is { } localPlayer)
+        if (DService.ObjectTable.LocalPlayer is { } localPlayer)
         {
             using (ImRaii.Group())
             {

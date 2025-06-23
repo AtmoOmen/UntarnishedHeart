@@ -101,7 +101,7 @@ public unsafe class PathFindHelper : IDisposable
 
     private (Angle h, Angle v)? DirectionToDestination(bool allowVertical)
     {
-        var player = DService.ClientState.LocalPlayer;
+        var player = DService.ObjectTable.LocalPlayer;
         if (player == null)
             return null;
 

@@ -24,7 +24,7 @@ public static unsafe class AutoObjectInteract
 
     public static void TryInteractNearestObject()
     {
-        if (DService.ClientState.LocalPlayer is not { } localPlayer) return;
+        if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return;
 
         var nearestObj = DService.ObjectTable.Where(x => x is { IsTargetable: true, IsDead: false }    &&
                                                          ValidInteractableKinds.Contains(x.ObjectKind) && x.IsValid())

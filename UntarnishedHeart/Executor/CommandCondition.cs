@@ -324,7 +324,7 @@ public class CommandSingleCondition
                     CommandTargetType.Target => DService.Targets.Target is IBattleChara target ? 
                                                     (float)target.CurrentHp / target.MaxHp * 100 : 
                                                     -1,
-                    CommandTargetType.Self   => DService.ClientState.LocalPlayer is IBattleChara target ? 
+                    CommandTargetType.Self   => DService.ObjectTable.LocalPlayer is IBattleChara target ? 
                                                     (float)target.CurrentHp / target.MaxHp * 100 : 
                                                     -1, 
                     _                        => -1

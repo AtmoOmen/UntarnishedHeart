@@ -1,4 +1,3 @@
-using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface;
@@ -9,8 +8,9 @@ using System.Linq;
 using System;
 using System.Numerics;
 using Dalamud.Game.ClientState.Conditions;
-using UntarnishedHeart.Utils;
 using Dalamud.Game.ClientState.Objects.Enums;
+using OmenTools.Service;
+using UntarnishedHeart.Utils;
 using UntarnishedHeart.Managers;
 
 namespace UntarnishedHeart.Executor;
@@ -143,7 +143,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                             ImGui.SameLine();
                             if (ImGuiOm.ButtonIcon("GetPosition", FontAwesomeIcon.Bullseye, "取当前位置", true))
                             {
-                                if (DService.ClientState.LocalPlayer is { } localPlayer)
+                                if (DService.ObjectTable.LocalPlayer is { } localPlayer)
                                     Position = localPlayer.Position;
                             }
 
@@ -318,7 +318,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
             () => t.Enqueue(() =>
                             {
                                 if (!StopWhenAnyAlive || DService.PartyList.Length < 2) return true;
-                                if (DService.ClientState.LocalPlayer is not { } localPlayer) return false;
+                                if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
 
                                 foreach (var member in DService.PartyList)
                                 {
@@ -357,7 +357,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                             {
                                 if (Position == default(Vector3) || !WaitForGetClose) return true;
 
-                                if (DService.ClientState.LocalPlayer is not { } localPlayer) return false;
+                                if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
                                 if (!Throttler.Throttle("接近目标位置节流")) return false;
 
                                 return Vector2.DistanceSquared(localPlayer.Position.ToVector2(), Position.ToVector2()) <= 4;
@@ -420,7 +420,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
             () => t.DelayNext((int)Delay, $"等待 {Delay} 秒: {Note}")
         ];
 
-        void EnqueueTextCommands(uint weight = 0)
+        void EnqueueTextCommands(int weight = 0)
         {
             foreach (var command in Commands.Split('\n'))
             {
@@ -433,7 +433,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 }
                 
                 SpecialCommandHandle:
-                t.Enqueue(() => ChatHelper.Instance.SendMessage(command), $"使用文本指令: {Note} {command}", weight: weight);
+                t.Enqueue(() => ChatHelper.SendMessage(command), $"使用文本指令: {Note} {command}", weight: weight);
                 t.DelayNext(100, $"使用文本指令节流: {Note} {command}", weight: weight);
             }
         }
