@@ -134,53 +134,7 @@ public unsafe class PathFindHelper : IDisposable
         [FieldOffset(0x14)] public byte DirMode;
         [FieldOffset(0x15)] public byte HaveBackwardOrStrafe;
     }
-
-    public struct Angle(float radians = 0)
-    {
-        public const float RadToDeg = 180 / MathF.PI;
-        public const float DegToRad = MathF.PI / 180;
-
-        public float Rad = radians;
-        public readonly float Deg => Rad * RadToDeg;
-
-        public static Angle FromDirection(Vector2 dir) => new(MathF.Atan2(dir.X, dir.Y));
-        public static Angle FromDirection(float x, float z) => new(MathF.Atan2(x, z));
-        public static Angle FromDirectionXZ(Vector3 dir) => new(MathF.Atan2(dir.X, dir.Z));
-        public Vector2 ToDirection() => new(Sin(), Cos());
-        public Vector3 ToDirectionXZ() => new(Sin(), 0, Cos());
-
-        public static Angle operator +(Angle a, Angle b) => new(a.Rad + b.Rad);
-        public static Angle operator -(Angle a, Angle b) => new(a.Rad - b.Rad);
-        public static Angle operator -(Angle a) => new(-a.Rad);
-        public static Angle operator *(Angle a, float b) => new(a.Rad * b);
-        public static Angle operator *(float a, Angle b) => new(a * b.Rad);
-        public static Angle operator /(Angle a, float b) => new(a.Rad / b);
-        public Angle Abs() => new(Math.Abs(Rad));
-        public float Sin() => MathF.Sin(Rad);
-        public float Cos() => MathF.Cos(Rad);
-        public float Tan() => MathF.Tan(Rad);
-        public static Angle Asin(float x) => new(MathF.Asin(x));
-        public static Angle Acos(float x) => new(MathF.Acos(x));
-
-        public Angle Normalized()
-        {
-            var r = Rad;
-            while (r < -MathF.PI)
-                r += 2 * MathF.PI;
-            while (r > MathF.PI)
-                r -= 2 * MathF.PI;
-            return new(r);
-        }
-
-        public bool AlmostEqual(Angle other, float epsRad) => Math.Abs((this - other).Normalized().Rad) <= epsRad;
-
-        public static bool operator ==(Angle l, Angle r) => l.Rad == r.Rad;
-        public static bool operator !=(Angle l, Angle r) => l.Rad != r.Rad;
-        public override bool Equals(object? obj) => obj is Angle angle && this == angle;
-        public override int GetHashCode() => Rad.GetHashCode();
-        public override string ToString() => Deg.ToString("f0");
-    }
-
+    
     [StructLayout(LayoutKind.Explicit, Size = 0x2B0)]
     public struct CameraEx
     {

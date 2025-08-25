@@ -14,8 +14,16 @@
         "resolved": "1.2.25",
         "contentHash": "xCXiw7BCxHJ8pF6wPepRUddlh2dlQlbr81gXA72hdk4FLHkKXas7EH/n+fk5UCA/YfMqG1Z6XaPiUjDbUNBUzg=="
       },
+      "TinyPinyin": {
+        "type": "Transitive",
+        "resolved": "1.1.0",
+        "contentHash": "pwe99NXsWkSeJdOwzcweorlyoB2frOlTU37QwzmnnxfRT5vRENXm4UOl5g4Nxq5V9lYOBWK1mZIozFfIlDVjYA=="
+      },
       "omentools": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "TinyPinyin": "[1.1.0, )"
+        }
       }
     }
   }

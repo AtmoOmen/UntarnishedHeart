@@ -2,15 +2,14 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface;
-using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using ImGuiNET;
+using OmenTools.Service;
 
 namespace UntarnishedHeart.Executor;
 
@@ -373,7 +372,7 @@ public class CommandSingleCondition
             case CommandDetectType.ActionCastStart:
                 if (TargetType != CommandTargetType.Target || ComparisonType != CommandComparisonType.Has) return false;
                 if (DService.Targets.Target is not IBattleChara targetCast) return false;
-                if (!targetCast.IsCasting || targetCast.CastActionType != (byte)ActionType.Action) return false;
+                if (!targetCast.IsCasting || targetCast.CastActionType != ActionType.Action) return false;
 
                 var castActionID = (uint)Value;
                 return targetCast.CastActionId == castActionID;
