@@ -422,7 +422,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
         void EnqueueTextCommands(int weight = 0)
         {
-            foreach (var command in Commands.Split('\n'))
+            foreach (var command in Commands.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
                 if (command.StartsWith("/wait"))
                 {
