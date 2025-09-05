@@ -57,19 +57,19 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
     private void DrawBasicInfo()
     {
         var name = Name;
-        if (ImGuiOm.CompLabelLeft(
-                "名称:", 200f * ImGuiHelpers.GlobalScale,
-                () => ImGui.InputText("###PresetNameInput", ref name, 128)))
+        if (ImGuiOm.CompLabelLeft("名称:", -1f, () => ImGui.InputText("###PresetNameInput", ref name, 128)))
             Name = name;
+        
+        ImGui.NewLine();
 
         using (ImRaii.Group())
         {
             ImGui.AlignTextToFramePadding();
-            ImGui.Text("区域:");
+            ImGui.Text("副本区域:");
 
             var zone = (uint)Zone;
             ImGui.SameLine();
-            ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+            ImGui.SetNextItemWidth(350f * ImGuiHelpers.GlobalScale);
             if (ContentSelectCombo(ref zone, ref ZoneSearchInput))
                 Zone = (ushort)zone;
 
@@ -89,15 +89,11 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             }
         }
 
-        using (ImRaii.Group())
-        {
-            var delay = DutyDelay;
-            if (ImGuiOm.CompLabelLeft(
-                    "延迟:", 200f * ImGuiHelpers.GlobalScale,
-                    () => ImGui.InputInt("(ms)###PresetLeaveDutyDelayInput", ref delay, 0, 0)))
-                DutyDelay = Math.Max(0, delay);
-        }
-
+        var delay = DutyDelay;
+        if (ImGuiOm.CompLabelLeft(
+                "退出延迟:", 350f * ImGuiHelpers.GlobalScale,
+                () => ImGui.InputInt("(ms)###PresetLeaveDutyDelayInput", ref delay, 0, 0)))
+            DutyDelay = Math.Max(0, delay);
         ImGuiOm.TooltipHover("完成副本后, 在退出副本前需要等待的时间");
 
         ImGui.Spacing();

@@ -360,7 +360,6 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             ImGui.SameLine();
             ImGui.Text($"{target.DataId}");
 
-            ImGui.SameLine(0, 10f * ImGuiHelpers.GlobalScale);
             ImGui.Text("Entity ID:");
 
             ImGui.SameLine();
@@ -371,7 +370,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             ImGui.SameLine();
             ImGui.Text($"{target.Position:F2}");
             
-            ImGui.Text("目标 HP:");
+            ImGui.Text("目标体力:");
             
             ImGui.SameLine();
             ImGui.Text($"{(double)target.CurrentHp / target.MaxHp * 100:F2}%% ({target.CurrentHp} / {target.MaxHp})");

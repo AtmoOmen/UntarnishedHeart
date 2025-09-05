@@ -42,6 +42,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
     public bool             WaitForGetClose    { get; set; }
     public uint             DataID             { get; set; }
     public ObjectKind       ObjectKind         { get; set; } = ObjectKind.BattleNpc;
+    public bool             WaitForTargetSpawn { get; set; }
     public bool             WaitForTarget      { get; set; } = true;
     public bool             InteractWithTarget { get; set; }
     public string           Commands           { get; set; } = string.Empty;
@@ -73,27 +74,18 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                     if (preWait)
                     {
                         var stepStopWhenAnyAlive = StopWhenAnyAlive;
-                        using (ImRaii.PushColor(ImGuiCol.Text, LightSkyBlue))
-                        {
-                            if (ImGui.Checkbox("若任一队友不在无法战斗状态, 则等待###StepStopWhenAnyAliveInput", ref stepStopWhenAnyAlive))
-                                StopWhenAnyAlive = stepStopWhenAnyAlive;
-                        }
+                        if (ImGui.Checkbox("若任一队友不在无法战斗状态, 则等待###StepStopWhenAnyAliveInput", ref stepStopWhenAnyAlive))
+                            StopWhenAnyAlive = stepStopWhenAnyAlive;
                         ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否存在任一队友不在无法战斗状态, 若存在, 则阻塞步骤执行");
 
                         var stepStopInCombat = StopInCombat;
-                        using (ImRaii.PushColor(ImGuiCol.Text, LightSkyBlue))
-                        {
-                            if (ImGui.Checkbox("若已进入战斗, 则等待###StepStopInCombatInput", ref stepStopInCombat))
-                                StopInCombat = stepStopInCombat;
-                        }
+                        if (ImGui.Checkbox("若已进入战斗, 则等待###StepStopInCombatInput", ref stepStopInCombat))
+                            StopInCombat = stepStopInCombat;
                         ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否进入战斗状态, 若已进入, 则阻塞步骤执行");
 
                         var stepStopWhenBusy = StopWhenBusy;
-                        using (ImRaii.PushColor(ImGuiCol.Text, LightSkyBlue))
-                        {
-                            if (ImGui.Checkbox("若为忙碌状态, 则等待###StepStopWhenBusyInput", ref stepStopWhenBusy))
-                                StopWhenBusy = stepStopWhenBusy;
-                        }
+                        if (ImGui.Checkbox("若为忙碌状态, 则等待###StepStopWhenBusyInput", ref stepStopWhenBusy))
+                            StopWhenBusy = stepStopWhenBusy;
                         ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否正处于忙碌状态 (如: 过图加载, 交互等), 若已进入, 则阻塞步骤执行");
                     }
                     else
@@ -108,7 +100,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                         ImGui.TextColored(LightSkyBlue, "方式:");
 
                         ImGui.SameLine();
-                        ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+                        ImGui.SetNextItemWidth(300f * ImGuiHelpers.GlobalScale);
                         using (var combo = ImRaii.Combo("###StepMoveTypeCombo", MoveType.ToString()))
                         {
                             if (combo)
@@ -132,7 +124,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                             ImGui.TextColored(LightSkyBlue, "位置:");
 
                             ImGui.SameLine();
-                            ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+                            ImGui.SetNextItemWidth(300f * ImGuiHelpers.GlobalScale);
                             if (ImGui.InputFloat3("###StepPositionInput", ref stepPosition))
                                 Position = stepPosition;
                             ImGuiOm.TooltipHover("若不想执行移动, 请将坐标设置为 <0, 0, 0>");
@@ -221,22 +213,20 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                         }
 
                         ImGui.Spacing();
+                        
+                        var waitForTargetSpawn = WaitForTargetSpawn;
+                        if (ImGui.Checkbox("等待目标生成", ref waitForTargetSpawn))
+                            WaitForTargetSpawn = waitForTargetSpawn;
+                        ImGuiOm.TooltipHover("勾选后, 则会阻塞进程持续查找对应目标, 直到符合条件的目标进入游戏客户端内存中");
 
-                        using (ImRaii.PushColor(ImGuiCol.Text, LightSkyBlue))
-                        {
-                            var waitForTarget = WaitForTarget;
-                            if (ImGui.Checkbox("等待目标被选中", ref waitForTarget))
-                                WaitForTarget = waitForTarget;
-                        }
-
+                        var waitForTarget = WaitForTarget;
+                        if (ImGui.Checkbox("等待目标被选中", ref waitForTarget))
+                            WaitForTarget = waitForTarget;
                         ImGuiOm.TooltipHover("勾选后, 则会阻塞进程持续查找对应目标并尝试选中, 直至任一目标被选中");
 
-                        using (ImRaii.PushColor(ImGuiCol.Text, LightSkyBlue))
-                        {
-                            var interactWithTarget = InteractWithTarget;
-                            if (ImGui.Checkbox("交互此目标", ref interactWithTarget))
-                                InteractWithTarget = interactWithTarget;
-                        }
+                        var interactWithTarget = InteractWithTarget;
+                        if (ImGui.Checkbox("交互此目标", ref interactWithTarget))
+                            InteractWithTarget = interactWithTarget;
 
                         ImGuiOm.TooltipHover("勾选后, 则会尝试与当前目标进行交互, 若未选中任一目标则跳过\n\n" +
                                              "注: 请自行确保位于一个可交互到目标的坐标");
@@ -273,9 +263,8 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                         using (ImRaii.Group())
                         {
                             var stepDelay = Delay;
-                            if (ImGuiOm.CompLabelLeft(
-                                    "等待:", 200f * ImGuiHelpers.GlobalScale,
-                                    () => ImGuiOm.InputUInt("(ms)###StepDelayInput", ref stepDelay, 0, 0)))
+                            ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+                            if (ImGuiOm.InputUInt("等待时间 (ms)###StepDelayInput", ref stepDelay, 0, 0))
                                 Delay = stepDelay;
                             ImGuiOm.TooltipHover("在开始下一步骤前, 需要等待的时间");
                         }
@@ -359,25 +348,37 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
                                 return Vector2.DistanceSquared(localPlayer.Position.ToVector2(), Position.ToVector2()) <= 4;
                             }, $"等待完全接近目标位置: {Note}"),
+            // 执行等待目标生成
+            () => t.Enqueue(() =>
+                            {
+                                if (DataID == 0 || !WaitForTargetSpawn) return true;
+                                if (!Throttler.Throttle("等待目标生成节流")) return false;
+
+                                return FindObject() != null;
+                            }, $"等待目标生成: {Note}"),
             // 执行目标选中
             () => t.Enqueue(() =>
                             {
-                                // 目标配置为 0, 不选中
-                                if (DataID == 0) return true;
+                                if (DataID == 0 || !WaitForTarget) return true;
                                 if (!Throttler.Throttle("选中目标节流")) return false;
 
                                 TargetObject();
-                                return !WaitForTarget || DService.Targets.Target != null;
+                                return TargetSystem.Instance()->Target != null;
                             }, $"选中目标: {Note}"),
             // 执行目标交互
             () => t.Enqueue(() =>
                             {
-                                if (DataID == 0 || !InteractWithTarget || DService.Targets.Target is not { } target) return true;
-                                
+                                if (DataID == 0 || !InteractWithTarget) return true;
+                                if (DService.Targets.Target is not { } target) return true;
+
                                 return target.TargetInteract();
                             }, $"交互预设目标: {Note}"),
             // 等待目标交互完成
-            () => t.DelayNext(InteractWithTarget ? 200 : 0, $"延迟 200 毫秒, 等待交互开始: {Note}"),
+            () =>
+            {
+                if (!InteractWithTarget) return;
+                t.DelayNext(200, $"延迟 200 毫秒, 等待交互开始: {Note}");
+            },
             () => t.Enqueue(() => !InteractWithTarget || (!OccupiedInEvent && IsScreenReady()), $"等待目标交互完成: {Note}"),
             // 执行文本指令
             () =>
@@ -453,8 +454,8 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         TargetSystem.Instance()->Target = obj.ToStruct();
     }
 
-    public IGameObject? FindObject() 
-        => DService.ObjectTable.FirstOrDefault(x => x.ObjectKind == ObjectKind && x.DataId == DataID);
+    public IGameObject? FindObject() => 
+        DService.ObjectTable.FirstOrDefault(x => x.ObjectKind == ObjectKind && x.DataId == DataID && x.IsTargetable);
 
     public override string ToString() => 
         $"ExecutorPresetStep_{Note}_{DataID}_{Position}_{Delay}_{StopInCombat}";
