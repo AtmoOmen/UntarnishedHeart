@@ -11,6 +11,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using ImGuiNET;
 using OmenTools.Service;
+using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
 namespace UntarnishedHeart.Executor;
 
@@ -309,12 +310,8 @@ public class CommandSingleCondition
             case CommandDetectType.Health:
                 var health = TargetType switch
                 {
-                    CommandTargetType.Target => DService.Targets.Target is IBattleChara target ? 
-                                                    (float)target.CurrentHp / target.MaxHp * 100 : 
-                                                    -1,
-                    CommandTargetType.Self   => DService.ObjectTable.LocalPlayer is IBattleChara target ? 
-                                                    (float)target.CurrentHp / target.MaxHp * 100 : 
-                                                    -1, 
+                    CommandTargetType.Target => DService.Targets.Target is IBattleChara target ? (float)target.CurrentHp          / target.MaxHp * 100 : -1,
+                    CommandTargetType.Self   => DService.ObjectTable.LocalPlayer is IBattleChara target ? (float)target.CurrentHp / target.MaxHp * 100 : -1,
                     _                        => -1
                 };
                 if (health == -1) return false;
@@ -328,14 +325,14 @@ public class CommandSingleCondition
                     CommandComparisonType.NotEqualTo  => health != healthValue,
                     _                                 => false
                 };
+            
             case CommandDetectType.Status:
                 var statusID  = (uint)Value;
-                var targetObj = TargetSystem.Instance()->Target;
 
                 bool? hasStatus = TargetType switch
                 {
-                    CommandTargetType.Target => targetObj != null && targetObj->ObjectKind is ObjectKind.Pc or ObjectKind.BattleNpc ? 
-                                                    ((BattleChara*)targetObj)->StatusManager.HasStatus(statusID) : 
+                    CommandTargetType.Target => DService.Targets.Target is IBattleChara { ObjectKind: ObjectKind.BattleNpc or ObjectKind.Player } target ? 
+                                                    target.ToBCStruct()->StatusManager.HasStatus(statusID) : 
                                                     null,
                     CommandTargetType.Self => Control.GetLocalPlayer()->StatusManager.HasStatus(statusID),
                     _                      => null
@@ -348,6 +345,7 @@ public class CommandSingleCondition
                     CommandComparisonType.NotHas => !hasStatus.Value,
                     _                            => false
                 };
+            
             case CommandDetectType.ActionCooldown:
                 var actionID      = (uint)Value;
                 var isOffCooldown = ActionManager.Instance()->IsActionOffCooldown(ActionType.Action, actionID);
@@ -358,6 +356,7 @@ public class CommandSingleCondition
                     CommandComparisonType.NotFinished => !isOffCooldown,
                     _                                 => false
                 };
+            
             case CommandDetectType.ActionCastStart:
                 if (TargetType != CommandTargetType.Target || ComparisonType != CommandComparisonType.Has) return false;
                 if (DService.Targets.Target is not IBattleChara targetCast) return false;
@@ -365,6 +364,7 @@ public class CommandSingleCondition
 
                 var castActionID = (uint)Value;
                 return targetCast.CastActionId == castActionID;
+            
             default:
                 return false;
         }
@@ -393,7 +393,7 @@ public enum CommandDetectType
     [Description("技能冷却 [自身] (完成/未完成)")]
     ActionCooldown,
     
-    [Description("技能咏唱开始 [自身] (拥有)")]
+    [Description("技能咏唱开始 [目标] (拥有)")]
     ActionCastStart,
 }
 
