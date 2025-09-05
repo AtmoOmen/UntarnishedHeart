@@ -11,8 +11,8 @@ public static class GameFunctions
 {
     private static readonly CompSig ExecuteCommandSig = 
         new("E8 ?? ?? ?? ?? 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 ?? 5F C3 CC CC CC CC CC CC CC CC CC CC 48 89 5C 24 ?? 57 48 83 EC ?? 80 A1");
-    private delegate nint ExecuteCommandDelegate(int command, int param1 = 0, int param2 = 0, int param3 = 0, int param4 = 0);
-    private static ExecuteCommandDelegate? ExecuteCommand;
+    private delegate nint                    ExecuteCommandDelegate(ExecuteCommandFlag command, uint param1 = 0, uint param2 = 0, uint param3 = 0, uint param4 = 0);
+    private static   ExecuteCommandDelegate? ExecuteCommand;
 
     private static TaskHelper? TaskHelper;
 
@@ -113,5 +113,5 @@ public static class GameFunctions
         PathFindHelper.DesiredPosition = default;
     }
 
-    public static void LeaveDuty() => ExecuteCommand(819, DService.Condition[ConditionFlag.InCombat] ? 1 : 0);
+    public static void LeaveDuty() => ExecuteCommand(ExecuteCommandFlag.LeaveDuty, DService.Condition[ConditionFlag.InCombat] ? 1U : 0);
 }

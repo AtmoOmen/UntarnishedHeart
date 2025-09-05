@@ -19,6 +19,8 @@ public class Executor : IDisposable
     public ExecutorPreset? ExecutorPreset   { get; init; }
     public string          RunningMessage   => TaskHelper?.CurrentTaskName ?? string.Empty;
     public bool            IsDisposed       { get; private set; }
+    
+    public bool IsFinished => CurrentRound == MaxRound;
 
     private TaskHelper? TaskHelper;
 

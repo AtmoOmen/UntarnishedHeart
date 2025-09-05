@@ -138,11 +138,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         ImGui.TextColored(PresetExecutor == null || PresetExecutor.IsDisposed ? ImGuiColors.DalamudRed : ImGuiColors.ParsedGreen,
                           PresetExecutor == null || PresetExecutor.IsDisposed ? "等待中" : "运行中");
 
-        ImGui.SameLine();
-        ImGui.TextDisabled("|");
-
-        ImGui.SameLine();
-        ImGui.Text("次数:");
+        ImGui.Text("运行次数:");
 
         ImGui.SameLine();
         ImGui.Text($"{PresetExecutor?.CurrentRound ?? 0} / {PresetExecutor?.MaxRound ?? 0}");
@@ -233,10 +229,11 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         using var indent = ImRaii.PushIndent();
         using var group  = ImRaii.Group();
 
+        ImGui.Text("副本设置");
+        
+        using (ImRaii.PushIndent())
         using (ImRaii.Group())
         {
-            ImGui.Text("副本设置");
-
             var isUnrest = Service.Config.ContentsFinderOption.UnrestrictedParty;
             if (ImGui.Checkbox("解除限制", ref isUnrest))
             {
@@ -269,6 +266,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                 Service.Config.Save();
             }
 
+            ImGui.SameLine();
             var isNoEcho = Service.Config.ContentsFinderOption.SilenceEcho;
             if (ImGui.Checkbox("超越之力无效化", ref isNoEcho))
             {
@@ -280,8 +278,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             }
 
             var lootRule = Service.Config.ContentsFinderOption.LootRules;
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(100f * ImGuiHelpers.GlobalScale);
+            ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
             using (var combo = ImRaii.Combo("分配规则###ContentLootRuleCombo", lootRule.ToString()))
             {
                 if (combo)
@@ -306,11 +303,11 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         using (ImRaii.Group())
         {
             ImGui.AlignTextToFramePadding();
-            ImGui.Text("副本入口:");
+            ImGui.Text("副本入口");
             
             var contentEntry = Service.Config.ContentEntryType;
-            ImGui.SameLine();
             ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+            using (ImRaii.PushIndent())
             using (var combo = ImRaii.Combo("###ContentEntryCombo", contentEntry.GetDescription()))
             {
                 if (combo)

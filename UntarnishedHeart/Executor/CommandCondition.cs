@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using Dalamud.Interface;
+using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
@@ -24,12 +25,8 @@ public class CommandCondition
 
     public void Draw()
     {
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(LightSkyBlue, "处理类型:");
-
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
-        using (var combo = ImRaii.Combo("###ExecuteTypeCombo", ExecuteType.GetDescription(), ImGuiComboFlags.HeightLargest))
+        ImGui.SetNextItemWidth(300f * ImGuiHelpers.GlobalScale);
+        using (var combo = ImRaii.Combo("处理类型###ExecuteTypeCombo", ExecuteType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
             {
@@ -42,25 +39,17 @@ public class CommandCondition
             }
         }
 
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(LightSkyBlue, "时间数值:");
-
-        var timeValue = TimeValue;
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(" (ms) ").X);
-        if (ImGui.InputFloat("(ms)###TimeValueInput", ref timeValue, 0, 0))
-            TimeValue = timeValue;
-        ImGuiOm.TooltipHover("若处理类型为:\n"   +
-                             "Wait\t无效果\n" +
-                             "Pass\t无效果\n" +
-                             "Repeat\t每执行一轮间的时间间隔");
-
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(LightSkyBlue, "关系类型:");
-
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
-        using (var combo = ImRaii.Combo("###RelationTypeCombo", RelationType.GetDescription(), ImGuiComboFlags.HeightLargest))
+        if (ExecuteType == CommandExecuteType.Repeat)
+        {
+            var timeValue = TimeValue;
+            ImGui.SetNextItemWidth(300f * ImGuiHelpers.GlobalScale);
+            if (ImGui.InputFloat("重复间隔 (ms)###TimeValueInput", ref timeValue, 0, 0))
+                TimeValue = timeValue;
+            ImGuiOm.TooltipHover("每执行一轮间的时间间隔");
+        }
+        
+        ImGui.SetNextItemWidth(300f * ImGuiHelpers.GlobalScale);
+        using (var combo = ImRaii.Combo("关系类型###RelationTypeCombo", RelationType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
             {
@@ -397,11 +386,14 @@ public enum CommandDetectType
 {
     [Description("生命值百分比 (大于/小于/等于/不等于)")]
     Health,
+    
     [Description("状态效果 (拥有/不拥有)")]
     Status,
-    [Description("技能冷却 (自身·完成/未完成)")]
+    
+    [Description("技能冷却 [自身] (完成/未完成)")]
     ActionCooldown,
-    [Description("技能咏唱开始 (目标·拥有)")]
+    
+    [Description("技能咏唱开始 [自身] (拥有)")]
     ActionCastStart,
 }
 
@@ -435,9 +427,9 @@ public enum CommandTargetType
 
 public enum CommandRelationType
 {
-    [Description("和关系, 即全部条件满足才算满足")]
+    [Description("和关系 (全部条件满足才算满足)")]
     And,
-    [Description("或关系, 即任一条件满足就算满足")]
+    [Description("或关系 (任一条件满足就算满足)")]
     Or
 }
 
@@ -445,8 +437,10 @@ public enum CommandExecuteType
 {
     [Description("若不满足条件, 则等待满足条件后再执行文本指令")]
     Wait,
+    
     [Description("若不满足条件, 则跳过执行文本指令")]
     Pass,
+    
     [Description("若不满足条件, 则重复执行文本指令, 若满足, 则仅执行一次")]
     Repeat,
 }
