@@ -6,9 +6,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using ImGuiNET;
 using OmenTools.Service;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
@@ -62,6 +60,8 @@ public class CommandCondition
                 }
             }
         }
+        
+        ImGui.NewLine();
 
         if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, "添加新条件", true))
             Conditions.Add(new());
@@ -427,20 +427,20 @@ public enum CommandTargetType
 
 public enum CommandRelationType
 {
-    [Description("和关系 (全部条件满足才算满足)")]
+    [Description("和 (全部条件均需满足)")]
     And,
-    [Description("或关系 (任一条件满足就算满足)")]
+    [Description("或 (任一条件满足即可)")]
     Or
 }
 
 public enum CommandExecuteType
 {
-    [Description("若不满足条件, 则等待满足条件后再执行文本指令")]
+    [Description("等待 (不满足条件时, 等待满足, 再继续)")]
     Wait,
     
-    [Description("若不满足条件, 则跳过执行文本指令")]
+    [Description("跳过 (不满足条件时, 直接跳过执行)")]
     Pass,
     
-    [Description("若不满足条件, 则重复执行文本指令, 若满足, 则仅执行一次")]
+    [Description("重复 (不满足条件时, 重复执行; 满足时, 仅执行一次)")]
     Repeat,
 }

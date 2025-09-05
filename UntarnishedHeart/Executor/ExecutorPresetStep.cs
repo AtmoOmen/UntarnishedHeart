@@ -253,7 +253,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                     if (textCommand)
                     {
                         var stepCommands = Commands;
-                        var commandInputHeight = Math.Max(ImGui.GetTextLineHeightWithSpacing() * 3f,
+                        var commandInputHeight = Math.Max(ImGui.GetTextLineHeightWithSpacing() * 5f,
                                                           ImGui.CalcTextSize(stepCommands).Y + (2 * ImGui.GetStyle().ItemSpacing.Y));
                         
                         if (ImGui.InputTextMultiline("###CommandsInput", ref stepCommands, 1024,
