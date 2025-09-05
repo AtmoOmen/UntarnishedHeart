@@ -9,7 +9,6 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
-using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using ImGuiNET;
@@ -31,17 +30,14 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                                                 .AddUiForeground(SeIconChar.BoxedLetterH.ToIconString(), 31)
                                                 .AddUiForegroundOff().Build();
 
-    public static readonly Dictionary<uint, string> ZonePlaceNames;
-    
-    private static int  SelectedPresetIndex;
+    public static readonly Dictionary<uint, string> ZonePlaceNames =
+        LuminaGetter.Get<TerritoryType>()
+                    .Select(x => (x.RowId, x.ExtractPlaceName()))
+                    .Where(x => !string.IsNullOrWhiteSpace(x.Item2))
+                    .ToDictionary(x => x.RowId, x => x.Item2);
 
-    static Main()
-    {
-        ZonePlaceNames = LuminaGetter.Get<TerritoryType>()
-                                    .Select(x => (x.RowId, x.ExtractPlaceName()))
-                                    .Where(x => !string.IsNullOrWhiteSpace(x.Item2))
-                                    .ToDictionary(x => x.RowId, x => x.Item2);
-    }
+    private static int SelectedPresetIndex;
+
 
     public override void Draw()
     {
@@ -379,7 +375,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         using var indent = ImRaii.PushIndent();
         using var group = ImRaii.Group();
 
-        if (DService.Targets.Target is OmenTools.Service.IBattleChara target)
+        if (DService.Targets.Target is IBattleChara target)
         {
             ImGui.Text("当前目标:");
 
@@ -423,6 +419,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
     private static void DrawDebugStatusInfo()
     {
         ImGui.TextColored(LightBlue, "状态效果信息:");
+        
         using var indent = ImRaii.PushIndent();
         using var group  = ImRaii.Group();
         
@@ -467,7 +464,6 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             }
         }
     }
-
 
     public void Dispose()
     {

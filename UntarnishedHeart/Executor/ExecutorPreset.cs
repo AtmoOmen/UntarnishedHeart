@@ -116,7 +116,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             Remark = remark;
     }
 
-    private void DrawStepInfo()
+    private unsafe void DrawStepInfo()
     {
         if (Steps.Count == 0)
             CurrentStep = -1;
@@ -145,10 +145,44 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                     var step = Steps[i];
 
                     var stepName = $"{i + 1}. {step.Note}" + (step.Delay > 0 ? $" ({(float)step.Delay / 1000:F2}s)" : string.Empty);
+                    
+                    // 拖拽源
                     if (ImGui.Selectable(stepName, i == CurrentStep))
                         CurrentStep = i;
-                    ImGuiOm.TooltipHover(stepName);
+                    
+                    // 开始拖拽
+                    if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
+                    {
+                        var dragIndex = i;
+                        ImGui.SetDragDropPayload("STEP_REORDER", new IntPtr(&dragIndex), sizeof(int));
+                        ImGui.Text($"步骤: {stepName}");
+                        ImGui.EndDragDropSource();
+                    }
+                    
+                    // 拖拽目标
+                    if (ImGui.BeginDragDropTarget())
+                    {
+                        var payload = ImGui.AcceptDragDropPayload("STEP_REORDER");
+                        if (payload.NativePtr != null)
+                        {
+                            var sourceIndex = *(int*)payload.Data;
+                            if (sourceIndex != i && sourceIndex >= 0 && sourceIndex < Steps.Count)
+                            {
+                                // 执行拖拽排序 - 直接交换两个步骤的位置
+                                (Steps[sourceIndex], Steps[i]) = (Steps[i], Steps[sourceIndex]);
 
+                                // 更新当前选中步骤
+                                if (CurrentStep == sourceIndex)
+                                    CurrentStep = i;
+                                else if (CurrentStep == i)
+                                    CurrentStep = sourceIndex;
+                            }
+                        }
+
+                        ImGui.EndDragDropTarget();
+                    }
+                    
+                    ImGuiOm.TooltipHover(stepName);
                     DrawStepContextMenu(i, step);
                 }
             }
