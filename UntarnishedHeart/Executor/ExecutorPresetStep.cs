@@ -38,7 +38,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
     public bool StopWhenAnyAlive { get; set; }
 
     public Vector3          Position           { get; set; }
-    public MoveType         MoveType           { get; set; } = MoveType.无;
+    public MoveType         MoveType           { get; set; } = MoveType.传送;
     public bool             WaitForGetClose    { get; set; }
     public uint             DataID             { get; set; }
     public ObjectKind       ObjectKind         { get; set; } = ObjectKind.BattleNpc;
@@ -54,9 +54,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         using var group = ImRaii.Group();
 
         var stepName = Note;
-        ImGuiOm.CompLabelLeft(
-            "备注:", ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X,
-            () => ImGui.InputText("###StepNoteInput", ref stepName, 128));
+        ImGuiOm.CompLabelLeft("名称:", -1f, () => ImGui.InputText("###StepNoteInput", ref stepName, 128));
         if (ImGui.IsItemDeactivatedAfterEdit())
             Note = stepName;
 
@@ -80,7 +78,6 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                             if (ImGui.Checkbox("若任一队友不在无法战斗状态, 则等待###StepStopWhenAnyAliveInput", ref stepStopWhenAnyAlive))
                                 StopWhenAnyAlive = stepStopWhenAnyAlive;
                         }
-
                         ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否存在任一队友不在无法战斗状态, 若存在, 则阻塞步骤执行");
 
                         var stepStopInCombat = StopInCombat;
@@ -89,7 +86,6 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                             if (ImGui.Checkbox("若已进入战斗, 则等待###StepStopInCombatInput", ref stepStopInCombat))
                                 StopInCombat = stepStopInCombat;
                         }
-
                         ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否进入战斗状态, 若已进入, 则阻塞步骤执行");
 
                         var stepStopWhenBusy = StopWhenBusy;
@@ -98,7 +94,6 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                             if (ImGui.Checkbox("若为忙碌状态, 则等待###StepStopWhenBusyInput", ref stepStopWhenBusy))
                                 StopWhenBusy = stepStopWhenBusy;
                         }
-
                         ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否正处于忙碌状态 (如: 过图加载, 交互等), 若已进入, 则阻塞步骤执行");
                     }
                     else
@@ -120,13 +115,15 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                             {
                                 foreach (var moveType in Enum.GetValues<MoveType>())
                                 {
+                                    if (moveType == MoveType.无) continue;
+                                    
                                     if (ImGui.Selectable(moveType.ToString(), MoveType == moveType))
                                         MoveType = moveType;
                                 }
                             }
                         }
-
-                        ImGuiOm.TooltipHover("若设置为 无, 则代表使用插件配置的默认移动方式");
+                        if (MoveType == MoveType.无)
+                            ImGuiOm.TooltipHover("若设置为 无, 则代表使用 传送\n[废弃功能, 仅兼容用]");
 
                         using (ImRaii.Group())
                         {
@@ -337,7 +334,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                             {
                                 if (Position == default(Vector3)) return true;
 
-                                var finalMoveType = MoveType == MoveType.无 ? Service.Config.MoveType : MoveType;
+                                var finalMoveType = MoveType == MoveType.无 ? MoveType.传送 : MoveType;
                                 if (finalMoveType == MoveType.无) return true;
 
                                 switch (finalMoveType)
@@ -376,6 +373,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
             () => t.Enqueue(() =>
                             {
                                 if (DataID == 0 || !InteractWithTarget || DService.Targets.Target is not { } target) return true;
+                                
                                 return target.TargetInteract();
                             }, $"交互预设目标: {Note}"),
             // 等待目标交互完成

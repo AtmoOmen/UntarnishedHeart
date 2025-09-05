@@ -16,6 +16,7 @@ using Lumina.Excel.Sheets;
 using OmenTools.Service;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Executor;
+using ContentsFinder = FFXIVClientStructs.FFXIV.Client.Game.UI.ContentsFinder;
 using Status = Lumina.Excel.Sheets.Status;
 
 namespace UntarnishedHeart.Windows;
@@ -29,6 +30,13 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                                                 .AddUiForeground(SeIconChar.BoxedLetterT.ToIconString(), 31)
                                                 .AddUiForeground(SeIconChar.BoxedLetterH.ToIconString(), 31)
                                                 .AddUiForegroundOff().Build();
+
+    public static readonly Dictionary<ContentsFinder.LootRule, string> LootRuleLOC = new()
+    {
+        [ContentsFinder.LootRule.Normal]     = "通常",
+        [ContentsFinder.LootRule.GreedOnly]  = "仅限贪婪",
+        [ContentsFinder.LootRule.Lootmaster] = "队长分配"
+    };
 
     public static readonly Dictionary<uint, string> ZonePlaceNames =
         LuminaGetter.Get<TerritoryType>()
@@ -157,69 +165,47 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         using var group  = ImRaii.Group();
 
         var selectedPreset = Service.Config.Presets[SelectedPresetIndex];
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("已选预设:");
-
-        ImGui.SameLine();
-        using (ImRaii.Group())
+        ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+        using (var combo = ImRaii.Combo("选择预设###PresetSelectCombo", $"{selectedPreset.Name}", ImGuiComboFlags.HeightLarge))
         {
-            ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
-            using (var combo = ImRaii.Combo("###PresetSelectCombo", $"{selectedPreset.Name}", ImGuiComboFlags.HeightLarge))
+            if (combo)
             {
-                if (combo)
+                for (var i = 0; i < Service.Config.Presets.Count; i++)
                 {
-                    for (var i = 0; i < Service.Config.Presets.Count; i++)
-                    {
-                        var preset = Service.Config.Presets[i];
-                        if (ImGui.Selectable($"{preset.Name}###{preset}-{i}"))
-                            SelectedPresetIndex = i;
+                    var preset = Service.Config.Presets[i];
+                    if (ImGui.Selectable($"{preset.Name}###{preset}-{i}"))
+                        SelectedPresetIndex = i;
 
-                        using var popup = ImRaii.ContextPopupItem($"{preset}-{i}ContextPopup");
-                        if (popup)
+                    using var popup = ImRaii.ContextPopupItem($"{preset}-{i}ContextPopup");
+                    if (popup)
+                    {
+                        using (ImRaii.Disabled(Service.Config.Presets.Count == 1))
                         {
-                            using (ImRaii.Disabled(Service.Config.Presets.Count == 1))
-                            {
-                                if (ImGui.MenuItem($"删除##{preset}-{i}"))
-                                    Service.Config.Presets.Remove(preset);
-                            }
+                            if (ImGui.MenuItem($"删除##{preset}-{i}"))
+                                Service.Config.Presets.Remove(preset);
                         }
                     }
                 }
             }
         }
 
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("移动方式:");
-
-        foreach (var moveType in Enum.GetValues<MoveType>())
-        {
-            if (moveType == MoveType.无) continue;
-                
-            ImGui.SameLine();
-            if (ImGui.RadioButton(moveType.ToString(), moveType == Service.Config.MoveType))
-            {
-                Service.Config.MoveType = moveType;
-                Service.Config.Save();
-            }
-        }
-
         var runTimes = Service.Config.RunTimes;
-        if (ImGuiOm.CompLabelLeft("运行次数:", 50f * ImGuiHelpers.GlobalScale,
-                                  () => ImGui.InputInt("###", ref runTimes, 0, 0)))
+        ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+        ImGui.InputInt("运行次数###RunTimes", ref runTimes, 0, 0);
+        if (ImGui.IsItemDeactivatedAfterEdit())
         {
             Service.Config.RunTimes = runTimes;
             Service.Config.Save();
         }
         ImGuiOm.TooltipHover("若输入 -1, 则为无限运行");
 
-        ImGui.SameLine();
         var isLeaderMode = Service.Config.LeaderMode;
         if (ImGui.Checkbox("队长模式", ref isLeaderMode))
         {
             Service.Config.LeaderMode = isLeaderMode;
             Service.Config.Save();
         }
-        ImGuiOm.HelpMarker("启用队长模式时, 副本结束后会自动尝试排入同一副本", 20f, FontAwesomeIcon.InfoCircle, true);
+        ImGuiOm.TooltipHover("启用队长模式时, 副本结束后会自动尝试排入同一副本", 20f * ImGuiHelpers.GlobalScale);
     }
 
     private static void DrawHomeContentConfig()
@@ -228,10 +214,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         
         using var indent = ImRaii.PushIndent();
         using var group  = ImRaii.Group();
-
-        ImGui.Text("副本设置");
         
-        using (ImRaii.PushIndent())
         using (ImRaii.Group())
         {
             var isUnrest = Service.Config.ContentsFinderOption.UnrestrictedParty;
@@ -278,53 +261,41 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             }
 
             var lootRule = Service.Config.ContentsFinderOption.LootRules;
-            ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
-            using (var combo = ImRaii.Combo("分配规则###ContentLootRuleCombo", lootRule.ToString()))
+            var isFirst = true;
+            foreach (var (loot, loc) in LootRuleLOC)
             {
-                if (combo)
+                if (!isFirst)
+                    ImGui.SameLine();
+                isFirst = false;
+                
+                if (ImGui.RadioButton($"{loc}##{loot}", loot == lootRule))
                 {
-                    foreach (var loot in Enum.GetValues<ContentsFinder.LootRule>())
-                    {
-                        if (ImGui.Selectable(loot.ToString(), loot == lootRule))
-                        {
-                            var newOption = Service.Config.ContentsFinderOption.Clone();
-                            newOption.LootRules = loot;
+                    var newOption = Service.Config.ContentsFinderOption.Clone();
+                    newOption.LootRules = loot;
 
-                            Service.Config.ContentsFinderOption = newOption;
-                            Service.Config.Save();
-                        }
-                    }
+                    Service.Config.ContentsFinderOption = newOption;
+                    Service.Config.Save();
                 }
             }
         }
         
-        ImGui.Spacing();
-
-        using (ImRaii.Group())
+        var contentEntry = Service.Config.ContentEntryType;
+        ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+        using (var combo = ImRaii.Combo("副本入口###ContentEntryCombo", contentEntry.GetDescription()))
         {
-            ImGui.AlignTextToFramePadding();
-            ImGui.Text("副本入口");
-            
-            var contentEntry = Service.Config.ContentEntryType;
-            ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
-            using (ImRaii.PushIndent())
-            using (var combo = ImRaii.Combo("###ContentEntryCombo", contentEntry.GetDescription()))
+            if (combo)
             {
-                if (combo)
+                foreach (var entryType in Enum.GetValues<ContentEntryType>())
                 {
-                    foreach (var entryType in Enum.GetValues<ContentEntryType>())
+                    if (ImGui.Selectable(entryType.GetDescription(), entryType == contentEntry))
                     {
-                        if (ImGui.Selectable(entryType.GetDescription(), entryType == contentEntry))
-                        {
-                            Service.Config.ContentEntryType = entryType;
-                            Service.Config.Save();
-                        }
+                        Service.Config.ContentEntryType = entryType;
+                        Service.Config.Save();
                     }
                 }
             }
-            ImGuiOm.TooltipHover("典型用例:\n" +
-                                 "单人进入多变迷宫: 勾选解除限制, 入口选择一般副本");
         }
+        ImGuiOm.TooltipHover("单人进入多变迷宫:\n\t勾选解除限制, 入口选择一般副本");
     }
     
     private static void DrawDebugGeneralInfo()

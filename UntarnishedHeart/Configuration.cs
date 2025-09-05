@@ -9,7 +9,6 @@ namespace UntarnishedHeart;
 public class Configuration : IPluginConfiguration
 {
     public int                  Version              { get; set; } = 0;
-    public MoveType             MoveType             { get; set; } = MoveType.传送;
     public bool                 LeaderMode           { get; set; }
     public int                  RunTimes             { get; set; } = -1;
     public List<ExecutorPreset> Presets              { get; set; } = [];
