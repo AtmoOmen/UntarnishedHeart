@@ -111,26 +111,11 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             }
         }
 
-        using (var debugPageItem = ImRaii.TabItem("调试"))
-        {
-            if (debugPageItem)
-            {
-                DrawDebugGeneralInfo();
-
-                ImGui.Separator();
-                ImGui.Spacing();
-
-                DrawDebugTargetInfo();
-                
-                ImGui.Separator();
-                ImGui.Spacing();
-
-                DrawDebugStatusInfo();
-            }
-        }
-
         if (ImGui.TabItemButton("预设"))
             WindowManager.Get<PresetEditor>().IsOpen ^= true;
+            
+        if (ImGui.TabItemButton("调试"))
+            WindowManager.Get<Debug>().IsOpen ^= true;
     }
 
     public override void OnClose() => Service.Config.Save();
@@ -298,139 +283,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         ImGuiOm.TooltipHover("单人进入多变迷宫:\n\t勾选解除限制, 入口选择一般副本");
     }
     
-    private static void DrawDebugGeneralInfo()
-    {
-        ImGui.TextColored(LightBlue, "一般信息:");
-        using var indent = ImRaii.PushIndent();
 
-        using (ImRaii.Group())
-        {
-            var isCurrentZoneValid = LuminaGetter.TryGetRow<TerritoryType>(DService.ClientState.TerritoryType, out var zoneRow);
-            
-            ImGui.Text("当前区域:");
-            
-            var zoneName = LuminaWrapper.GetZonePlaceName(DService.ClientState.TerritoryType);
-            ImGui.SameLine();
-            ImGui.Text($"{zoneName} ({DService.ClientState.TerritoryType})");
-
-            if (isCurrentZoneValid)
-            {
-                ImGui.Text("副本区域:");
-
-                var contentName = LuminaWrapper.GetContentName(zoneRow.ContentFinderCondition.RowId);
-                ImGui.SameLine();
-                ImGui.Text($"{contentName} ({zoneRow.ContentFinderCondition.RowId})");
-                
-                ImGui.Text("副本用途:");
-                
-                ImGui.SameLine();
-                ImGui.Text($"{zoneRow.TerritoryIntendedUse.RowId}");
-            }
-        }
-
-        using (ImRaii.Group())
-        {
-            ImGui.Text("当前位置:");
-
-            ImGui.SameLine();
-            ImGui.Text($"{DService.ObjectTable.LocalPlayer?.Position:F2}");
-        }
-    }
-
-    private static void DrawDebugTargetInfo()
-    {
-        ImGui.TextColored(LightBlue, "目标信息:");
-        using var indent = ImRaii.PushIndent();
-        using var group = ImRaii.Group();
-
-        if (DService.Targets.Target is IBattleChara target)
-        {
-            ImGui.Text("当前目标:");
-
-            ImGui.SameLine();
-            ImGui.Text($"{target.Name} (0x{target.Address:X})");
-
-            ImGui.Text("目标类型:");
-
-            ImGui.SameLine();
-            ImGui.Text($"{target.ObjectKind} ({(byte)target.ObjectKind})");
-
-            ImGui.Text("Data ID:");
-
-            ImGui.SameLine();
-            ImGui.Text($"{target.DataId}");
-
-            ImGui.Text("Entity ID:");
-
-            ImGui.SameLine();
-            ImGui.Text($"{target.EntityId}");
-
-            ImGui.Text("目标位置:");
-
-            ImGui.SameLine();
-            ImGui.Text($"{target.Position:F2}");
-            
-            ImGui.Text("目标体力:");
-            
-            ImGui.SameLine();
-            ImGui.Text($"{(double)target.CurrentHp / target.MaxHp * 100:F2}%% ({target.CurrentHp} / {target.MaxHp})");
-
-            if (target.IsCasting)
-            {
-                ImGui.Text($"咏唱技能: {LuminaWrapper.GetActionName(target.CastActionId)} ({target.CastActionId} / {target.CastActionType})");
-                ImGui.Text($"咏唱时间: {target.CurrentCastTime:F2} / {target.TotalCastTime:F2}");
-            }
-        }
-    }
-
-    private static void DrawDebugStatusInfo()
-    {
-        ImGui.TextColored(LightBlue, "状态效果信息:");
-        
-        using var indent = ImRaii.PushIndent();
-        using var group  = ImRaii.Group();
-        
-        if (DService.ObjectTable.LocalPlayer is { } localPlayer)
-        {
-            using (ImRaii.Group())
-            {
-                ImGui.Text("自身");
-
-                foreach (var status in localPlayer.StatusList)
-                {
-                    if (!LuminaGetter.TryGetRow<Status>(status.StatusId, out var row)) continue;
-                    if (!DService.Texture.TryGetFromGameIcon(new(row.Icon), out var iconTexture)) continue;
-
-                    ImGui.Image(iconTexture.GetWrapOrEmpty().ImGuiHandle, ImGuiHelpers.ScaledVector2(24f));
-
-                    ImGui.SameLine();
-                    ImGui.AlignTextToFramePadding();
-                    ImGui.Text($"{row.Name} ({row.RowId})");
-                }
-            }
-        }
-        
-        if (DService.Targets.Target is IBattleChara target)
-        {
-            ImGui.SameLine();
-            using (ImRaii.Group())
-            {
-                ImGui.Text("目标");
-
-                foreach (var status in target.StatusList)
-                {
-                    if (!LuminaGetter.TryGetRow<Status>(status.StatusId, out var row)) continue;
-                    if (!DService.Texture.TryGetFromGameIcon(new(row.Icon), out var iconTexture)) continue;
-
-                    ImGui.Image(iconTexture.GetWrapOrEmpty().ImGuiHandle, ImGuiHelpers.ScaledVector2(24f));
-
-                    ImGui.SameLine();
-                    ImGui.AlignTextToFramePadding();
-                    ImGui.Text($"{row.Name} ({row.RowId})");
-                }
-            }
-        }
-    }
 
     public void Dispose()
     {

@@ -19,7 +19,11 @@ public class WindowManager
         DService.UiBuilder.OpenMainUi += ToggleMainWindow;
     }
 
-    private static void DrawWindows() => WindowSystem?.Draw();
+    private static void DrawWindows()
+    {
+        using var font = FontManager.UIFont.Push();
+        WindowSystem?.Draw();
+    }
 
     private static void ToggleMainWindow()
     {
@@ -72,12 +76,14 @@ public class WindowManager
         {
             AddWindow(new Main());
             AddWindow(new PresetEditor());
+            AddWindow(new Debug());
         }
 
         internal static void Uninit()
         {
             Get<Main>()?.Dispose();
             Get<PresetEditor>()?.Dispose();
+            Get<Debug>()?.Dispose();
         }
     }
 }
