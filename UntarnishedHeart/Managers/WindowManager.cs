@@ -76,6 +76,7 @@ public class WindowManager
         {
             AddWindow(new Main());
             AddWindow(new PresetEditor());
+            AddWindow(new RouteEditor());
             AddWindow(new Debug());
         }
 
@@ -83,6 +84,7 @@ public class WindowManager
         {
             Get<Main>()?.Dispose();
             Get<PresetEditor>()?.Dispose();
+            Get<RouteEditor>()?.Dispose();
             Get<Debug>()?.Dispose();
         }
     }

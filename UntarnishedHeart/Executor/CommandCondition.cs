@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -348,7 +348,7 @@ public class CommandSingleCondition
             
             case CommandDetectType.ActionCooldown:
                 var actionID      = (uint)Value;
-                var isOffCooldown = ActionManager.Instance()->IsActionOffCooldown(ActionType.Action, actionID);
+                var isOffCooldown = ActionManager.Instance()->IsActionOffCooldown(FFXIVClientStructs.FFXIV.Client.Game.ActionType.Action, actionID);
                 
                 return ComparisonType switch
                 {
@@ -360,7 +360,7 @@ public class CommandSingleCondition
             case CommandDetectType.ActionCastStart:
                 if (TargetType != CommandTargetType.Target || ComparisonType != CommandComparisonType.Has) return false;
                 if (DService.Targets.Target is not IBattleChara targetCast) return false;
-                if (!targetCast.IsCasting || targetCast.CastActionType != ActionType.Action) return false;
+                if (!targetCast.IsCasting || targetCast.CastActionType != FFXIVClientStructs.FFXIV.Client.Game.ActionType.Action) return false;
 
                 var castActionID = (uint)Value;
                 return targetCast.CastActionId == castActionID;

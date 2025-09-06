@@ -24,6 +24,7 @@ namespace UntarnishedHeart.Windows;
 public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-MainWindow"), IDisposable
 {
     public static Executor.Executor? PresetExecutor { get; private set; }
+    public static RouteExecutor? RouteExecutor { get; private set; }
 
     public static SeString UTHPrefix { get; } = new SeStringBuilder()
                                                 .AddUiForeground(SeIconChar.BoxedLetterU.ToIconString(), 31)
@@ -45,6 +46,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                     .ToDictionary(x => x.RowId, x => x.Item2);
 
     private static int SelectedPresetIndex;
+    private static int SelectedRouteIndex;
 
 
     public override void Draw()
@@ -67,44 +69,87 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         {
             if (mainPageItem)
             {
+                DrawExecutionModeSelector();
+
+                ImGui.Separator();
+                ImGui.Spacing();
+
                 DrawHomeExecutorInfo();
 
                 ImGui.Separator();
                 ImGui.Spacing();
 
-                DrawHomeExecutorConfig();
-
-                ImGui.Separator();
-                ImGui.Spacing();
-
-                DrawHomeContentConfig();
-                
-                ImGui.Separator();
-                ImGui.Spacing();
-
-                using (ImRaii.Disabled(PresetExecutor is { IsDisposed: false } || BetweenAreas))
+                if (Service.Config.CurrentExecutionMode == ExecutionMode.Simple)
                 {
-                    if (ImGuiOm.ButtonSelectable("开始"))
+                    DrawHomeExecutorConfig();
+
+                    ImGui.Separator();
+                    ImGui.Spacing();
+
+                    DrawHomeContentConfig();
+                    
+                    ImGui.Separator();
+                    ImGui.Spacing();
+
+                    using (ImRaii.Disabled(PresetExecutor is { IsDisposed: false } || BetweenAreas))
+                    {
+                        if (ImGuiOm.ButtonSelectable("开始"))
+                        {
+                            PresetExecutor?.Dispose();
+                            PresetExecutor = null;
+
+                            PresetExecutor ??= new(Service.Config.Presets[SelectedPresetIndex],
+                                                   Service.Config.RunTimes);
+                        }
+                    }
+
+                    if (ImGuiOm.ButtonSelectable("结束"))
                     {
                         PresetExecutor?.Dispose();
                         PresetExecutor = null;
 
-                        PresetExecutor ??= new(Service.Config.Presets[SelectedPresetIndex],
-                                               Service.Config.RunTimes);
+                        // 如果在排本就取消
+                        if (DService.Condition[ConditionFlag.InDutyQueue])
+                        {
+                            unsafe
+                            {
+                                SendEvent(AgentId.ContentsFinder, 0, 12, 0);
+                            }
+                        }
                     }
                 }
-
-                if (ImGuiOm.ButtonSelectable("结束"))
+                else
                 {
-                    PresetExecutor?.Dispose();
-                    PresetExecutor = null;
+                    DrawRouteExecutorConfig();
 
-                    // 如果在排本就取消
-                    if (DService.Condition[ConditionFlag.InDutyQueue])
+                    ImGui.Separator();
+                    ImGui.Spacing();
+
+                    using (ImRaii.Disabled(RouteExecutor is { IsRunning: true } || BetweenAreas))
                     {
-                        unsafe
+                        if (ImGuiOm.ButtonSelectable("开始路线"))
                         {
-                            SendEvent(AgentId.ContentsFinder, 0, 12, 0);
+                            if (Service.Config.Routes.Count > 0 && SelectedRouteIndex < Service.Config.Routes.Count)
+                            {
+                                RouteExecutor?.Stop();
+                                RouteExecutor = new RouteExecutor(Service.Config.Routes[SelectedRouteIndex]);
+                                RouteExecutor.Start();
+                            }
+                        }
+                    }
+
+                    if (ImGuiOm.ButtonSelectable("停止路线"))
+                    {
+                        RouteExecutor?.Stop();
+                        RouteExecutor = null;
+
+                        // 如果在排本就取消
+                        if (DService.Condition[ConditionFlag.InDutyQueue])
+                        {
+                            unsafe
+                            {
+                                SendEvent(AgentId.ContentsFinder, 0, 12, 0);
+                            }
                         }
                     }
                 }
@@ -114,11 +159,43 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         if (ImGui.TabItemButton("预设"))
             WindowManager.Get<PresetEditor>().IsOpen ^= true;
             
+        if (ImGui.TabItemButton("路线"))
+            WindowManager.Get<RouteEditor>().IsOpen ^= true;
+            
         if (ImGui.TabItemButton("调试"))
             WindowManager.Get<Debug>().IsOpen ^= true;
     }
 
     public override void OnClose() => Service.Config.Save();
+
+    private static void DrawExecutionModeSelector()
+    {
+        ImGui.TextColored(LightBlue, "执行模式:");
+        using var indent = ImRaii.PushIndent();
+
+        var currentMode = Service.Config.CurrentExecutionMode;
+        
+        if (ImGui.RadioButton("简单模式", currentMode == ExecutionMode.Simple))
+        {
+            Service.Config.CurrentExecutionMode = ExecutionMode.Simple;
+            Service.Config.Save();
+            
+            // 切换模式时停止当前执行
+            RouteExecutor?.Stop();
+            RouteExecutor = null;
+        }
+        
+        ImGui.SameLine();
+        if (ImGui.RadioButton("运行路线", currentMode == ExecutionMode.Route))
+        {
+            Service.Config.CurrentExecutionMode = ExecutionMode.Route;
+            Service.Config.Save();
+            
+            // 切换模式时停止当前执行
+            PresetExecutor?.Dispose();
+            PresetExecutor = null;
+        }
+    }
 
     private static void DrawHomeExecutorInfo()
     {
@@ -128,18 +205,32 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         ImGui.Text("当前状态:");
 
         ImGui.SameLine();
-        ImGui.TextColored(PresetExecutor == null || PresetExecutor.IsDisposed ? ImGuiColors.DalamudRed : ImGuiColors.ParsedGreen,
-                          PresetExecutor == null || PresetExecutor.IsDisposed ? "等待中" : "运行中");
+        if (Service.Config.CurrentExecutionMode == ExecutionMode.Simple)
+        {
+            ImGui.TextColored(PresetExecutor == null || PresetExecutor.IsDisposed ? ImGuiColors.DalamudRed : ImGuiColors.ParsedGreen,
+                              PresetExecutor == null || PresetExecutor.IsDisposed ? "等待中" : "运行中");
 
-        ImGui.Text("运行次数:");
+            ImGui.Text("运行次数:");
+            ImGui.SameLine();
+            ImGui.Text($"{PresetExecutor?.CurrentRound ?? 0} / {PresetExecutor?.MaxRound ?? 0}");
 
-        ImGui.SameLine();
-        ImGui.Text($"{PresetExecutor?.CurrentRound ?? 0} / {PresetExecutor?.MaxRound ?? 0}");
+            ImGui.Text("运行信息:");
+            ImGui.SameLine();
+            ImGui.TextWrapped($"{PresetExecutor?.RunningMessage ?? string.Empty}");
+        }
+        else
+        {
+            ImGui.TextColored(RouteExecutor?.IsRunning == true ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudRed,
+                              RouteExecutor?.IsRunning == true ? "运行中" : "等待中");
 
-        ImGui.Text("运行信息:");
+            ImGui.Text("当前步骤:");
+            ImGui.SameLine();
+            ImGui.Text($"{(RouteExecutor?.CurrentStepIndex ?? -1)} / {(RouteExecutor?.Steps.Count ?? 0) -1}");
 
-        ImGui.SameLine();
-        ImGui.TextWrapped($"{PresetExecutor?.RunningMessage ?? string.Empty}");
+            ImGui.Text("运行信息:");
+            ImGui.SameLine();
+            ImGui.TextWrapped($"{RouteExecutor?.RunningMessage ?? string.Empty}");
+        }
     }
     
     private static void DrawHomeExecutorConfig()
@@ -283,11 +374,62 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         ImGuiOm.TooltipHover("单人进入多变迷宫:\n\t勾选解除限制, 入口选择一般副本");
     }
     
+    private static void DrawRouteExecutorConfig()
+    {
+        ImGui.TextColored(LightBlue, "路线设置:");
+        
+        using var indent = ImRaii.PushIndent();
+        using var group  = ImRaii.Group();
 
+        if (Service.Config.Routes.Count == 0)
+        {
+            ImGui.Text("暂无路线，请先创建路线");
+            return;
+        }
+
+        if (SelectedRouteIndex >= Service.Config.Routes.Count || SelectedRouteIndex < 0)
+            SelectedRouteIndex = 0;
+
+        var selectedRoute = Service.Config.Routes[SelectedRouteIndex];
+        ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+        using (var combo = ImRaii.Combo("选择路线###RouteSelectCombo", $"{selectedRoute.Name}", ImGuiComboFlags.HeightLarge))
+        {
+            if (combo)
+            {
+                for (var i = 0; i < Service.Config.Routes.Count; i++)
+                {
+                    var route = Service.Config.Routes[i];
+                    if (ImGui.Selectable($"{route.Name}###{route}-{i}"))
+                        SelectedRouteIndex = i;
+
+                    using var popup = ImRaii.ContextPopupItem($"{route}-{i}ContextPopup");
+                    if (popup)
+                    {
+                        using (ImRaii.Disabled(Service.Config.Routes.Count == 1))
+                        {
+                            if (ImGui.MenuItem($"删除##{route}-{i}"))
+                                Service.Config.Routes.Remove(route);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 显示路线信息
+        if (!string.IsNullOrWhiteSpace(selectedRoute.Note))
+        {
+            ImGui.Text($"备注: {selectedRoute.Note}");
+        }
+        
+        ImGui.Text($"步骤数: {selectedRoute.Steps.Count}");
+    }
 
     public void Dispose()
     {
         PresetExecutor?.Dispose();
         PresetExecutor = null;
+        
+        RouteExecutor?.Stop();
+        RouteExecutor = null;
     }
 }

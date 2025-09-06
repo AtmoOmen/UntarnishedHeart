@@ -24,7 +24,17 @@ public class Executor : IDisposable
 
     private TaskHelper? TaskHelper;
 
-    public Executor(ExecutorPreset? preset, int maxRound = -1)
+    /// <summary>
+    /// 副本选项配置
+    /// </summary>
+    public ContentsFinderOption ContentsFinderOption { get; init; }
+    
+    /// <summary>
+    /// 副本进入类型
+    /// </summary>
+    public ContentEntryType ContentEntryType { get; init; }
+
+    public Executor(ExecutorPreset? preset, int maxRound = -1, DutyOptions? dutyOptions = null)
     {
         if (preset is not { IsValid: true }) return;
 
@@ -40,6 +50,18 @@ public class Executor : IDisposable
 
         MaxRound       = maxRound;
         ExecutorPreset = preset;
+        
+        // 使用传入的副本选项配置，如果没有传入则使用全局配置
+        if (dutyOptions != null)
+        {
+            ContentsFinderOption = dutyOptions.ContentsFinderOption;
+            ContentEntryType = dutyOptions.ContentEntryType;
+        }
+        else
+        {
+            ContentsFinderOption = Service.Config.ContentsFinderOption;
+            ContentEntryType = Service.Config.ContentEntryType;
+        }
 
         if (DService.ClientState.TerritoryType == ExecutorPreset.Zone)
             OnDutyStarted(null, DService.ClientState.TerritoryType);
@@ -150,10 +172,10 @@ public class Executor : IDisposable
             if (!Throttler.Throttle("进入副本节流", 2000)) return false;
             if (!LuminaGetter.TryGetRow<TerritoryType>(ExecutorPreset.Zone, out var zone)) return false;
 
-            switch (Service.Config.ContentEntryType)
+            switch (ContentEntryType)
             {
                 case ContentEntryType.Normal:
-                    ContentsFinderHelper.RequestDutyNormal(zone.ContentFinderCondition.RowId, Service.Config.ContentsFinderOption);
+                    ContentsFinderHelper.RequestDutyNormal(zone.ContentFinderCondition.RowId, ContentsFinderOption);
                     break;
                 case ContentEntryType.Support:
                     var supportRow = LuminaGetter.Get<DawnContent>()
