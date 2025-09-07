@@ -37,17 +37,19 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
     /// </summary>
     public bool StopWhenAnyAlive { get; set; }
 
-    public Vector3          Position           { get; set; }
-    public MoveType         MoveType           { get; set; } = MoveType.传送;
-    public bool             WaitForGetClose    { get; set; }
-    public uint             DataID             { get; set; }
-    public ObjectKind       ObjectKind         { get; set; } = ObjectKind.BattleNpc;
-    public bool             WaitForTargetSpawn { get; set; }
-    public bool             WaitForTarget      { get; set; } = true;
-    public bool             InteractWithTarget { get; set; }
-    public string           Commands           { get; set; } = string.Empty;
-    public CommandCondition CommandCondition   { get; set; } = new();
-    public uint             Delay              { get; set; } = 5000;
+    public Vector3          Position                   { get; set; }
+    public MoveType         MoveType                   { get; set; } = MoveType.传送;
+    public bool             WaitForGetClose            { get; set; }
+    public uint             DataID                     { get; set; }
+    public ObjectKind       ObjectKind                 { get; set; } = ObjectKind.BattleNpc;
+    public bool             WaitForTargetSpawn         { get; set; }
+    public bool             WaitForTarget              { get; set; } = true;
+    public bool             TargetNeedTargetable       { get; set; } = true;
+    public bool             InteractWithTarget         { get; set; }
+    public bool             InteractNeedTargetAnything { get; set; } = true;
+    public string           Commands                   { get; set; } = string.Empty;
+    public CommandCondition CommandCondition           { get; set; } = new();
+    public uint             Delay                      { get; set; } = 5000;
 
     public void Draw(ref int i, List<ExecutorPresetStep> steps)
     {
@@ -227,9 +229,23 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                         var interactWithTarget = InteractWithTarget;
                         if (ImGui.Checkbox("交互此目标", ref interactWithTarget))
                             InteractWithTarget = interactWithTarget;
-
-                        ImGuiOm.TooltipHover("勾选后, 则会尝试与当前目标进行交互, 若未选中任一目标则跳过\n\n" +
+                        ImGuiOm.TooltipHover("勾选后, 则会尝试与当前目标进行交互\n\n" +
                                              "注: 请自行确保位于一个可交互到目标的坐标");
+
+                        if (InteractWithTarget)
+                        {
+                            var interactNeedTargetAnything = InteractNeedTargetAnything;
+                            if (ImGui.Checkbox("交互需要选中目标", ref interactNeedTargetAnything))
+                                InteractNeedTargetAnything = interactNeedTargetAnything;
+                            ImGuiOm.TooltipHover("勾选后, 若当前未选中任何目标, 则会跳过交互");
+                        }
+                        
+                        ImGui.NewLine();
+                        
+                        var targetNeedTargetable = TargetNeedTargetable;
+                        if (ImGui.Checkbox("目标需要为\"可选中\"状态", ref targetNeedTargetable))
+                            TargetNeedTargetable = targetNeedTargetable;
+                        ImGuiOm.TooltipHover("勾选后, 在游戏内部被标记为不可选中的目标将不会被纳入检测范围");
                     }
                     else
                         ImGuiOm.TooltipHover("在开始向左侧配置的坐标移动后, 会按照此处的配置选中指定的目标");
@@ -369,9 +385,10 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
             () => t.Enqueue(() =>
                             {
                                 if (DataID == 0 || !InteractWithTarget) return true;
-                                if (DService.Targets.Target is not { } target) return true;
+                                if (InteractNeedTargetAnything && DService.Targets.Target is null) return true;
+                                if (FindObject() is not { } validObject) return true;
 
-                                return target.TargetInteract();
+                                return validObject.TargetInteract();
                             }, $"交互预设目标: {Note}"),
             // 等待目标交互完成
             () =>
@@ -455,7 +472,8 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
     }
 
     public IGameObject? FindObject() => 
-        DService.ObjectTable.FirstOrDefault(x => x.ObjectKind == ObjectKind && x.DataId == DataID && x.IsTargetable);
+        DService.ObjectTable.FirstOrDefault(x => x.ObjectKind == ObjectKind && x.DataId == DataID && 
+                                                 (!TargetNeedTargetable || x.IsTargetable));
 
     public override string ToString() => 
         $"ExecutorPresetStep_{Note}_{DataID}_{Position}_{Delay}_{StopInCombat}";
@@ -487,19 +505,22 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
     public static ExecutorPresetStep Copy(ExecutorPresetStep source) =>
         new()
         {
-            Note               = source.Note,
-            StopInCombat       = source.StopInCombat,
-            StopWhenBusy       = source.StopWhenBusy,
-            StopWhenAnyAlive   = source.StopWhenAnyAlive,
-            Position           = source.Position,
-            MoveType           = source.MoveType,
-            WaitForGetClose    = source.WaitForGetClose,
-            DataID             = source.DataID,
-            ObjectKind         = source.ObjectKind,
-            WaitForTarget      = source.WaitForTarget,
-            InteractWithTarget = source.InteractWithTarget,
-            Commands           = source.Commands,
-            CommandCondition   = CommandCondition.Copy(source.CommandCondition),
-            Delay              = source.Delay,
+            Note                       = source.Note,
+            StopInCombat               = source.StopInCombat,
+            StopWhenBusy               = source.StopWhenBusy,
+            StopWhenAnyAlive           = source.StopWhenAnyAlive,
+            Position                   = source.Position,
+            MoveType                   = source.MoveType,
+            WaitForGetClose            = source.WaitForGetClose,
+            DataID                     = source.DataID,
+            ObjectKind                 = source.ObjectKind,
+            WaitForTarget              = source.WaitForTarget,
+            WaitForTargetSpawn         = source.WaitForTargetSpawn,
+            TargetNeedTargetable       = source.TargetNeedTargetable,
+            InteractWithTarget         = source.InteractWithTarget,
+            InteractNeedTargetAnything = source.InteractNeedTargetAnything,
+            Commands                   = source.Commands,
+            CommandCondition           = CommandCondition.Copy(source.CommandCondition),
+            Delay                      = source.Delay,
         };
 }
