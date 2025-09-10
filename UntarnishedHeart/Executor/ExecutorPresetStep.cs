@@ -330,10 +330,13 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
                                 return true;
                             }, $"检查队友存活状态: {Note}"),
+            
             // 检查进战状态
             () => t.Enqueue(() => !StopInCombat || !DService.Condition[ConditionFlag.InCombat], $"检查进战状态: {Note}"),
+            
             // 检查忙碌状态
             () => t.Enqueue(() => !StopWhenBusy || (!OccupiedInEvent && IsScreenReady()), $"检查忙碌状态: {Note}"),
+            
             // 执行移动
             () => t.Enqueue(() =>
                             {
@@ -354,6 +357,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
                                 return true;
                             }, $"移动至目标位置: {Note}"),
+            
             // 执行完全接近目标等待
             () => t.Enqueue(() =>
                             {
@@ -364,6 +368,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
                                 return Vector2.DistanceSquared(localPlayer.Position.ToVector2(), Position.ToVector2()) <= 4;
                             }, $"等待完全接近目标位置: {Note}"),
+            
             // 执行等待目标生成
             () => t.Enqueue(() =>
                             {
@@ -372,6 +377,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
                                 return FindObject() != null;
                             }, $"等待目标生成: {Note}"),
+            
             // 执行目标选中
             () => t.Enqueue(() =>
                             {
@@ -381,6 +387,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                                 TargetObject();
                                 return TargetSystem.Instance()->Target != null;
                             }, $"选中目标: {Note}"),
+            
             // 执行目标交互
             () => t.Enqueue(() =>
                             {
@@ -390,6 +397,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
                                 return validObject.TargetInteract();
                             }, $"交互预设目标: {Note}"),
+            
             // 等待目标交互完成
             () =>
             {
@@ -397,6 +405,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 t.DelayNext(200, $"延迟 200 毫秒, 等待交互开始: {Note}");
             },
             () => t.Enqueue(() => !InteractWithTarget || (!OccupiedInEvent && IsScreenReady()), $"等待目标交互完成: {Note}"),
+            
             // 执行文本指令
             () =>
             {
@@ -432,6 +441,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                     }, $"入队文本指令条件检查任务群: {Note}");
                 }
             },
+            
             // 延迟
             () => t.DelayNext((int)Delay, $"等待 {Delay} 秒: {Note}")
         ];

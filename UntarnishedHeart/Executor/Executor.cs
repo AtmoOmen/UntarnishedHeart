@@ -74,9 +74,9 @@ public class Executor : IDisposable
         if (IsDisposed) return;
 
         DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        DService.DutyState.DutyCompleted -= OnDutyCompleted;
-        DService.DutyState.DutyStarted -= OnDutyStarted;
-        DService.DutyState.DutyRecommenced -= OnDutyStarted;
+        DService.DutyState.DutyCompleted      -= OnDutyCompleted;
+        DService.DutyState.DutyStarted        -= OnDutyStarted;
+        DService.DutyState.DutyRecommenced    -= OnDutyStarted;
         DService.AddonLifecycle.UnregisterListener(OnAddonDraw);
 
         TaskHelper?.Abort();

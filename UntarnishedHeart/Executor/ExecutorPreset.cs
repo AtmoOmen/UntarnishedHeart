@@ -311,8 +311,8 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         }
     }
 
-    public List<Action> GetTasks(TaskHelper t)
-        => Steps.SelectMany(x => x.GetTasks(t)).ToList();
+    public List<Action> GetTasks(TaskHelper t) => 
+        Steps.SelectMany(x => x.GetTasks(t)).ToList();
 
     public override string ToString() => $"ExecutorPreset_{Name}_{Zone}_{Steps.Count}Steps";
 
