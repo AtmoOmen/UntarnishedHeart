@@ -123,6 +123,7 @@ public class RouteStep : IEquatable<RouteStep>
             DutyOptions = new DutyOptions
             {
                 LeaderMode = source.DutyOptions.LeaderMode,
+                AutoRecommendGear = source.DutyOptions.AutoRecommendGear,
                 RunTimes = source.DutyOptions.RunTimes,
                 ContentEntryType = source.DutyOptions.ContentEntryType,
                 ContentsFinderOption = source.DutyOptions.ContentsFinderOption.Clone()
@@ -195,6 +196,11 @@ public class DutyOptions : IEquatable<DutyOptions>
     /// 队长模式
     /// </summary>
     public bool LeaderMode { get; set; } = false;
+
+    /// <summary>
+    /// 自动最强
+    /// </summary>
+    public bool AutoRecommendGear { get; set; } = false;
     
     /// <summary>
     /// 运行次数
@@ -217,6 +223,7 @@ public class DutyOptions : IEquatable<DutyOptions>
         if (ReferenceEquals(this, other)) return true;
         
         return LeaderMode == other.LeaderMode && 
+               AutoRecommendGear == other.AutoRecommendGear &&
                RunTimes == other.RunTimes &&
                ContentEntryType == other.ContentEntryType &&
                ContentsFinderOption.Equals(other.ContentsFinderOption);
@@ -224,5 +231,5 @@ public class DutyOptions : IEquatable<DutyOptions>
     
     public override bool Equals(object? obj) => Equals(obj as DutyOptions);
     
-    public override int GetHashCode() => HashCode.Combine(LeaderMode, RunTimes, ContentEntryType, ContentsFinderOption);
+    public override int GetHashCode() => HashCode.Combine(LeaderMode, AutoRecommendGear, RunTimes, ContentEntryType, ContentsFinderOption);
 }

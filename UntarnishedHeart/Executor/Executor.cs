@@ -122,6 +122,9 @@ public class Executor : IDisposable
             return DService.DutyState.IsDutyStarted;
         }, "等待副本开始");
 
+        if (Service.Config.AutoRecommendGear)
+            TaskHelper.Enqueue(Equiprecommended.TryEquipRecommendGear, "尝试切换最强装备");
+
         foreach (var task in ExecutorPreset.GetTasks(TaskHelper))
             task.Invoke();
     }
