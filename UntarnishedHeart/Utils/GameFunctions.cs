@@ -1,9 +1,12 @@
 using System;
 using System.Numerics;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.System.Framework;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
+using Task = System.Threading.Tasks.Task;
 
 namespace UntarnishedHeart.Utils;
 
@@ -111,6 +114,15 @@ public static class GameFunctions
 
         PathFindHelper.Enabled = false;
         PathFindHelper.DesiredPosition = default;
+    }
+
+    public static unsafe void EquipRecommendGear()
+    {
+        var instance = RecommendEquipModule.Instance();
+
+        instance->SetupForClassJob((byte)(DService.ClientState.LocalPlayer?.ClassJob.RowId ?? 0));
+
+        DService.Framework.RunOnTick(() => instance->EquipRecommendedGear(), TimeSpan.FromMilliseconds(100));
     }
 
     public static void LeaveDuty() => ExecuteCommand(ExecuteCommandFlag.LeaveDuty, DService.Condition[ConditionFlag.InCombat] ? 1U : 0);

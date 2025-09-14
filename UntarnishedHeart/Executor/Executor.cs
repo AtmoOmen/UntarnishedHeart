@@ -108,6 +108,9 @@ public class Executor : IDisposable
         AbortPrevious();
         if (ExecutorPreset == null || zone != ExecutorPreset.Zone) return;
 
+        if (Service.Config.AutoRecommendGear)
+            TaskHelper.Enqueue(GameFunctions.EquipRecommendGear, "尝试切换最强装备");
+
         EnqueuePreset();
     }
 
@@ -121,9 +124,6 @@ public class Executor : IDisposable
             if (!Throttler.Throttle("等待副本开始节流")) return false;
             return DService.DutyState.IsDutyStarted;
         }, "等待副本开始");
-
-        if (Service.Config.AutoRecommendGear)
-            TaskHelper.Enqueue(Equiprecommended.TryEquipRecommendGear, "尝试切换最强装备");
 
         foreach (var task in ExecutorPreset.GetTasks(TaskHelper))
             task.Invoke();
