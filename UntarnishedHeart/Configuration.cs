@@ -10,6 +10,7 @@ public class Configuration : IPluginConfiguration
 {
     public int                  Version              { get; set; } = 0;
     public bool                 LeaderMode           { get; set; }
+    public bool                 AutoRecommendGear    { get; set; }
     public int                  RunTimes             { get; set; } = -1;
     public List<ExecutorPreset> Presets              { get; set; } = [];
     public ContentsFinderOption ContentsFinderOption { get; set; } = ContentsFinderHelper.DefaultOption;

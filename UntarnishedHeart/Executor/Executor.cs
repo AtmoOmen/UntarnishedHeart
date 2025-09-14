@@ -108,6 +108,9 @@ public class Executor : IDisposable
         AbortPrevious();
         if (ExecutorPreset == null || zone != ExecutorPreset.Zone) return;
 
+        if (Service.Config.AutoRecommendGear)
+            TaskHelper.Enqueue(GameFunctions.EquipRecommendGear, "尝试切换最强装备");
+
         EnqueuePreset();
     }
 

@@ -282,6 +282,14 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             Service.Config.Save();
         }
         ImGuiOm.TooltipHover("启用队长模式时, 副本结束后会自动尝试排入同一副本", 20f * ImGuiHelpers.GlobalScale);
+        ImGui.SameLine();
+        var isAutoRecommendGear = Service.Config.AutoRecommendGear;
+        if (ImGui.Checkbox("自动最强", ref isAutoRecommendGear))
+        {
+            Service.Config.AutoRecommendGear = isAutoRecommendGear;
+            Service.Config.Save();
+        }
+        ImGuiOm.TooltipHover("启用自动最强时，进入副本时会尝试装备当前职业最强装备", 20f * ImGuiHelpers.GlobalScale);
     }
 
     private static void DrawHomeContentConfig()
