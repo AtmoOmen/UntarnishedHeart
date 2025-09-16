@@ -7,7 +7,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using OmenTools.Service;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 

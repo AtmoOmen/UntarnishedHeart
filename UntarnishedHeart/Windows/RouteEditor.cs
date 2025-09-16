@@ -2,7 +2,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Newtonsoft.Json;
 using System;
 using System.Drawing;
@@ -231,7 +231,7 @@ public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor
         if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
         {
             var dragIndex = index;
-            ImGui.SetDragDropPayload("STEP_REORDER", new IntPtr(&dragIndex), sizeof(int));
+            ImGui.SetDragDropPayload("STEP_REORDER", BitConverter.GetBytes(dragIndex));
             ImGui.Text($"步骤: {stepName}");
             ImGui.EndDragDropSource();
         }
@@ -240,7 +240,7 @@ public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor
         if (ImGui.BeginDragDropTarget())
         {
             var payload = ImGui.AcceptDragDropPayload("STEP_REORDER");
-            if (payload.NativePtr != null)
+            if (payload.Data != null)
             {
                 var sourceIndex = *(int*)payload.Data;
                 if (sourceIndex != index && sourceIndex >= 0 && sourceIndex < route.Steps.Count)

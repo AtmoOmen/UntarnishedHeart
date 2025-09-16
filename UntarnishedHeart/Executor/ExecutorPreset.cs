@@ -1,7 +1,7 @@
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System.Collections.Generic;
 using System;
 using System.Linq;
@@ -150,7 +150,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                     if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
                     {
                         var dragIndex = i;
-                        ImGui.SetDragDropPayload("STEP_REORDER", new IntPtr(&dragIndex), sizeof(int));
+                        ImGui.SetDragDropPayload("STEP_REORDER", BitConverter.GetBytes(dragIndex));
                         ImGui.Text($"步骤: {stepName}");
                         ImGui.EndDragDropSource();
                     }
@@ -159,7 +159,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                     if (ImGui.BeginDragDropTarget())
                     {
                         var payload = ImGui.AcceptDragDropPayload("STEP_REORDER");
-                        if (payload.NativePtr != null)
+                        if (payload.Data != null)
                         {
                             var sourceIndex = *(int*)payload.Data;
                             if (sourceIndex != i && sourceIndex >= 0 && sourceIndex < Steps.Count)

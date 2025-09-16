@@ -2,7 +2,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System.Collections.Generic;
 using System.Linq;
 using System;
@@ -199,7 +199,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                                 ImGui.TableNextColumn();
                                 var stepDataID = DataID;
                                 ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
-                                if (ImGuiOm.InputUInt("###StepDatIDInput", ref stepDataID))
+                                if (ImGui.InputUInt("###StepDatIDInput", ref stepDataID))
                                     DataID = stepDataID;
 
                                 ImGui.SameLine();
@@ -280,7 +280,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                         {
                             var stepDelay = Delay;
                             ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
-                            if (ImGuiOm.InputUInt("等待时间 (ms)###StepDelayInput", ref stepDelay, 0, 0))
+                            if (ImGui.InputUInt("等待时间 (ms)###StepDelayInput", ref stepDelay))
                                 Delay = stepDelay;
                             ImGuiOm.TooltipHover("在开始下一步骤前, 需要等待的时间");
                         }

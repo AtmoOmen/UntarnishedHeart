@@ -6,7 +6,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Lumina.Excel.Sheets;
 using OmenTools.Service;
 using Status = Lumina.Excel.Sheets.Status;
@@ -149,7 +149,7 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
                     if (!LuminaGetter.TryGetRow<Status>(status.StatusId, out var row)) continue;
                     if (!DService.Texture.TryGetFromGameIcon(new(row.Icon), out var iconTexture)) continue;
 
-                    ImGui.Image(iconTexture.GetWrapOrEmpty().ImGuiHandle, ImGuiHelpers.ScaledVector2(24f));
+                    ImGui.Image(iconTexture.GetWrapOrEmpty().Handle, ImGuiHelpers.ScaledVector2(24f));
 
                     ImGui.SameLine();
                     ImGui.AlignTextToFramePadding();
@@ -171,7 +171,7 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
                     if (!LuminaGetter.TryGetRow<Status>(status.StatusId, out var row)) continue;
                     if (!DService.Texture.TryGetFromGameIcon(new(row.Icon), out var iconTexture)) continue;
 
-                    ImGui.Image(iconTexture.GetWrapOrEmpty().ImGuiHandle, ImGuiHelpers.ScaledVector2(24f));
+                    ImGui.Image(iconTexture.GetWrapOrEmpty().Handle, ImGuiHelpers.ScaledVector2(24f));
 
                     ImGui.SameLine();
                     ImGui.AlignTextToFramePadding();

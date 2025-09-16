@@ -4,7 +4,7 @@ using System.Linq;
 using System.Numerics;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Lumina.Excel.Sheets;
 
 namespace UntarnishedHeart.Utils;
@@ -76,7 +76,7 @@ public static class Widgets
                         ImGui.RadioButton(string.Empty, state);
 
                     ImGui.TableNextColumn();
-                    ImGui.Image(ImageHelper.GetGameIcon(contentPair.Value.ContentType.Value.Icon).ImGuiHandle,
+                    ImGui.Image(ImageHelper.GetGameIcon(contentPair.Value.ContentType.Value.Icon).Handle,
                                 ImGuiHelpers.ScaledVector2(20f));
 
                     ImGui.TableNextColumn();
@@ -93,7 +93,7 @@ public static class Widgets
                     if (image != null && ImGui.IsItemHovered())
                     {
                         using (ImRaii.Tooltip())
-                            ImGui.Image(image.ImGuiHandle, image.Size / 2);
+                            ImGui.Image(image.Handle, image.Size / 2);
                     }
 
                     ImGui.TableNextColumn();

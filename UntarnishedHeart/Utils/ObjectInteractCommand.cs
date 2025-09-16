@@ -57,5 +57,5 @@ public static unsafe class AutoObjectInteract
     }
 
     private static bool IsOnMount() 
-        => DService.Condition[ConditionFlag.Mounted] || DService.Condition[ConditionFlag.Mounted2];
+        => DService.Condition[ConditionFlag.Mounted] || DService.Condition[ConditionFlag.RidingPillion];
 }

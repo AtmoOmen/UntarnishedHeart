@@ -7,6 +7,7 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using Task = System.Threading.Tasks.Task;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 
 namespace UntarnishedHeart.Utils;
 
@@ -125,5 +126,6 @@ public static class GameFunctions
         DService.Framework.RunOnTick(() => instance->EquipRecommendedGear(), TimeSpan.FromMilliseconds(100));
     }
 
-    public static void LeaveDuty() => ExecuteCommand(ExecuteCommandFlag.LeaveDuty, DService.Condition[ConditionFlag.InCombat] ? 1U : 0);
+    public static void LeaveDuty() => 
+        ExecuteCommand(ExecuteCommandFlag.LeaveDuty, DService.Condition[ConditionFlag.InCombat] ? 1U : 0);
 }
