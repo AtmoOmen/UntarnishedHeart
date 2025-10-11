@@ -16,6 +16,7 @@ using Lumina.Excel.Sheets;
 using OmenTools.Service;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Executor;
+using UntarnishedHeart.Utils;
 using ContentsFinder = FFXIVClientStructs.FFXIV.Client.Game.UI.ContentsFinder;
 using Status = Lumina.Excel.Sheets.Status;
 
@@ -274,7 +275,14 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             Service.Config.Save();
         }
         ImGuiOm.TooltipHover("若输入 -1, 则为无限运行");
-
+        
+        if (ImGui.Button("停止寻路"))
+        {
+            GameFunctions.PathFindCancel();
+            NotifyHelper.NotificationInfo("已停止寻路");
+        }
+        ImGuiOm.TooltipHover("立即停止当前的寻路任务");
+        
         var isLeaderMode = Service.Config.LeaderMode;
         if (ImGui.Checkbox("队长模式", ref isLeaderMode))
         {

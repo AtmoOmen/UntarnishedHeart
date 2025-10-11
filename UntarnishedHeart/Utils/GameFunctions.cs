@@ -7,7 +7,6 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using Task = System.Threading.Tasks.Task;
-using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 
 namespace UntarnishedHeart.Utils;
 
@@ -20,15 +19,26 @@ public static class GameFunctions
 
     private static TaskHelper? TaskHelper;
 
-    internal static PathFindHelper? PathFindHelper;
+    internal static VNavmeshIPC? VNavmesh;
     internal static Task? PathFindTask;
     internal static CancellationTokenSource? PathFindCancelSource;
 
     public static void Init()
     {
         ExecuteCommand ??= ExecuteCommandSig.GetDelegate<ExecuteCommandDelegate>();
-        PathFindHelper ??= new();
-        TaskHelper     ??= new() { TimeLimitMS = int.MaxValue };
+        VNavmesh ??= new(DService.PI);
+
+        if (!VNavmesh.IsAvailable)
+        {
+            NotifyHelper.NotificationError("vnavmesh 不可用\n插件寻路功能需要安装 vnavmesh 插件才能使用。");
+            DService.Log.Error("vnavmesh 不可用");
+        }
+        else
+        {
+            DService.Log.Info("vnavmesh IPC 初始化成功");
+        }
+
+        TaskHelper ??= new() { TimeLimitMS = int.MaxValue };
     }
 
     public static void Uninit()
@@ -44,7 +54,8 @@ public static class GameFunctions
         PathFindTask?.Dispose();
         PathFindTask = null;
 
-        PathFindHelper.Dispose();
+        VNavmesh?.Dispose();
+        VNavmesh = null;
     }
 
     public static unsafe void Teleport(Vector3 pos)
@@ -62,9 +73,15 @@ public static class GameFunctions
     /// <summary>
     /// 寻路到目标位置
     /// </summary>
-    public static void PathFindStart(Vector3 pos)
+    public static void PathFindStart(Vector3 pos, bool fly = false)
     {
         PathFindCancel();
+
+        if (VNavmesh is not { IsAvailable: true })
+        {
+            DService.Log.Error("vnavmesh 不可用，无法寻路。请安装 vnavmesh 插件。");
+            return;
+        }
 
         PathFindCancelSource = new();
         TaskHelper.Enqueue(() =>
@@ -72,7 +89,7 @@ public static class GameFunctions
             if (!Throttler.Throttle("寻路节流")) return false;
 
             PathFindTask ??= DService.Framework.RunOnTick(
-                async () => await Task.Run(async () => await PathFindInternalTask(pos), PathFindCancelSource.Token), 
+                async () => await Task.Run(async () => await PathFindVNavmeshTask(pos, fly), PathFindCancelSource.Token),
                 TimeSpan.Zero, 0, PathFindCancelSource.Token);
 
             return PathFindTask.IsCompleted;
@@ -93,28 +110,71 @@ public static class GameFunctions
         PathFindTask?.Dispose();
         PathFindTask = null;
 
-        PathFindHelper.Enabled = false;
-        PathFindHelper.DesiredPosition = default;
+        VNavmesh?.PathStop();
     }
 
-    private static async Task PathFindInternalTask(Vector3 targetPos)
+    /// <summary>
+    /// 使用 vnavIPC 寻路
+    /// </summary>
+    private static async Task PathFindVNavmeshTask(Vector3 targetPos, bool fly)
     {
-        PathFindHelper.DesiredPosition = targetPos;
-        PathFindHelper.Enabled = true;
+        if (VNavmesh == null || !VNavmesh.IsAvailable)
+            return;
 
+        // 等待 VNavmesh 准备就绪
+        var timeout = DateTime.Now.AddSeconds(10);
+        while (!VNavmesh.IsReady() && DateTime.Now < timeout)
+        {
+            await Task.Delay(100);
+        }
+
+        if (!VNavmesh.IsReady())
+        {
+            DService.Log.Warning("VNavmesh 未准备就绪");
+            return;
+        }
+        
+        if (!VNavmesh.PathfindAndMoveTo(targetPos, fly))
+        {
+            DService.Log.Warning("VNavmesh 寻路启动失败");
+            return;
+        }
+
+        // wait finish pathFind
         while (true)
         {
             var localPlayer = DService.ObjectTable.LocalPlayer;
-            if (localPlayer == null) continue;
+            if (localPlayer == null)
+            {
+                await Task.Delay(100);
+                continue;
+            }
+            
+            // check whether arrived(2m)
+            var distance = Vector3.Distance(localPlayer.Position, targetPos);
+            if (distance <= 2f)
+            {
+                VNavmesh.PathStop();
+                break;
+            }
 
-            var distance = Vector3.DistanceSquared(localPlayer.Position, targetPos);
-            if (distance <= 2) break;
+            // check vnav status
+            if (!VNavmesh.IsPathRunning() && !VNavmesh.IsPathGenerating())
+            {
+                await Task.Delay(500);
+                
+                distance = Vector3.Distance(localPlayer.Position, targetPos);
+                if (distance <= 2f)
+                {
+                    break;
+                }
+                
+                DService.Log.Warning($"VNavmesh 寻路结束但未到达目标，距离: {distance:F2}米");
+                break;
+            }
 
-            await Task.Delay(500);
+            await Task.Delay(100);
         }
-
-        PathFindHelper.Enabled = false;
-        PathFindHelper.DesiredPosition = default;
     }
 
     public static unsafe void EquipRecommendGear()
