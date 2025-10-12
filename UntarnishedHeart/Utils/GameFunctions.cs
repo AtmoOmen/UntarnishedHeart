@@ -6,13 +6,14 @@ using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
+using UntarnishedHeart.Managers;
 using Task = System.Threading.Tasks.Task;
 
 namespace UntarnishedHeart.Utils;
 
 public static class GameFunctions
 {
-    private static readonly CompSig ExecuteCommandSig = 
+    private static readonly CompSig ExecuteCommandSig =
         new("E8 ?? ?? ?? ?? 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 ?? 5F C3 CC CC CC CC CC CC CC CC CC CC 48 89 5C 24 ?? 57 48 83 EC ?? 80 A1");
     private delegate nint                    ExecuteCommandDelegate(ExecuteCommandFlag command, uint param1 = 0, uint param2 = 0, uint param3 = 0, uint param4 = 0);
     private static   ExecuteCommandDelegate? ExecuteCommand;
@@ -20,23 +21,39 @@ public static class GameFunctions
     private static TaskHelper? TaskHelper;
 
     internal static VNavmeshIPC? VNavmesh;
+    internal static PathFindHelper? PathFinder;
     internal static Task? PathFindTask;
     internal static CancellationTokenSource? PathFindCancelSource;
+    
+    public static PathFindMode CurrentPathFindMode { get; set; } = PathFindMode.VNavmesh;
 
     public static void Init()
     {
         ExecuteCommand ??= ExecuteCommandSig.GetDelegate<ExecuteCommandDelegate>();
-        VNavmesh ??= new(DService.PI);
 
-        if (!VNavmesh.IsAvailable)
+        // init PathFindHelper
+        try
         {
-            NotifyHelper.NotificationError("vnavmesh 不可用\n插件寻路功能需要安装 vnavmesh 插件才能使用。");
-            DService.Log.Error("vnavmesh 不可用");
+            PathFinder ??= new PathFindHelper();
         }
-        else
+        catch (Exception ex)
+        {
+            DService.Log.Error($"PathFindHelper初始化失败: {ex.Message}");
+        }
+
+        // init VNavmesh
+        VNavmesh ??= new(DService.PI);
+        if (VNavmesh is { IsAvailable: true })
         {
             DService.Log.Info("vnavmesh IPC 初始化成功");
         }
+        else
+        {
+            DService.Log.Warning("vnavmesh 不可用");
+        }
+
+        CurrentPathFindMode = Service.Config.PathFindMode;
+        DService.Log.Info($"当前寻路模式: {CurrentPathFindMode}");
 
         TaskHelper ??= new() { TimeLimitMS = int.MaxValue };
     }
@@ -56,6 +73,9 @@ public static class GameFunctions
 
         VNavmesh?.Dispose();
         VNavmesh = null;
+
+        PathFinder?.Dispose();
+        PathFinder = null;
     }
 
     public static unsafe void Teleport(Vector3 pos)
@@ -76,10 +96,78 @@ public static class GameFunctions
     public static void PathFindStart(Vector3 pos, bool fly = false)
     {
         PathFindCancel();
+        
+        switch (CurrentPathFindMode)
+        {
+            case PathFindMode.Native:
+                PathFindStartNative(pos);
+                break;
 
+            case PathFindMode.VNavmesh:
+                PathFindStartVNavmesh(pos, fly);
+                break;
+
+            default:
+                DService.Log.Error($"未知的寻路模式: {CurrentPathFindMode}");
+                break;
+        }
+    }
+
+    /// <summary>
+    /// 使用 PathFindHelper 寻路
+    /// </summary>
+    private static void PathFindStartNative(Vector3 pos)
+    {
+        if (PathFinder == null)
+        {
+            DService.Log.Error("PathFindHelper未初始化");
+            return;
+        }
+
+        PathFindCancelSource = new();
+        TaskHelper.Enqueue(() =>
+        {
+            if (!Throttler.Throttle("寻路节流")) return false;
+
+            PathFindTask ??= DService.Framework.RunOnTick(
+                async () => await Task.Run(async () => await PathFindInternalTask(pos), PathFindCancelSource.Token),
+                TimeSpan.Zero, 0, PathFindCancelSource.Token);
+
+            return PathFindTask.IsCompleted;
+        });
+    }
+    
+    private static async Task PathFindInternalTask(Vector3 targetPos)
+    {
+        if (PathFinder == null)
+            return;
+
+        PathFinder.DesiredPosition = targetPos;
+        PathFinder.Enabled = true;
+
+        while (true)
+        {
+            var localPlayer = DService.ObjectTable.LocalPlayer;
+            if (localPlayer == null) continue;
+
+            var distance = Vector3.DistanceSquared(localPlayer.Position, targetPos);
+            if (distance <= 2) break;
+
+            await Task.Delay(500);
+        }
+
+        PathFinder.Enabled = false;
+        PathFinder.DesiredPosition = default;
+    }
+
+    /// <summary>
+    /// 使用 VNavmesh 寻路
+    /// </summary>
+    private static void PathFindStartVNavmesh(Vector3 pos, bool fly)
+    {
         if (VNavmesh is not { IsAvailable: true })
         {
-            DService.Log.Error("vnavmesh 不可用，无法寻路。请安装 vnavmesh 插件。");
+            DService.Log.Error("vnavmesh 不可用，无法寻路");
             return;
         }
 
@@ -102,15 +190,48 @@ public static class GameFunctions
     public static void PathFindCancel()
     {
         TaskHelper?.Abort();
+        
+        try
+        {
+            PathFindCancelSource?.Cancel();
+        }
+        catch (Exception ex)
+        {
+            DService.Log.Debug($"取消寻路 Token 时出错: {ex.Message}");
+        }
+        
+        switch (CurrentPathFindMode)
+        {
+            case PathFindMode.Native:
+                if (PathFinder != null)
+                {
+                    try
+                    {
+                        PathFinder.Enabled = false;
+                        PathFinder.DesiredPosition = default;
+                    }
+                    catch (Exception ex)
+                    {
+                        DService.Log.Debug($"停止 PathFinder 时出错: {ex.Message}");
+                    }
+                }
+                break;
 
-        PathFindCancelSource?.Cancel();
+            case PathFindMode.VNavmesh:
+                try
+                {
+                    VNavmesh?.PathStop();
+                }
+                catch (Exception ex)
+                {
+                    DService.Log.Debug($"停止 vnavmesh 时出错: {ex.Message}");
+                }
+                break;
+        }
+        
         PathFindCancelSource?.Dispose();
         PathFindCancelSource = null;
-
-        PathFindTask?.Dispose();
         PathFindTask = null;
-
-        VNavmesh?.PathStop();
     }
 
     /// <summary>
@@ -130,13 +251,13 @@ public static class GameFunctions
 
         if (!VNavmesh.IsReady())
         {
-            DService.Log.Warning("VNavmesh 未准备就绪");
+            DService.Log.Warning("vnavmesh 未准备就绪");
             return;
         }
         
         if (!VNavmesh.PathfindAndMoveTo(targetPos, fly))
         {
-            DService.Log.Warning("VNavmesh 寻路启动失败");
+            DService.Log.Warning("vnavmesh 寻路启动失败");
             return;
         }
 
@@ -150,7 +271,7 @@ public static class GameFunctions
                 continue;
             }
             
-            // check whether arrived(2m)
+            // check whether arrived
             var distance = Vector3.Distance(localPlayer.Position, targetPos);
             if (distance <= 2f)
             {
@@ -169,7 +290,7 @@ public static class GameFunctions
                     break;
                 }
                 
-                DService.Log.Warning($"VNavmesh 寻路结束但未到达目标，距离: {distance:F2}米");
+                DService.Log.Warning($"vnavmesh 寻路结束但未到达目标，距离: {distance:F2}米");
                 break;
             }
 
@@ -188,4 +309,17 @@ public static class GameFunctions
 
     public static void LeaveDuty() => 
         ExecuteCommand(ExecuteCommandFlag.LeaveDuty, DService.Condition[ConditionFlag.InCombat] ? 1U : 0);
+}
+
+public enum PathFindMode
+{
+    /// <summary>
+    /// PathFindHelper
+    /// </summary>
+    Native = 0,
+
+    /// <summary>
+    /// VNavmesh
+    /// </summary>
+    VNavmesh = 1
 }

@@ -27,37 +27,47 @@ public class VNavmeshIPC : IDisposable
     {
         try
         {
-            // subs VNavmesh's IPC 
+            // subs VNavmesh's IPC
             isReady = pi.GetIpcSubscriber<bool>("vnavmesh.Nav.IsReady");
             isPathGenerating = pi.GetIpcSubscriber<bool>("vnavmesh.Path.IsGenerating");
             isPathRunning = pi.GetIpcSubscriber<bool>("vnavmesh.Path.IsRunning");
             getPathDistance = pi.GetIpcSubscriber<float>("vnavmesh.Path.GetDistance");
             pathfindAndMoveTo = pi.GetIpcSubscriber<Vector3, bool, bool>("vnavmesh.SimpleMove.PathfindAndMoveTo");
             pathStop = pi.GetIpcSubscriber<bool, object>("vnavmesh.Path.Stop");
-
-            IsAvailable = true;
+            
+            try
+            {
+                isReady.InvokeFunc();
+                IsAvailable = true;
+            }
+            catch
+            {
+                IsAvailable = false;
+                DService.Log.Debug("vnavmesh 未运行或不可用");
+            }
         }
         catch (Exception ex)
         {
             IsAvailable = false;
-            DService.Log.Debug($"VNavmesh IPC 初始化失败: {ex.Message}");
+            DService.Log.Debug($"vnavmesh IPC 初始化失败: {ex.Message}");
         }
     }
-
+ 
     /// <summary>
     /// VNavmesh 是否准备就绪
     /// </summary>
     public bool IsReady()
     {
-        if (!IsAvailable) return false;
         try
         {
-            return isReady.InvokeFunc();
+            var result = isReady.InvokeFunc();
+            IsAvailable = true;
+            return result;
         }
         catch (Exception ex)
         {
             IsAvailable = false;
-            DService.Log.Debug($"VNavmesh IsReady 调用失败: {ex.Message}");
+            DService.Log.Debug($"vnavmesh IsReady 调用失败: {ex.Message}");
             return false;
         }
     }
@@ -74,7 +84,7 @@ public class VNavmeshIPC : IDisposable
         }
         catch (Exception ex)
         {
-            DService.Log.Debug($"VNavmesh IsPathGenerating 调用失败: {ex.Message}");
+            DService.Log.Debug($"vnavmesh IsPathGenerating 调用失败: {ex.Message}");
             return false;
         }
     }
@@ -91,7 +101,7 @@ public class VNavmeshIPC : IDisposable
         }
         catch (Exception ex)
         {
-            DService.Log.Debug($"VNavmesh IsPathRunning 调用失败: {ex.Message}");
+            DService.Log.Debug($"vnavmesh IsPathRunning 调用失败: {ex.Message}");
             return false;
         }
     }
@@ -108,7 +118,7 @@ public class VNavmeshIPC : IDisposable
         }
         catch (Exception ex)
         {
-            DService.Log.Debug($"VNavmesh GetPathDistance 调用失败: {ex.Message}");
+            DService.Log.Debug($"vnavmesh GetPathDistance 调用失败: {ex.Message}");
             return 0;
         }
     }
@@ -128,7 +138,7 @@ public class VNavmeshIPC : IDisposable
         }
         catch (Exception ex)
         {
-            DService.Log.Warning($"VNavmesh PathfindAndMoveTo 调用失败: {ex.Message}");
+            DService.Log.Warning($"vnavmesh PathfindAndMoveTo 调用失败: {ex.Message}");
             return false;
         }
     }
@@ -145,7 +155,7 @@ public class VNavmeshIPC : IDisposable
         }
         catch (Exception ex)
         {
-            DService.Log.Debug($"VNavmesh PathStop 调用失败: {ex.Message}");
+            DService.Log.Debug($"vnavmesh PathStop 调用失败: {ex.Message}");
         }
     }
 

@@ -276,13 +276,53 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         }
         ImGuiOm.TooltipHover("若输入 -1, 则为无限运行");
         
+        
+        var pathFindMode = Service.Config.PathFindMode;
+        ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+        using (var combo = ImRaii.Combo("寻路方式###PathFindModeCombo", pathFindMode == PathFindMode.Native ? "原生寻路" : "vnavmesh"))
+        {
+            if (combo)
+            {
+                if (ImGui.Selectable("原生寻路", pathFindMode == PathFindMode.Native))
+                {
+                    Service.Config.PathFindMode = PathFindMode.Native;
+                    GameFunctions.CurrentPathFindMode = PathFindMode.Native;
+                    Service.Config.Save();
+                    NotifyHelper.NotificationSuccess("已切换到原生寻路模式");
+                }
+                ImGuiOm.TooltipHover("使用插件内置的寻路功能");
+
+                if (ImGui.Selectable("vnavmesh", pathFindMode == PathFindMode.VNavmesh))
+                {
+                    var isVNavAvailable = false;
+                    if (GameFunctions.VNavmesh != null)
+                    {
+                        isVNavAvailable = GameFunctions.VNavmesh.IsReady();
+                    }
+
+                    if (isVNavAvailable)
+                    {
+                        Service.Config.PathFindMode = PathFindMode.VNavmesh;
+                        GameFunctions.CurrentPathFindMode = PathFindMode.VNavmesh;
+                        Service.Config.Save();
+                        NotifyHelper.NotificationSuccess("已切换到 vnavmesh 寻路模式");
+                    }
+                    else
+                    {
+                        NotifyHelper.NotificationError("vnavmesh 不可用\n请先安装或启用 vnavmesh 插件");
+                    }
+                }
+                ImGuiOm.TooltipHover("使用 vnavmesh 插件进行寻路（需要安装 vnavmesh 插件）");
+            }
+        }
+
         if (ImGui.Button("停止寻路"))
         {
             GameFunctions.PathFindCancel();
             NotifyHelper.NotificationInfo("已停止寻路");
         }
         ImGuiOm.TooltipHover("立即停止当前的寻路任务");
-        
+
         var isLeaderMode = Service.Config.LeaderMode;
         if (ImGui.Checkbox("队长模式", ref isLeaderMode))
         {
