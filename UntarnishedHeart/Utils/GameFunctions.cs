@@ -13,7 +13,7 @@ namespace UntarnishedHeart.Utils;
 
 public static class GameFunctions
 {
-    private static readonly CompSig ExecuteCommandSig =
+    private static readonly CompSig ExecuteCommandSig = 
         new("E8 ?? ?? ?? ?? 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 ?? 5F C3 CC CC CC CC CC CC CC CC CC CC 48 89 5C 24 ?? 57 48 83 EC ?? 80 A1");
     private delegate nint                    ExecuteCommandDelegate(ExecuteCommandFlag command, uint param1 = 0, uint param2 = 0, uint param3 = 0, uint param4 = 0);
     private static   ExecuteCommandDelegate? ExecuteCommand;
