@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 using Dalamud.Game.Config;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using static UntarnishedHeart.Utils.PathFindHelper;
 
 namespace UntarnishedHeart.Utils;
 

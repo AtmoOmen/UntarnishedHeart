@@ -6,7 +6,7 @@ using Dalamud.Plugin.Ipc;
 namespace UntarnishedHeart.Utils;
 
 /// <summary>
-/// VNavmesh IPC 封装
+/// VNavmesh IPC
 /// </summary>
 public class VNavmeshIPC : IDisposable
 {
@@ -20,7 +20,7 @@ public class VNavmeshIPC : IDisposable
     public bool IsAvailable { get; private set; }
 
     /// <summary>
-    /// 初始化 VNavmesh IPC
+    /// Init VNavmesh IPC
     /// </summary>
     /// <param name="pi">Dalamud Plugin Interface</param>
     public VNavmeshIPC(IDalamudPluginInterface pi)
@@ -71,10 +71,7 @@ public class VNavmeshIPC : IDisposable
             return false;
         }
     }
-
-    /// <summary>
-    /// 是否正在生成路径
-    /// </summary>
+    
     public bool IsPathGenerating()
     {
         if (!IsAvailable) return false;
@@ -88,10 +85,7 @@ public class VNavmeshIPC : IDisposable
             return false;
         }
     }
-
-    /// <summary>
-    /// 是否正在沿路径移动
-    /// </summary>
+    
     public bool IsPathRunning()
     {
         if (!IsAvailable) return false;
@@ -105,10 +99,7 @@ public class VNavmeshIPC : IDisposable
             return false;
         }
     }
-
-    /// <summary>
-    /// 获取路径距离
-    /// </summary>
+    
     public float GetPathDistance()
     {
         if (!IsAvailable) return 0;
@@ -124,7 +115,7 @@ public class VNavmeshIPC : IDisposable
     }
 
     /// <summary>
-    /// 寻路并移动到目标位置（简单模式）
+    /// 寻路并移动到目标位置
     /// </summary>
     /// <param name="target">目标位置</param>
     /// <param name="fly">是否飞行</param>
