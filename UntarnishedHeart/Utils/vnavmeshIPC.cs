@@ -6,34 +6,34 @@ using Dalamud.Plugin.Ipc;
 namespace UntarnishedHeart.Utils;
 
 /// <summary>
-/// VNavmesh IPC
+/// vnavmesh IPC
 /// </summary>
-public class VNavmeshIPC : IDisposable
+public class vnavmeshIPC : IDisposable
 {
     private readonly ICallGateSubscriber<bool> isReady = null!;
     private readonly ICallGateSubscriber<bool> isPathGenerating = null!;
     private readonly ICallGateSubscriber<bool> isPathRunning = null!;
     private readonly ICallGateSubscriber<float> getPathDistance = null!;
     private readonly ICallGateSubscriber<Vector3, bool, bool> pathfindAndMoveTo = null!;
-    private readonly ICallGateSubscriber<bool, object> pathStop = null!;
+    private readonly ICallGateSubscriber<object> pathStop = null!;
 
     public bool IsAvailable { get; private set; }
 
     /// <summary>
-    /// Init VNavmesh IPC
+    /// Init vnavmesh IPC
     /// </summary>
     /// <param name="pi">Dalamud Plugin Interface</param>
-    public VNavmeshIPC(IDalamudPluginInterface pi)
+    public vnavmeshIPC(IDalamudPluginInterface pi)
     {
         try
         {
-            // subs VNavmesh's IPC
+            // subs vnavmesh's IPC
             isReady = pi.GetIpcSubscriber<bool>("vnavmesh.Nav.IsReady");
             isPathGenerating = pi.GetIpcSubscriber<bool>("vnavmesh.Path.IsGenerating");
             isPathRunning = pi.GetIpcSubscriber<bool>("vnavmesh.Path.IsRunning");
             getPathDistance = pi.GetIpcSubscriber<float>("vnavmesh.Path.GetDistance");
             pathfindAndMoveTo = pi.GetIpcSubscriber<Vector3, bool, bool>("vnavmesh.SimpleMove.PathfindAndMoveTo");
-            pathStop = pi.GetIpcSubscriber<bool, object>("vnavmesh.Path.Stop");
+            pathStop = pi.GetIpcSubscriber<object>("vnavmesh.Path.Stop");
             
             try
             {
@@ -43,18 +43,18 @@ public class VNavmeshIPC : IDisposable
             catch
             {
                 IsAvailable = false;
-                DService.Log.Debug("vnavmesh 未运行或不可用");
+                NotifyHelper.NotificationError("vnavmesh 未运行或不可用");
             }
         }
         catch (Exception ex)
         {
             IsAvailable = false;
-            DService.Log.Debug($"vnavmesh IPC 初始化失败: {ex.Message}");
+            NotifyHelper.NotificationError($"vnavmesh IPC 初始化失败: {ex.Message}");
         }
     }
  
     /// <summary>
-    /// VNavmesh 是否准备就绪
+    /// vnavmesh 是否准备就绪
     /// </summary>
     public bool IsReady()
     {
@@ -67,7 +67,7 @@ public class VNavmeshIPC : IDisposable
         catch (Exception ex)
         {
             IsAvailable = false;
-            DService.Log.Debug($"vnavmesh IsReady 调用失败: {ex.Message}");
+            NotifyHelper.NotificationError($"vnavmesh IsReady 调用失败: {ex.Message}");
             return false;
         }
     }
@@ -77,11 +77,12 @@ public class VNavmeshIPC : IDisposable
         if (!IsAvailable) return false;
         try
         {
+            if (!IsReady()) return false;
             return isPathGenerating.InvokeFunc();
         }
         catch (Exception ex)
         {
-            DService.Log.Debug($"vnavmesh IsPathGenerating 调用失败: {ex.Message}");
+            NotifyHelper.NotificationWarning($"vnavmesh IsPathGenerating 调用失败: {ex.Message}");
             return false;
         }
     }
@@ -91,25 +92,27 @@ public class VNavmeshIPC : IDisposable
         if (!IsAvailable) return false;
         try
         {
+            if (!IsReady()) return false;
             return isPathRunning.InvokeFunc();
         }
         catch (Exception ex)
         {
-            DService.Log.Debug($"vnavmesh IsPathRunning 调用失败: {ex.Message}");
+            NotifyHelper.NotificationWarning($"vnavmesh IsPathRunning 调用失败: {ex.Message}");
             return false;
         }
     }
-    
+
     public float GetPathDistance()
     {
         if (!IsAvailable) return 0;
         try
         {
+            if (!IsReady()) return 0;
             return getPathDistance.InvokeFunc();
         }
         catch (Exception ex)
         {
-            DService.Log.Debug($"vnavmesh GetPathDistance 调用失败: {ex.Message}");
+            NotifyHelper.NotificationWarning($"vnavmesh GetPathDistance 调用失败: {ex.Message}");
             return 0;
         }
     }
@@ -129,7 +132,7 @@ public class VNavmeshIPC : IDisposable
         }
         catch (Exception ex)
         {
-            DService.Log.Warning($"vnavmesh PathfindAndMoveTo 调用失败: {ex.Message}");
+            NotifyHelper.NotificationWarning($"vnavmesh PathfindAndMoveTo 调用失败: {ex.Message}");
             return false;
         }
     }
@@ -140,17 +143,17 @@ public class VNavmeshIPC : IDisposable
     public void PathStop()
     {
         if (!IsAvailable) return;
+        
         try
         {
-            pathStop.InvokeFunc(true);
+            pathStop.InvokeAction();
         }
         catch (Exception ex)
         {
-            DService.Log.Debug($"vnavmesh PathStop 调用失败: {ex.Message}");
+            NotifyHelper.NotificationWarning($"vnavmesh Path.Stop IPC 调用失败: {ex.Message}");
         }
     }
-
-
+    
     public void Dispose()
     {
         PathStop();

@@ -161,14 +161,24 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                             }
                             
                             ImGui.SameLine();
-                            if (ImGuiOm.ButtonIcon("TPToThis", FontAwesomeIcon.Flag, "传送到此位置", true))
-                                GameFunctions.Teleport(stepPosition);
-
-                            ImGui.SameLine();
-                            if (ImGuiOm.ButtonIcon("MoveToThis", FontAwesomeIcon.MapMarkerAlt, "寻路到此位置", true))
-                                GameFunctions.PathFindStart(Position);
+                            if (ImGuiOm.ButtonIcon("MoveToThis", FontAwesomeIcon.MapMarkerAlt, "根据当前移动方式移动到此位置", true))
+                            {
+                                var finalMoveType = MoveType == MoveType.无 ? MoveType.传送 : MoveType;
+                                switch (finalMoveType)
+                                {
+                                    case MoveType.寻路:
+                                        GameFunctions.PathFindStart(Position);
+                                        break;
+                                    case MoveType.传送:
+                                        GameFunctions.Teleport(Position);
+                                        break;
+                                    case MoveType.vnavmesh:
+                                        GameFunctions.vnavmeshMove(Position);
+                                        break;
+                                }
+                            }
                         }
-
+ 
                         ImGui.Spacing();
                         
                         using (ImRaii.Group())
@@ -378,6 +388,9 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                                         break;
                                     case MoveType.传送:
                                         GameFunctions.Teleport(Position);
+                                        break;
+                                    case MoveType.vnavmesh:
+                                        GameFunctions.vnavmeshMove(Position);
                                         break;
                                 }
 
