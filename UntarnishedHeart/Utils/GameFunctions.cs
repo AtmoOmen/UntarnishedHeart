@@ -7,6 +7,7 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using UntarnishedHeart.Managers;
+using UntarnishedHeart.Windows;
 using Task = System.Threading.Tasks.Task;
 
 namespace UntarnishedHeart.Utils;
@@ -40,18 +41,18 @@ public static class GameFunctions
         }
         catch (Exception ex)
         {
-            NotifyHelper.NotificationError($"PathFindHelper初始化失败: {ex.Message}");
+            Chat($"PathFindHelper初始化失败: {ex.Message}", Main.UTHPrefix);
         }
 
         // init vnavmesh
         vnavmesh ??= new(DService.PI);
         if (vnavmesh is { IsAvailable: true })
         {
-            NotifyHelper.NotificationInfo("vnavmesh IPC 初始化成功");
+            Chat($"vnavmesh IPC 初始化成功", Main.UTHPrefix);
         }
         else
         {
-            NotifyHelper.NotificationWarning("vnavmesh 不可用");
+            Chat("vnavmesh 不可用", Main.UTHPrefix);
         }
 
         TaskHelper ??= new() { TimeLimitMS = int.MaxValue };
@@ -97,9 +98,9 @@ public static class GameFunctions
         LastMoveMode = PathMoveMode.PathFindHelper;
         LastTargetPos = pos;
         LastFly = false;
-        if (PathFinder == null)
+        if (PathFinder is null)
         {
-            NotifyHelper.NotificationError("PathFindHelper未初始化");
+            Chat("PathFindHelper未初始化", Main.UTHPrefix);
             return;
         }
 
@@ -119,7 +120,7 @@ public static class GameFunctions
     
     private static async Task PathFindInternalTask(Vector3 targetPos)
     {
-        if (PathFinder == null)
+        if (PathFinder is null)
             return;
 
         PathFinder.DesiredPosition = targetPos;
@@ -150,7 +151,7 @@ public static class GameFunctions
 
         if (vnavmesh == null || !vnavmesh.IsReady())
         {
-            NotifyHelper.NotificationError("vnavmesh 不可用，无法寻路");
+            Chat("vnavmesh 不可用，无法寻路", Main.UTHPrefix);
             return;
         }
         
@@ -181,11 +182,11 @@ public static class GameFunctions
         }
         catch (Exception ex)
         {
-            NotifyHelper.NotificationWarning($"取消寻路 Token 时出错: {ex.Message}");
+            Chat($"取消寻路 Token 时出错: {ex.Message}", Main.UTHPrefix);
         }
 
         // Stop PathFinder
-        if (PathFinder != null)
+        if (PathFinder is not null)
         {
             try
             {
@@ -194,12 +195,12 @@ public static class GameFunctions
             }
             catch (Exception ex)
             {
-                NotifyHelper.NotificationWarning($"停止 PathFinder 时出错: {ex.Message}");
+                Chat($"停止 PathFinder 时出错: {ex.Message}", Main.UTHPrefix);
             }
         }
-        
+
         // Stop vnavmesh
-        if (vnavmesh != null)
+        if (vnavmesh is not null)
         {
             try
             {
@@ -207,7 +208,7 @@ public static class GameFunctions
             }
             catch (Exception ex)
             {
-                NotifyHelper.NotificationWarning($"停止 vnavmesh 时出错: {ex.Message}");
+                Chat($"停止 vnavmesh 时出错: {ex.Message}", Main.UTHPrefix);
             }
         }
 
@@ -233,7 +234,7 @@ public static class GameFunctions
                 break;
             case PathMoveMode.None:
             default:
-                NotifyHelper.NotificationWarning("没有可恢复的寻路任务");
+                Chat("没有可恢复的寻路任务", Main.UTHPrefix);
                 break;
         }
     }
@@ -255,13 +256,13 @@ public static class GameFunctions
 
         if (!vnavmesh.IsReady())
         {
-            NotifyHelper.NotificationWarning("vnavmesh 未准备就绪");
+            Chat("vnavmesh 未准备就绪", Main.UTHPrefix);
             return;
         }
 
         if (!vnavmesh.PathfindAndMoveTo(targetPos, fly))
         {
-            NotifyHelper.NotificationWarning("vnavmesh 寻路启动失败");
+            Chat("vnavmesh 寻路启动失败", Main.UTHPrefix);
             return;
         }
         
@@ -295,7 +296,7 @@ public static class GameFunctions
                     break;
                 }
 
-                NotifyHelper.NotificationWarning($"vnavmesh 寻路结束但未到达目标，距离: {distance:F2}米");
+                Chat($"vnavmesh 寻路结束但未到达目标，距离: {distance:F2}米", Main.UTHPrefix);
                 break;
             }
 

@@ -331,11 +331,11 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             var json = JsonConvert.SerializeObject(this);
             var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
             Clipboard.SetText(base64);
-            NotifyHelper.NotificationSuccess("已成功导出预设至剪贴板");
+            Chat($"已成功导出预设至剪贴板", Main.UTHPrefix);
         }
         catch (Exception)
         {
-            NotifyHelper.NotificationError("尝试导出预设至剪贴板时发生错误");
+            Chat($"尝试导出预设至剪贴板时发生错误", Main.UTHPrefix);
         }
     }
 
@@ -350,13 +350,13 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
 
                 var config = JsonConvert.DeserializeObject<ExecutorPreset>(json);
                 if (config != null)
-                    NotifyHelper.NotificationSuccess("已成功从剪贴板导入预设");
+                    Chat($"已成功从剪贴板导入预设", Main.UTHPrefix);
                 return config;
             }
         }
         catch (Exception)
         {
-            NotifyHelper.NotificationError("尝试从剪贴板导入预设时发生错误");
+            Chat($"尝试从剪贴板导入预设时发生错误", Main.UTHPrefix);
         }
         return null;
     }

@@ -12,6 +12,7 @@ using Dalamud.Game.ClientState.Objects.Enums;
 using OmenTools.Service;
 using UntarnishedHeart.Utils;
 using UntarnishedHeart.Managers;
+using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Executor;
 
@@ -147,16 +148,16 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                                     if (TryParsePosition(clipboardText, out var parsedPosition))
                                     {
                                         Position = parsedPosition;
-                                        NotifyHelper.NotificationSuccess($"已从剪贴板读取坐标: <{parsedPosition.X:F2}, {parsedPosition.Y:F2}, {parsedPosition.Z:F2}>");
+                                        Chat($"已从剪贴板读取坐标: <{parsedPosition.X:F2}, {parsedPosition.Y:F2}, {parsedPosition.Z:F2}>", Main.UTHPrefix);
                                     }
                                     else
                                     {
-                                        NotifyHelper.NotificationError("剪贴板内容格式不正确\n期望格式: X: -0.41, Y: 0.00, Z: 5.46");
+                                        Chat("剪贴板内容格式不正确，期望格式: X: -0.41, Y: 0.00, Z: 5.46", Main.UTHPrefix);
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    NotifyHelper.NotificationError($"读取剪贴板失败: {ex.Message}");
+                                    Chat($"读取剪贴板失败: {ex.Message}", Main.UTHPrefix);
                                 }
                             }
                             

@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
+using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Utils;
 
@@ -43,13 +44,13 @@ public class vnavmeshIPC : IDisposable
             catch
             {
                 IsAvailable = false;
-                NotifyHelper.NotificationError("vnavmesh 未运行或不可用");
+                Chat("vnavmesh 未运行或不可用", Main.UTHPrefix);
             }
         }
         catch (Exception ex)
         {
             IsAvailable = false;
-            NotifyHelper.NotificationError($"vnavmesh IPC 初始化失败: {ex.Message}");
+            Chat($"vnavmesh IPC 初始化失败: {ex.Message}", Main.UTHPrefix);
         }
     }
  
@@ -67,7 +68,7 @@ public class vnavmeshIPC : IDisposable
         catch (Exception ex)
         {
             IsAvailable = false;
-            NotifyHelper.NotificationError($"vnavmesh IsReady 调用失败: {ex.Message}");
+            Chat($"vnavmesh IsReady 调用失败: {ex.Message}", Main.UTHPrefix);
             return false;
         }
     }
@@ -80,9 +81,8 @@ public class vnavmeshIPC : IDisposable
             if (!IsReady()) return false;
             return isPathGenerating.InvokeFunc();
         }
-        catch (Exception ex)
+        catch
         {
-            NotifyHelper.NotificationWarning($"vnavmesh IsPathGenerating 调用失败: {ex.Message}");
             return false;
         }
     }
@@ -97,7 +97,7 @@ public class vnavmeshIPC : IDisposable
         }
         catch (Exception ex)
         {
-            NotifyHelper.NotificationWarning($"vnavmesh IsPathRunning 调用失败: {ex.Message}");
+            Chat($"vnavmesh IsPathRunning 调用失败: {ex.Message}", Main.UTHPrefix);
             return false;
         }
     }
@@ -112,7 +112,7 @@ public class vnavmeshIPC : IDisposable
         }
         catch (Exception ex)
         {
-            NotifyHelper.NotificationWarning($"vnavmesh GetPathDistance 调用失败: {ex.Message}");
+            Chat($"vnavmesh GetPathDistance 调用失败: {ex.Message}", Main.UTHPrefix);
             return 0;
         }
     }
@@ -132,7 +132,7 @@ public class vnavmeshIPC : IDisposable
         }
         catch (Exception ex)
         {
-            NotifyHelper.NotificationWarning($"vnavmesh PathfindAndMoveTo 调用失败: {ex.Message}");
+            Chat($"vnavmesh PathfindAndMoveTo 调用失败: {ex.Message}", Main.UTHPrefix);
             return false;
         }
     }
@@ -150,7 +150,7 @@ public class vnavmeshIPC : IDisposable
         }
         catch (Exception ex)
         {
-            NotifyHelper.NotificationWarning($"vnavmesh Path.Stop IPC 调用失败: {ex.Message}");
+            Chat($"vnavmesh Path.Stop IPC 调用失败: {ex.Message}", Main.UTHPrefix);
         }
     }
     

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Dalamud.Configuration;
 using UntarnishedHeart.Executor;
-using UntarnishedHeart.Utils;
 
 namespace UntarnishedHeart;
 
@@ -16,7 +15,7 @@ public class Configuration : IPluginConfiguration
     public List<ExecutorPreset> Presets              { get; set; } = [];
     public ContentsFinderOption ContentsFinderOption { get; set; } = ContentsFinderHelper.DefaultOption;
     public ContentEntryType     ContentEntryType     { get; set; } = ContentEntryType.Normal;
-
+    
     // 运行路线相关配置
     public List<Route>          Routes               { get; set; } = [];
     public ExecutionMode        CurrentExecutionMode { get; set; } = ExecutionMode.Simple;
