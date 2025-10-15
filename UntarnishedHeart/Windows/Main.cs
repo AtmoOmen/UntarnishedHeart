@@ -80,6 +80,11 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                 ImGui.Separator();
                 ImGui.Spacing();
 
+                DrawPathFindingControls();
+
+                ImGui.Separator();
+                ImGui.Spacing();
+
                 if (Service.Config.CurrentExecutionMode == ExecutionMode.Simple)
                 {
                     DrawHomeExecutorConfig();
@@ -276,22 +281,6 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         }
         ImGuiOm.TooltipHover("若输入 -1, 则为无限运行");
 
-
-        if (ImGui.Button("继续寻路"))
-        {
-            GameFunctions.PathFindResume();
-        }
-        ImGuiOm.TooltipHover("尝试继续上一次的寻路/移动");
-
-        ImGui.SameLine();
-        if (ImGui.Button("停止寻路"))
-        {
-            GameFunctions.PathFindCancel();
-            NotifyHelper.NotificationInfo("已停止寻路");
-        }
-        ImGuiOm.TooltipHover("立即停止当前的寻路任务");
-
-
         var isLeaderMode = Service.Config.LeaderMode;
         if (ImGui.Checkbox("队长模式", ref isLeaderMode))
         {
@@ -447,6 +436,28 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         }
         
         ImGui.Text($"步骤数: {selectedRoute.Steps.Count}");
+    }
+
+    private static void DrawPathFindingControls()
+    {
+        ImGui.TextColored(LightBlue, "寻路控制:");
+
+        using var indent = ImRaii.PushIndent();
+        using var group  = ImRaii.Group();
+
+        if (ImGui.Button("继续寻路"))
+        {
+            GameFunctions.PathFindResume();
+        }
+        ImGuiOm.TooltipHover("尝试继续上一次的寻路/移动");
+
+        ImGui.SameLine();
+        if (ImGui.Button("停止寻路"))
+        {
+            GameFunctions.PathFindCancel();
+            NotifyHelper.NotificationInfo("已停止寻路");
+        }
+        ImGuiOm.TooltipHover("立即停止当前的寻路任务");
     }
 
     public void Dispose()

@@ -9,6 +9,7 @@ using Dalamud.Interface.Windowing;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Game.ClientState.Keys;
 using Lumina.Excel.Sheets;
 using OmenTools.Service;
 using OmenTools.Helpers;
@@ -19,7 +20,7 @@ namespace UntarnishedHeart.Windows;
 
 public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisposable
 {
-    private static DateTime lastCopyTime = DateTime.MinValue;
+    private static long lastCopyTime = 0;
 
     public override void Draw()
     {
@@ -203,11 +204,7 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
         ImGui.Spacing();
         
         var camera = FFXIVClientStructs.FFXIV.Client.Game.Control.CameraManager.Instance()->GetActiveCamera();
-        if (camera == null)
-        {
-            ImGui.TextColored(ImGuiColors.DalamudRed, "无法获取摄像机信息");
-            return;
-        }
+        if (camera == null) return;
         
         var success = DService.Gui.ScreenToWorld(mousePos, out var worldPos);
 
@@ -218,20 +215,17 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
             ImGui.SameLine();
             ImGui.TextColored(ImGuiColors.ParsedGreen, coordText);
 
-            ImGui.SetCursorPosX(ImGui.GetCursorPosX());
-
             ImGui.Spacing();
             
-            // 17 = CONTROL, 67 = 'C'
-            if (DService.KeyState[0x11] && DService.KeyState[0x43] &&
-                (DateTime.Now - lastCopyTime).TotalSeconds > 0.5)
+            if (DService.KeyState[VirtualKey.CONTROL] && DService.KeyState[VirtualKey.C] &&
+                Environment.TickCount64 - lastCopyTime > 500)
             {
                 ImGui.SetClipboardText(coordText);
-                lastCopyTime = DateTime.Now;
+                lastCopyTime = Environment.TickCount64;
                 NotifyHelper.NotificationSuccess($"已复制坐标到剪贴板: <{worldPos.X:F2}, {worldPos.Y:F2}, {worldPos.Z:F2}>");
             }
 
-            if (ImGui.Button("Ctrl+C 复制坐标"))
+            if (ImGui.Button("复制 (Ctrl + C)"))
             {
                 ImGui.SetClipboardText(coordText);
                 NotifyHelper.NotificationSuccess($"已复制坐标到剪贴板: <{worldPos.X:F2}, {worldPos.Y:F2}, {worldPos.Z:F2}>");
@@ -245,11 +239,6 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
                 var distanceToPlayer = Vector3.Distance(localPlayer.Position, worldPos);
                 ImGui.Text($"距离玩家: {distanceToPlayer:F2}");
             }
-        }
-        else
-        {
-            ImGui.TextColored(ImGuiColors.DalamudYellow, "鼠标未指向游戏世界");
-            ImGui.TextWrapped("提示: 将鼠标移动到游戏世界中的物体或地面上");
         }
     }
 
