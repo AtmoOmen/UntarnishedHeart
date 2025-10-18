@@ -3,7 +3,7 @@
 <Project Sdk="Dalamud.CN.NET.Sdk/13.1.0">
     <PropertyGroup>
         <Authors>AtmoOmen</Authors>
-        <Version>0.2.7.0</Version>
+        <Version>0.2.8.0</Version>
         <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
