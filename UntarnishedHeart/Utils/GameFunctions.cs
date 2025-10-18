@@ -6,6 +6,7 @@ using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
+using OmenTools.Managers;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Windows;
 using Task = System.Threading.Tasks.Task;
@@ -14,14 +15,8 @@ namespace UntarnishedHeart.Utils;
 
 public static class GameFunctions
 {
-    private static readonly CompSig ExecuteCommandSig = 
-        new("E8 ?? ?? ?? ?? 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 ?? 5F C3 CC CC CC CC CC CC CC CC CC CC 48 89 5C 24 ?? 57 48 83 EC ?? 80 A1");
-    private delegate nint                    ExecuteCommandDelegate(ExecuteCommandFlag command, uint param1 = 0, uint param2 = 0, uint param3 = 0, uint param4 = 0);
-    private static   ExecuteCommandDelegate? ExecuteCommand;
-
     private static TaskHelper? TaskHelper;
     
-    internal static vnavmeshIPC?             vnavmesh;
     internal static PathFindHelper?          PathFinder;
     internal static Task?                    PathFindTask;
     internal static CancellationTokenSource? PathFindCancelSource;
@@ -32,28 +27,8 @@ public static class GameFunctions
 
     public static void Init()
     {
-        ExecuteCommand ??= ExecuteCommandSig.GetDelegate<ExecuteCommandDelegate>();
-
-        // init PathFindHelper
-        try
-        {
-            PathFinder ??= new PathFindHelper();
-        }
-        catch (Exception ex)
-        {
-            Chat($"PathFindHelper初始化失败: {ex.Message}", Main.UTHPrefix);
-        }
-
-        // init vnavmesh
-        vnavmesh ??= new(DService.PI);
-        if (vnavmesh is { IsAvailable: true })
-        {
-            Chat($"vnavmesh IPC 初始化成功", Main.UTHPrefix);
-        }
-        else
-        {
-            Chat("vnavmesh 不可用", Main.UTHPrefix);
-        }
+        PathFinder ??= new();
+        vnavmeshIPC.Init();
 
         TaskHelper ??= new() { TimeLimitMS = int.MaxValue };
     }
@@ -71,8 +46,7 @@ public static class GameFunctions
         PathFindTask?.Dispose();
         PathFindTask = null;
 
-        vnavmesh?.Dispose();
-        vnavmesh = null;
+        vnavmeshIPC.Uninit();
 
         PathFinder?.Dispose();
         PathFinder = null;
@@ -145,15 +119,9 @@ public static class GameFunctions
     /// </summary>
     public static void vnavmeshMove(Vector3 pos, bool fly = false)
     {
-        LastMoveMode = PathMoveMode.vnavmesh;
+        LastMoveMode  = PathMoveMode.vnavmesh;
         LastTargetPos = pos;
-        LastFly = fly;
-
-        if (vnavmesh == null || !vnavmesh.IsReady())
-        {
-            Chat("vnavmesh 不可用，无法寻路", Main.UTHPrefix);
-            return;
-        }
+        LastFly       = fly;
         
         PathFindCancel();
         PathFindCancelSource = new();
@@ -186,7 +154,7 @@ public static class GameFunctions
         }
 
         // Stop PathFinder
-        if (PathFinder is not null)
+        if (PathFinder != null)
         {
             try
             {
@@ -200,18 +168,15 @@ public static class GameFunctions
         }
 
         // Stop vnavmesh
-        if (vnavmesh is not null)
+        try
         {
-            try
-            {
-                vnavmesh?.PathStop();
-            }
-            catch (Exception ex)
-            {
-                Chat($"停止 vnavmesh 时出错: {ex.Message}", Main.UTHPrefix);
-            }
+            vnavmeshIPC.PathStop();
         }
-
+        catch (Exception ex)
+        {
+            Chat($"停止 vnavmesh 时出错: {ex.Message}", Main.UTHPrefix);
+        }
+        
         PathFindCancelSource?.Dispose();
         PathFindCancelSource = null;
         PathFindTask = null;
@@ -244,23 +209,18 @@ public static class GameFunctions
     /// </summary>
     private static async Task vnavmeshMoveTask(Vector3 targetPos, bool fly)
     {
-        if (vnavmesh == null || !vnavmesh.IsAvailable)
-            return;
-
         // 等待 vnavmesh 准备就绪
         var timeout = DateTime.Now.AddSeconds(10);
-        while (!vnavmesh.IsReady() && DateTime.Now < timeout)
-        {
+        while (!vnavmeshIPC.NavIsReady() && DateTime.Now < timeout)
             await Task.Delay(100);
-        }
 
-        if (!vnavmesh.IsReady())
+        if (!vnavmeshIPC.NavIsReady())
         {
             Chat("vnavmesh 未准备就绪", Main.UTHPrefix);
             return;
         }
 
-        if (!vnavmesh.PathfindAndMoveTo(targetPos, fly))
+        if (!vnavmeshIPC.PathfindAndMoveTo(targetPos, fly))
         {
             Chat("vnavmesh 寻路启动失败", Main.UTHPrefix);
             return;
@@ -281,12 +241,12 @@ public static class GameFunctions
             var distance = Vector3.Distance(localPlayer.Position, targetPos);
             if (distance <= 2f)
             {
-                vnavmesh.PathStop();
+                vnavmeshIPC.PathStop();
                 break;
             }
 
             // check vnav status
-            if (!vnavmesh.IsPathRunning() && !vnavmesh.IsPathGenerating())
+            if (!vnavmeshIPC.PathIsRunning() && !vnavmeshIPC.PathIsGenerating())
             {
                 await Task.Delay(500);
 
@@ -314,7 +274,7 @@ public static class GameFunctions
     }
 
     public static void LeaveDuty() =>
-        ExecuteCommand(ExecuteCommandFlag.LeaveDuty, DService.Condition[ConditionFlag.InCombat] ? 1U : 0);
+        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.LeaveDuty, DService.Condition[ConditionFlag.InCombat] ? 1U : 0);
 }
 
 internal enum PathMoveMode
