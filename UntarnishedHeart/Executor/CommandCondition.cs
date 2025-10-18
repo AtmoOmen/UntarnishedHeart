@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing;
 using System.Linq;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
@@ -42,7 +43,7 @@ public class CommandCondition
         {
             var timeValue = TimeValue;
             ImGui.SetNextItemWidth(300f * ImGuiHelpers.GlobalScale);
-            if (ImGui.InputFloat("重复间隔 (ms)###TimeValueInput", ref timeValue, 0, 0))
+            if (ImGui.InputFloat("重复间隔 (ms)###TimeValueInput", ref timeValue))
                 TimeValue = timeValue;
             ImGuiOm.TooltipHover("每执行一轮间的时间间隔");
         }
@@ -228,7 +229,7 @@ public class CommandSingleCondition
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(LightSkyBlue, "检测类型:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "检测类型:");
         
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
@@ -249,7 +250,7 @@ public class CommandSingleCondition
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(LightSkyBlue, "比较类型:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "比较类型:");
         
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
@@ -270,7 +271,7 @@ public class CommandSingleCondition
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(LightSkyBlue, "目标类型:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "目标类型:");
         
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
@@ -291,13 +292,13 @@ public class CommandSingleCondition
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(LightSkyBlue, "值:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "值:");
         
         // 值
         var value = Value;
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
-        if (ImGui.InputFloat("###ValueInput", ref value, 0, 0))
+        if (ImGui.InputFloat("###ValueInput", ref value))
             Value = value;
     }
 
@@ -348,7 +349,7 @@ public class CommandSingleCondition
             
             case CommandDetectType.ActionCooldown:
                 var actionID      = (uint)Value;
-                var isOffCooldown = ActionManager.Instance()->IsActionOffCooldown(FFXIVClientStructs.FFXIV.Client.Game.ActionType.Action, actionID);
+                var isOffCooldown = ActionManager.Instance()->IsActionOffCooldown(ActionType.Action, actionID);
                 
                 return ComparisonType switch
                 {
@@ -360,10 +361,10 @@ public class CommandSingleCondition
             case CommandDetectType.ActionCastStart:
                 if (TargetType != CommandTargetType.Target || ComparisonType != CommandComparisonType.Has) return false;
                 if (DService.Targets.Target is not IBattleChara targetCast) return false;
-                if (!targetCast.IsCasting || targetCast.CastActionType != FFXIVClientStructs.FFXIV.Client.Game.ActionType.Action) return false;
+                if (!targetCast.IsCasting || targetCast.CastActionType != ActionType.Action) return false;
 
                 var castActionID = (uint)Value;
-                return targetCast.CastActionId == castActionID;
+                return targetCast.CastActionID == castActionID;
             
             default:
                 return false;

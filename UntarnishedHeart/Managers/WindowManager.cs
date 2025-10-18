@@ -15,8 +15,8 @@ public class WindowManager
         
         InternalWindows.Init();
         
-        DService.UiBuilder.Draw       += DrawWindows;
-        DService.UiBuilder.OpenMainUi += ToggleMainWindow;
+        DService.UIBuilder.Draw       += DrawWindows;
+        DService.UIBuilder.OpenMainUi += ToggleMainWindow;
     }
 
     private static void DrawWindows()
@@ -61,8 +61,8 @@ public class WindowManager
 
     internal void Uninit()
     {
-        DService.UiBuilder.Draw       -= DrawWindows;
-        DService.UiBuilder.OpenMainUi -= ToggleMainWindow;
+        DService.UIBuilder.Draw       -= DrawWindows;
+        DService.UIBuilder.OpenMainUi -= ToggleMainWindow;
         
         InternalWindows.Uninit();
         

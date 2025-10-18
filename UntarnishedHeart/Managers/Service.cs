@@ -8,7 +8,7 @@ public class Service
     public static void Init(IDalamudPluginInterface pluginInterface)
     {
         DService.Init(pluginInterface);
-        DService.UiBuilder.DisableCutsceneUiHide = true;
+        DService.UIBuilder.DisableCutsceneUiHide = true;
 
         Config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         Config.Init();

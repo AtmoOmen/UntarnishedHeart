@@ -21,9 +21,9 @@ public static class GameFunctions
 
     private static TaskHelper? TaskHelper;
     
-    internal static vnavmeshIPC? vnavmesh;
-    internal static PathFindHelper? PathFinder;
-    internal static Task? PathFindTask;
+    internal static vnavmeshIPC?             vnavmesh;
+    internal static PathFindHelper?          PathFinder;
+    internal static Task?                    PathFindTask;
     internal static CancellationTokenSource? PathFindCancelSource;
 
     private static PathMoveMode LastMoveMode = PathMoveMode.None;

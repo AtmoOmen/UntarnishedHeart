@@ -119,11 +119,11 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
             DrawTableRow("目标类型", objectKindValue);
 
             // Data ID
-            var dataIdValue = $"{target.DataId}";
+            var dataIdValue = $"{target.DataID}";
             DrawTableRow("Data ID", dataIdValue);
 
             // Entity ID
-            var entityIdValue = $"{target.EntityId}";
+            var entityIdValue = $"{target.EntityID}";
             DrawTableRow("Entity ID", entityIdValue);
 
             // 目标位置
@@ -137,7 +137,7 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
             if (target.IsCasting)
             {
                 // 咏唱技能
-                var castActionValue = $"{LuminaWrapper.GetActionName(target.CastActionId)} ({target.CastActionId} / {target.CastActionType})";
+                var castActionValue = $"{LuminaWrapper.GetActionName(target.CastActionID)} ({target.CastActionID} / {target.CastActionType})";
                 DrawTableRow("咏唱技能", castActionValue);
 
                 // 咏唱时间
@@ -161,7 +161,7 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
 
                 foreach (var status in localPlayer.StatusList)
                 {
-                    if (!LuminaGetter.TryGetRow<Status>(status.StatusId, out var row)) continue;
+                    if (!LuminaGetter.TryGetRow<Status>(status.StatusID, out var row)) continue;
                     if (!DService.Texture.TryGetFromGameIcon(new(row.Icon), out var iconTexture)) continue;
 
                     ImGui.Image(iconTexture.GetWrapOrEmpty().Handle, ImGuiHelpers.ScaledVector2(24f));
@@ -183,7 +183,7 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
 
                 foreach (var status in target.StatusList)
                 {
-                    if (!LuminaGetter.TryGetRow<Status>(status.StatusId, out var row)) continue;
+                    if (!LuminaGetter.TryGetRow<Status>(status.StatusID, out var row)) continue;
                     if (!DService.Texture.TryGetFromGameIcon(new(row.Icon), out var iconTexture)) continue;
 
                     ImGui.Image(iconTexture.GetWrapOrEmpty().Handle, ImGuiHelpers.ScaledVector2(24f));

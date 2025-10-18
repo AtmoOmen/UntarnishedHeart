@@ -6,12 +6,12 @@ using Dalamud.Bindings.ImGui;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using System.Drawing;
 using System.Numerics;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
 using OmenTools.Service;
 using UntarnishedHeart.Utils;
-using UntarnishedHeart.Managers;
 using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Executor;
@@ -65,287 +65,284 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         ImGui.Separator();
         ImGui.Spacing();
 
-        using (var child = ImRaii.Child("StepContentChild", ImGui.GetContentRegionAvail() - ImGui.GetStyle().ItemSpacing))
+        using var child = ImRaii.Child("StepContentChild", ImGui.GetContentRegionAvail() - ImGui.GetStyle().ItemSpacing);
+        if (!child) return;
+        
+        using var tabBar = ImRaii.TabBar("###StepContentTabBar");
+        if (!tabBar) return;
+
+        using (var preWait = ImRaii.TabItem("前置等待"))
         {
-            if (child)
+            if (preWait)
             {
-                using var tabBar = ImRaii.TabBar("###StepContentTabBar");
-                if (!tabBar) return;
+                var stepStopWhenAnyAlive = StopWhenAnyAlive;
+                if (ImGui.Checkbox("若任一队友不在无法战斗状态, 则等待###StepStopWhenAnyAliveInput", ref stepStopWhenAnyAlive))
+                    StopWhenAnyAlive = stepStopWhenAnyAlive;
+                ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否存在任一队友不在无法战斗状态, 若存在, 则阻塞步骤执行");
 
-                using (var preWait = ImRaii.TabItem("前置等待"))
+                var stepStopInCombat = StopInCombat;
+                if (ImGui.Checkbox("若已进入战斗, 则等待###StepStopInCombatInput", ref stepStopInCombat))
+                    StopInCombat = stepStopInCombat;
+                ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否进入战斗状态, 若已进入, 则阻塞步骤执行");
+
+                var stepStopWhenBusy = StopWhenBusy;
+                if (ImGui.Checkbox("若为忙碌状态, 则等待###StepStopWhenBusyInput", ref stepStopWhenBusy))
+                    StopWhenBusy = stepStopWhenBusy;
+                ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否正处于忙碌状态 (如: 过图加载, 交互等), 若已进入, 则阻塞步骤执行");
+            }
+            else
+                ImGuiOm.TooltipHover("各类状态检查, 每一步骤开始时顺序执行此处每一项状态检查");
+        }
+
+        using (var positionCheck = ImRaii.TabItem("坐标"))
+        {
+            if (positionCheck)
+            {
+                ImGui.AlignTextToFramePadding();
+                ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "方式:");
+
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(300f * ImGuiHelpers.GlobalScale);
+                using (var combo = ImRaii.Combo("###StepMoveTypeCombo", MoveType.ToString()))
                 {
-                    if (preWait)
+                    if (combo)
                     {
-                        var stepStopWhenAnyAlive = StopWhenAnyAlive;
-                        if (ImGui.Checkbox("若任一队友不在无法战斗状态, 则等待###StepStopWhenAnyAliveInput", ref stepStopWhenAnyAlive))
-                            StopWhenAnyAlive = stepStopWhenAnyAlive;
-                        ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否存在任一队友不在无法战斗状态, 若存在, 则阻塞步骤执行");
-
-                        var stepStopInCombat = StopInCombat;
-                        if (ImGui.Checkbox("若已进入战斗, 则等待###StepStopInCombatInput", ref stepStopInCombat))
-                            StopInCombat = stepStopInCombat;
-                        ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否进入战斗状态, 若已进入, 则阻塞步骤执行");
-
-                        var stepStopWhenBusy = StopWhenBusy;
-                        if (ImGui.Checkbox("若为忙碌状态, 则等待###StepStopWhenBusyInput", ref stepStopWhenBusy))
-                            StopWhenBusy = stepStopWhenBusy;
-                        ImGuiOm.TooltipHover("若勾选, 则在执行此步时检查是否正处于忙碌状态 (如: 过图加载, 交互等), 若已进入, 则阻塞步骤执行");
+                        foreach (var moveType in Enum.GetValues<MoveType>())
+                        {
+                            if (moveType == MoveType.无) continue;
+                                    
+                            if (ImGui.Selectable(moveType.ToString(), MoveType == moveType))
+                                MoveType = moveType;
+                        }
                     }
-                    else
-                        ImGuiOm.TooltipHover("各类状态检查, 每一步骤开始时顺序执行此处每一项状态检查");
                 }
+                if (MoveType == MoveType.无)
+                    ImGuiOm.TooltipHover("若设置为 无, 则代表使用 传送\n[废弃功能, 仅兼容用]");
 
-                using (var positionCheck = ImRaii.TabItem("坐标"))
+                using (ImRaii.Group())
                 {
-                    if (positionCheck)
-                    {
-                        ImGui.AlignTextToFramePadding();
-                        ImGui.TextColored(LightSkyBlue, "方式:");
+                    var stepPosition = Position;
+                    ImGui.AlignTextToFramePadding();
+                    ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "位置:");
 
-                        ImGui.SameLine();
-                        ImGui.SetNextItemWidth(300f * ImGuiHelpers.GlobalScale);
-                        using (var combo = ImRaii.Combo("###StepMoveTypeCombo", MoveType.ToString()))
+                    ImGui.SameLine();
+                    ImGui.SetNextItemWidth(300f * ImGuiHelpers.GlobalScale);
+                    if (ImGui.InputFloat3("###StepPositionInput", ref stepPosition))
+                        Position = stepPosition;
+                    ImGuiOm.TooltipHover("若不想执行移动, 请将坐标设置为 <0, 0, 0>");
+
+                    ImGui.SameLine();
+                    if (ImGuiOm.ButtonIcon("GetPosition", FontAwesomeIcon.Bullseye, "取当前位置", true))
+                    {
+                        if (DService.ObjectTable.LocalPlayer is { } localPlayer)
+                            Position = localPlayer.Position;
+                    }
+                            
+                    ImGui.SameLine();
+                    if (ImGuiOm.ButtonIcon("PastePosition", FontAwesomeIcon.Clipboard, "粘贴坐标", true))
+                    {
+                        try
+                        {
+                            var clipboardText = ImGui.GetClipboardText();
+                            if (TryParsePosition(clipboardText, out var parsedPosition))
+                            {
+                                Position = parsedPosition;
+                                Chat($"已从剪贴板读取坐标: <{parsedPosition.X:F2}, {parsedPosition.Y:F2}, {parsedPosition.Z:F2}>", Main.UTHPrefix);
+                            }
+                            else
+                            {
+                                Chat("剪贴板内容格式不正确，期望格式: X: -0.41, Y: 0.00, Z: 5.46", Main.UTHPrefix);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Chat($"读取剪贴板失败: {ex.Message}", Main.UTHPrefix);
+                        }
+                    }
+                            
+                    ImGui.SameLine();
+                    if (ImGuiOm.ButtonIcon("MoveToThis", FontAwesomeIcon.MapMarkerAlt, "根据当前移动方式移动到此位置", true))
+                    {
+                        var finalMoveType = MoveType == MoveType.无 ? MoveType.传送 : MoveType;
+                        switch (finalMoveType)
+                        {
+                            case MoveType.寻路:
+                                GameFunctions.PathFindStart(Position);
+                                break;
+                            case MoveType.传送:
+                                GameFunctions.Teleport(Position);
+                                break;
+                            case MoveType.vnavmesh:
+                                GameFunctions.vnavmeshMove(Position);
+                                break;
+                        }
+                    }
+                }
+ 
+                ImGui.Spacing();
+                        
+                using (ImRaii.Group())
+                {
+                    var waitForGetClose = WaitForGetClose;
+                    if (ImGui.Checkbox("等待接近坐标后再继续###WaitForGetCloseInput", ref waitForGetClose))
+                        WaitForGetClose = waitForGetClose;
+                    ImGuiOm.TooltipHover("若勾选, 则会等待完全接近坐标后再继续执行下面的操作");
+                }
+            }
+            else
+                ImGuiOm.TooltipHover("在执行完左侧的前置等待后, 会按照此处的配置移动到指定的坐标");
+        }
+
+        using (var targetCheck = ImRaii.TabItem("目标"))
+        {
+            if (targetCheck)
+            {
+                using (var table = ImRaii.Table("TargetInfoTable", 2))
+                {
+                    if (table)
+                    {
+                        ImGui.TableSetupColumn("标签", ImGuiTableColumnFlags.WidthFixed,
+                                               ImGui.CalcTextSize("Data ID:").X);
+                        ImGui.TableSetupColumn("操作", ImGuiTableColumnFlags.WidthStretch, 50);
+
+                        ImGui.TableNextRow();
+
+                        ImGui.TableNextColumn();
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "类型:");
+
+                        ImGui.TableNextColumn();
+                        ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+                        using (var combo = ImRaii.Combo("###TargetObjectKindCombo", ObjectKind.ToString()))
                         {
                             if (combo)
                             {
-                                foreach (var moveType in Enum.GetValues<MoveType>())
+                                foreach (var objectKind in Enum.GetValues<ObjectKind>())
                                 {
-                                    if (moveType == MoveType.无) continue;
-                                    
-                                    if (ImGui.Selectable(moveType.ToString(), MoveType == moveType))
-                                        MoveType = moveType;
+                                    if (ImGui.Selectable(objectKind.ToString(), ObjectKind == objectKind))
+                                        ObjectKind = objectKind;
                                 }
                             }
                         }
-                        if (MoveType == MoveType.无)
-                            ImGuiOm.TooltipHover("若设置为 无, 则代表使用 传送\n[废弃功能, 仅兼容用]");
 
-                        using (ImRaii.Group())
+                        ImGui.TableNextRow();
+
+                        ImGui.TableNextColumn();
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "Data ID:");
+                        ImGuiOm.TooltipHover("设置为 0 则为不自动执行任何选中操作");
+
+                        ImGui.TableNextColumn();
+                        var stepDataID = DataID;
+                        ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+                        if (ImGui.InputUInt("###StepDatIDInput", ref stepDataID))
+                            DataID = stepDataID;
+
+                        ImGui.SameLine();
+                        if (ImGuiOm.ButtonIcon("GetTarget", FontAwesomeIcon.Crosshairs, "取当前目标", true))
                         {
-                            var stepPosition = Position;
-                            ImGui.AlignTextToFramePadding();
-                            ImGui.TextColored(LightSkyBlue, "位置:");
-
-                            ImGui.SameLine();
-                            ImGui.SetNextItemWidth(300f * ImGuiHelpers.GlobalScale);
-                            if (ImGui.InputFloat3("###StepPositionInput", ref stepPosition))
-                                Position = stepPosition;
-                            ImGuiOm.TooltipHover("若不想执行移动, 请将坐标设置为 <0, 0, 0>");
-
-                            ImGui.SameLine();
-                            if (ImGuiOm.ButtonIcon("GetPosition", FontAwesomeIcon.Bullseye, "取当前位置", true))
+                            if (DService.Targets.Target is { } target)
                             {
-                                if (DService.ObjectTable.LocalPlayer is { } localPlayer)
-                                    Position = localPlayer.Position;
-                            }
-                            
-                            ImGui.SameLine();
-                            if (ImGuiOm.ButtonIcon("PastePosition", FontAwesomeIcon.Clipboard, "粘贴坐标", true))
-                            {
-                                try
-                                {
-                                    var clipboardText = ImGui.GetClipboardText();
-                                    if (TryParsePosition(clipboardText, out var parsedPosition))
-                                    {
-                                        Position = parsedPosition;
-                                        Chat($"已从剪贴板读取坐标: <{parsedPosition.X:F2}, {parsedPosition.Y:F2}, {parsedPosition.Z:F2}>", Main.UTHPrefix);
-                                    }
-                                    else
-                                    {
-                                        Chat("剪贴板内容格式不正确，期望格式: X: -0.41, Y: 0.00, Z: 5.46", Main.UTHPrefix);
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    Chat($"读取剪贴板失败: {ex.Message}", Main.UTHPrefix);
-                                }
-                            }
-                            
-                            ImGui.SameLine();
-                            if (ImGuiOm.ButtonIcon("MoveToThis", FontAwesomeIcon.MapMarkerAlt, "根据当前移动方式移动到此位置", true))
-                            {
-                                var finalMoveType = MoveType == MoveType.无 ? MoveType.传送 : MoveType;
-                                switch (finalMoveType)
-                                {
-                                    case MoveType.寻路:
-                                        GameFunctions.PathFindStart(Position);
-                                        break;
-                                    case MoveType.传送:
-                                        GameFunctions.Teleport(Position);
-                                        break;
-                                    case MoveType.vnavmesh:
-                                        GameFunctions.vnavmeshMove(Position);
-                                        break;
-                                }
+                                DataID     = target.DataID;
+                                ObjectKind = target.ObjectKind;
                             }
                         }
- 
-                        ImGui.Spacing();
-                        
-                        using (ImRaii.Group())
-                        {
-                            var waitForGetClose = WaitForGetClose;
-                            if (ImGui.Checkbox("等待接近坐标后再继续###WaitForGetCloseInput", ref waitForGetClose))
-                                WaitForGetClose = waitForGetClose;
-                            ImGuiOm.TooltipHover("若勾选, 则会等待完全接近坐标后再继续执行下面的操作");
-                        }
-                    }
-                    else
-                        ImGuiOm.TooltipHover("在执行完左侧的前置等待后, 会按照此处的配置移动到指定的坐标");
-                }
-
-                using (var targetCheck = ImRaii.TabItem("目标"))
-                {
-                    if (targetCheck)
-                    {
-                        using (var table = ImRaii.Table("TargetInfoTable", 2))
-                        {
-                            if (table)
-                            {
-                                ImGui.TableSetupColumn("标签", ImGuiTableColumnFlags.WidthFixed,
-                                                       ImGui.CalcTextSize("Data ID:").X);
-                                ImGui.TableSetupColumn("操作", ImGuiTableColumnFlags.WidthStretch, 50);
-
-                                ImGui.TableNextRow();
-
-                                ImGui.TableNextColumn();
-                                ImGui.AlignTextToFramePadding();
-                                ImGui.TextColored(LightSkyBlue, "类型:");
-
-                                ImGui.TableNextColumn();
-                                ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
-                                using (var combo = ImRaii.Combo("###TargetObjectKindCombo", ObjectKind.ToString()))
-                                {
-                                    if (combo)
-                                    {
-                                        foreach (var objectKind in Enum.GetValues<ObjectKind>())
-                                        {
-                                            if (ImGui.Selectable(objectKind.ToString(), ObjectKind == objectKind))
-                                                ObjectKind = objectKind;
-                                        }
-                                    }
-                                }
-
-                                ImGui.TableNextRow();
-
-                                ImGui.TableNextColumn();
-                                ImGui.AlignTextToFramePadding();
-                                ImGui.TextColored(LightSkyBlue, "Data ID:");
-                                ImGuiOm.TooltipHover("设置为 0 则为不自动执行任何选中操作");
-
-                                ImGui.TableNextColumn();
-                                var stepDataID = DataID;
-                                ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
-                                if (ImGui.InputUInt("###StepDatIDInput", ref stepDataID))
-                                    DataID = stepDataID;
-
-                                ImGui.SameLine();
-                                if (ImGuiOm.ButtonIcon("GetTarget", FontAwesomeIcon.Crosshairs, "取当前目标", true))
-                                {
-                                    if (DService.Targets.Target is { } target)
-                                    {
-                                        DataID     = target.DataId;
-                                        ObjectKind = target.ObjectKind;
-                                    }
-                                }
-                            }
-                        }
-
-                        ImGui.Spacing();
-                        
-                        var waitForTargetSpawn = WaitForTargetSpawn;
-                        if (ImGui.Checkbox("等待目标生成", ref waitForTargetSpawn))
-                            WaitForTargetSpawn = waitForTargetSpawn;
-                        ImGuiOm.TooltipHover("勾选后, 则会阻塞进程持续查找对应目标, 直到符合条件的目标进入游戏客户端内存中");
-
-                        var waitForTarget = WaitForTarget;
-                        if (ImGui.Checkbox("等待目标被选中", ref waitForTarget))
-                            WaitForTarget = waitForTarget;
-                        ImGuiOm.TooltipHover("勾选后, 则会阻塞进程持续查找对应目标并尝试选中, 直至任一目标被选中");
-
-                        var interactWithTarget = InteractWithTarget;
-                        if (ImGui.Checkbox("交互此目标", ref interactWithTarget))
-                            InteractWithTarget = interactWithTarget;
-                        ImGuiOm.TooltipHover("勾选后, 则会尝试与当前目标进行交互\n\n" +
-                                             "注: 请自行确保位于一个可交互到目标的坐标");
-
-                        if (InteractWithTarget)
-                        {
-                            var interactNeedTargetAnything = InteractNeedTargetAnything;
-                            if (ImGui.Checkbox("交互需要选中目标", ref interactNeedTargetAnything))
-                                InteractNeedTargetAnything = interactNeedTargetAnything;
-                            ImGuiOm.TooltipHover("勾选后, 若当前未选中任何目标, 则会跳过交互");
-                        }
-                        
-                        ImGui.NewLine();
-                        
-                        var targetNeedTargetable = TargetNeedTargetable;
-                        if (ImGui.Checkbox("目标需要为\"可选中\"状态", ref targetNeedTargetable))
-                            TargetNeedTargetable = targetNeedTargetable;
-                        ImGuiOm.TooltipHover("勾选后, 在游戏内部被标记为不可选中的目标将不会被纳入检测范围");
-                    }
-                    else
-                        ImGuiOm.TooltipHover("在开始向左侧配置的坐标移动后, 会按照此处的配置选中指定的目标");
-                }
-
-                using (var textCommand = ImRaii.TabItem("文本指令"))
-                {
-                    if (textCommand)
-                    {
-                        var stepCommands = Commands;
-                        var commandInputHeight = Math.Max(ImGui.GetTextLineHeightWithSpacing() * 5f,
-                                                          ImGui.CalcTextSize(stepCommands).Y + (2 * ImGui.GetStyle().ItemSpacing.Y));
-                        
-                        if (ImGui.InputTextMultiline("###CommandsInput", ref stepCommands, 1024,
-                                                     new(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X, commandInputHeight)))
-                            Commands = stepCommands;
-                        ImGuiOm.TooltipHover("支持以下特殊指令:\n" +
-                                             "/wait <时间(ms)> - 等待指定毫秒的时间 (如: /wait 2000 - 等待 2 秒)");
-                        
-                        CommandCondition.Draw();
-                    }
-                    else
-                        ImGuiOm.TooltipHover("在执行完左侧的目标选择后, 会按照此处的配置选中自定义文本指令\n" +
-                                             "支持多条文本指令, 一行一条");
-                }
-
-                using (var postWait = ImRaii.TabItem("后置等待")) 
-                {
-                    if (postWait)
-                    {
-                        using (ImRaii.Group())
-                        {
-                            var stepDelay = Delay;
-                            ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
-                            if (ImGui.InputUInt("等待时间 (ms)###StepDelayInput", ref stepDelay))
-                                Delay = stepDelay;
-                            ImGuiOm.TooltipHover("在开始下一步骤前, 需要等待的时间");
-                        }
                     }
                 }
 
-                if (i > 0)
-                {
-                    if (ImGui.TabItemButton("↑"))
-                    {
-                        var index = i - 1;
-                        steps.Swap(i, index);
-                        i = index;
-                    }
-                    ImGuiOm.TooltipHover("上移");
-                }
+                ImGui.Spacing();
+                        
+                var waitForTargetSpawn = WaitForTargetSpawn;
+                if (ImGui.Checkbox("等待目标生成", ref waitForTargetSpawn))
+                    WaitForTargetSpawn = waitForTargetSpawn;
+                ImGuiOm.TooltipHover("勾选后, 则会阻塞进程持续查找对应目标, 直到符合条件的目标进入游戏客户端内存中");
 
-                if (i < steps.Count - 1)
+                var waitForTarget = WaitForTarget;
+                if (ImGui.Checkbox("等待目标被选中", ref waitForTarget))
+                    WaitForTarget = waitForTarget;
+                ImGuiOm.TooltipHover("勾选后, 则会阻塞进程持续查找对应目标并尝试选中, 直至任一目标被选中");
+
+                var interactWithTarget = InteractWithTarget;
+                if (ImGui.Checkbox("交互此目标", ref interactWithTarget))
+                    InteractWithTarget = interactWithTarget;
+                ImGuiOm.TooltipHover("勾选后, 则会尝试与当前目标进行交互\n\n" +
+                                     "注: 请自行确保位于一个可交互到目标的坐标");
+
+                if (InteractWithTarget)
                 {
-                    if (ImGui.TabItemButton("↓"))
-                    {
-                        var index = i + 1;
-                        steps.Swap(i, index);
-                        i = index;
-                    }
-                    ImGuiOm.TooltipHover("下移");
+                    var interactNeedTargetAnything = InteractNeedTargetAnything;
+                    if (ImGui.Checkbox("交互需要选中目标", ref interactNeedTargetAnything))
+                        InteractNeedTargetAnything = interactNeedTargetAnything;
+                    ImGuiOm.TooltipHover("勾选后, 若当前未选中任何目标, 则会跳过交互");
+                }
+                        
+                ImGui.NewLine();
+                        
+                var targetNeedTargetable = TargetNeedTargetable;
+                if (ImGui.Checkbox("目标需要为\"可选中\"状态", ref targetNeedTargetable))
+                    TargetNeedTargetable = targetNeedTargetable;
+                ImGuiOm.TooltipHover("勾选后, 在游戏内部被标记为不可选中的目标将不会被纳入检测范围");
+            }
+            else
+                ImGuiOm.TooltipHover("在开始向左侧配置的坐标移动后, 会按照此处的配置选中指定的目标");
+        }
+
+        using (var textCommand = ImRaii.TabItem("文本指令"))
+        {
+            if (textCommand)
+            {
+                var stepCommands = Commands;
+                var commandInputHeight = Math.Max(ImGui.GetTextLineHeightWithSpacing() * 5f,
+                                                  ImGui.CalcTextSize(stepCommands).Y + (2 * ImGui.GetStyle().ItemSpacing.Y));
+                        
+                if (ImGui.InputTextMultiline("###CommandsInput", ref stepCommands, 1024,
+                                             new(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X, commandInputHeight)))
+                    Commands = stepCommands;
+                ImGuiOm.TooltipHover("支持以下特殊指令:\n" +
+                                     "/wait <时间(ms)> - 等待指定毫秒的时间 (如: /wait 2000 - 等待 2 秒)");
+                        
+                CommandCondition.Draw();
+            }
+            else
+                ImGuiOm.TooltipHover("在执行完左侧的目标选择后, 会按照此处的配置选中自定义文本指令\n" +
+                                     "支持多条文本指令, 一行一条");
+        }
+
+        using (var postWait = ImRaii.TabItem("后置等待")) 
+        {
+            if (postWait)
+            {
+                using (ImRaii.Group())
+                {
+                    var stepDelay = Delay;
+                    ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+                    if (ImGui.InputUInt("等待时间 (ms)###StepDelayInput", ref stepDelay))
+                        Delay = stepDelay;
+                    ImGuiOm.TooltipHover("在开始下一步骤前, 需要等待的时间");
                 }
             }
+        }
+
+        if (i > 0)
+        {
+            if (ImGui.TabItemButton("↑"))
+            {
+                var index = i - 1;
+                steps.Swap(i, index);
+                i = index;
+            }
+            ImGuiOm.TooltipHover("上移");
+        }
+
+        if (i < steps.Count - 1)
+        {
+            if (ImGui.TabItemButton("↓"))
+            {
+                var index = i + 1;
+                steps.Swap(i, index);
+                i = index;
+            }
+            ImGuiOm.TooltipHover("下移");
         }
     }
 
@@ -361,7 +358,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
                                 foreach (var member in DService.PartyList)
                                 {
-                                    if (member.ObjectId  == localPlayer.ToStruct()->EntityId) continue;
+                                    if (member.EntityId  == localPlayer.ToStruct()->EntityId) continue;
                                     if (member.CurrentHP != 0) return false;
                                 }
 
@@ -522,7 +519,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
     }
 
     public IGameObject? FindObject() => 
-        DService.ObjectTable.FirstOrDefault(x => x.ObjectKind == ObjectKind && x.DataId == DataID && 
+        DService.ObjectTable.FirstOrDefault(x => x.ObjectKind == ObjectKind && x.DataID == DataID && 
                                                  (!TargetNeedTargetable || x.IsTargetable));
 
     public override string ToString() => 

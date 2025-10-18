@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.Text;
@@ -176,7 +177,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 
     private static void DrawExecutionModeSelector()
     {
-        ImGui.TextColored(LightBlue, "执行模式:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "执行模式:");
         using var indent = ImRaii.PushIndent();
 
         var currentMode = Service.Config.CurrentExecutionMode;
@@ -205,7 +206,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 
     private static void DrawHomeExecutorInfo()
     {
-        ImGui.TextColored(LightBlue, "运行状态:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "运行状态:");
         using var indent = ImRaii.PushIndent();
 
         ImGui.Text("当前状态:");
@@ -241,7 +242,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
     
     private static void DrawHomeExecutorConfig()
     {
-        ImGui.TextColored(LightBlue, "运行设置:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "运行设置:");
         
         using var indent = ImRaii.PushIndent();
         using var group  = ImRaii.Group();
@@ -273,7 +274,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 
         var runTimes = Service.Config.RunTimes;
         ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
-        ImGui.InputInt("运行次数###RunTimes", ref runTimes, 0, 0);
+        ImGui.InputInt("运行次数###RunTimes", ref runTimes);
         if (ImGui.IsItemDeactivatedAfterEdit())
         {
             Service.Config.RunTimes = runTimes;
@@ -300,7 +301,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 
     private static void DrawHomeContentConfig()
     {
-        ImGui.TextColored(LightBlue, "副本选项:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "副本选项:");
         
         using var indent = ImRaii.PushIndent();
         using var group  = ImRaii.Group();
@@ -390,7 +391,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
     
     private static void DrawRouteExecutorConfig()
     {
-        ImGui.TextColored(LightBlue, "路线设置:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "路线设置:");
         
         using var indent = ImRaii.PushIndent();
         using var group  = ImRaii.Group();
@@ -440,7 +441,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 
     private static void DrawPathFindingControls()
     {
-        ImGui.TextColored(LightBlue, "寻路控制:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "寻路控制:");
 
         using var indent = ImRaii.PushIndent();
         using var group  = ImRaii.Group();

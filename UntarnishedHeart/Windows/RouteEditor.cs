@@ -395,7 +395,7 @@ public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor
         ImGui.Spacing();
 
         // 副本选项配置
-        ImGui.TextColored(LightBlue, "副本选项:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "副本选项:");
         using (ImRaii.PushIndent())
         {
             DrawDutyOptions(step.DutyOptions);
@@ -520,7 +520,7 @@ public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor
         ImGui.Spacing();
 
         // 条件满足时的动作
-        ImGui.TextColored(LightGreen, "条件满足时:");
+        ImGui.TextColored(KnownColor.LightGreen.ToVector4(), "条件满足时:");
 
         var trueAction    = step.TrueAction;
         var trueJumpIndex = step.TrueJumpIndex;
@@ -531,7 +531,7 @@ public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor
         ImGui.Spacing();
 
         // 条件不满足时的动作
-        ImGui.TextColored(DarkRed, "条件不满足时:");
+        ImGui.TextColored(KnownColor.DarkRed.ToVector4(), "条件不满足时:");
 
         var falseAction    = step.FalseAction;
         var falseJumpIndex = step.FalseJumpIndex;
