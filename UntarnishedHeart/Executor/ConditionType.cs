@@ -16,7 +16,7 @@ public enum ConditionType
     [Description("本轮已完成副本次数 (运行预设实际变更时清零)")]
     CompletedDutyCount,
     
-    [Description("成就数 [暂未实现]")]
+    [Description("成就数")]
     AchievementCount,
     
     [Description("物品个数")]

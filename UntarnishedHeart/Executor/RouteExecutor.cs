@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using OmenTools.Managers;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Utils;
 using UntarnishedHeart.Windows;
@@ -402,19 +403,19 @@ public class RouteExecutor : IDisposable
             _                                 => false
         };
     }
-    
+
     /// <summary>
     /// 获取条件值
     /// </summary>
     private unsafe int GetConditionValue(ConditionType conditionType, int extraID) =>
         conditionType switch
         {
-            ConditionType.PlayerLevel                => LocalPlayerState.CurrentLevel,
+            ConditionType.PlayerLevel => LocalPlayerState.CurrentLevel,
             ConditionType.OptimalPartyRecommendation => PlayerState.Instance()->PlayerCommendations,
-            ConditionType.CompletedDutyCount         => CompletedDutyCount,
-            ConditionType.AchievementCount           => 0, // TODO: 实现成就数获取，需要extraId作为成就ID
-            ConditionType.ItemCount                  => (int)LocalPlayerState.GetItemCount((uint)extraID),
-            _                                        => 0
+            ConditionType.CompletedDutyCount => CompletedDutyCount,
+            ConditionType.AchievementCount => (int)(AchievementManager.TryGetAchievement((uint)extraID, out var achievementInfo) ? achievementInfo.Current : 0),
+            ConditionType.ItemCount => (int)LocalPlayerState.GetItemCount((uint)extraID),
+            _ => 0
         };
     
     /// <summary>
