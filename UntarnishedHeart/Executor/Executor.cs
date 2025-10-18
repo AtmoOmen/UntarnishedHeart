@@ -172,6 +172,11 @@ public class Executor : IDisposable
 
         TaskHelper.Enqueue(() =>
         {
+            if (DService.Condition.Any(ConditionFlag.WaitingForDutyFinder, ConditionFlag.WaitingForDuty, ConditionFlag.InDutyQueue))
+            {
+                return true;
+            }
+
             if (!Throttler.Throttle("进入副本节流", 2000)) return false;
             if (!LuminaGetter.TryGetRow<TerritoryType>(ExecutorPreset.Zone, out var zone)) return false;
 
@@ -188,11 +193,11 @@ public class Executor : IDisposable
                         Chat("无法找到对应的剧情辅助器副本, 请检查修正后重新运行", Main.UTHPrefix);
                         return true;
                     }
-                    
+
                     ContentsFinderHelper.RequestDutySupport(supportRow.RowId);
                     break;
             }
-            
+
             return DService.Condition.Any(ConditionFlag.WaitingForDutyFinder, ConditionFlag.WaitingForDuty, ConditionFlag.InDutyQueue);
         }, "等待进入下一局");
     }

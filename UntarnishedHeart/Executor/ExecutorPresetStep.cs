@@ -12,6 +12,7 @@ using Dalamud.Game.ClientState.Objects.Enums;
 using OmenTools.Service;
 using UntarnishedHeart.Utils;
 using UntarnishedHeart.Managers;
+using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Executor;
 
@@ -137,12 +138,48 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                                 if (DService.ObjectTable.LocalPlayer is { } localPlayer)
                                     Position = localPlayer.Position;
                             }
-
+                            
                             ImGui.SameLine();
-                            if (ImGuiOm.ButtonIcon("TPToThis", FontAwesomeIcon.Flag, "传送到此位置", true))
-                                GameFunctions.Teleport(stepPosition);
+                            if (ImGuiOm.ButtonIcon("PastePosition", FontAwesomeIcon.Clipboard, "粘贴坐标", true))
+                            {
+                                try
+                                {
+                                    var clipboardText = ImGui.GetClipboardText();
+                                    if (TryParsePosition(clipboardText, out var parsedPosition))
+                                    {
+                                        Position = parsedPosition;
+                                        Chat($"已从剪贴板读取坐标: <{parsedPosition.X:F2}, {parsedPosition.Y:F2}, {parsedPosition.Z:F2}>", Main.UTHPrefix);
+                                    }
+                                    else
+                                    {
+                                        Chat("剪贴板内容格式不正确，期望格式: X: -0.41, Y: 0.00, Z: 5.46", Main.UTHPrefix);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Chat($"读取剪贴板失败: {ex.Message}", Main.UTHPrefix);
+                                }
+                            }
+                            
+                            ImGui.SameLine();
+                            if (ImGuiOm.ButtonIcon("MoveToThis", FontAwesomeIcon.MapMarkerAlt, "根据当前移动方式移动到此位置", true))
+                            {
+                                var finalMoveType = MoveType == MoveType.无 ? MoveType.传送 : MoveType;
+                                switch (finalMoveType)
+                                {
+                                    case MoveType.寻路:
+                                        GameFunctions.PathFindStart(Position);
+                                        break;
+                                    case MoveType.传送:
+                                        GameFunctions.Teleport(Position);
+                                        break;
+                                    case MoveType.vnavmesh:
+                                        GameFunctions.vnavmeshMove(Position);
+                                        break;
+                                }
+                            }
                         }
-
+ 
                         ImGui.Spacing();
                         
                         using (ImRaii.Group())
@@ -353,6 +390,9 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                                     case MoveType.传送:
                                         GameFunctions.Teleport(Position);
                                         break;
+                                    case MoveType.vnavmesh:
+                                        GameFunctions.vnavmeshMove(Position);
+                                        break;
                                 }
 
                                 return true;
@@ -533,4 +573,57 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
             CommandCondition           = CommandCondition.Copy(source.CommandCondition),
             Delay                      = source.Delay,
         };
+
+    /// <summary>
+    /// 尝试从字符串解析坐标
+    /// 格式: "X: -0.41, Y: 0.00, Z: 5.46"
+    /// </summary>
+    private static bool TryParsePosition(string text, out Vector3 position)
+    {
+        position = default;
+        if (string.IsNullOrWhiteSpace(text)) return false;
+
+        try
+        {
+            text = text.Replace(" ", "");
+            
+            var xIndex = text.IndexOf("X:", StringComparison.OrdinalIgnoreCase);
+            var yIndex = text.IndexOf("Y:", StringComparison.OrdinalIgnoreCase);
+            var zIndex = text.IndexOf("Z:", StringComparison.OrdinalIgnoreCase);
+
+            if (xIndex == -1 || yIndex == -1 || zIndex == -1) return false;
+
+            // X
+            var xStart = xIndex + 2;
+            var xEnd = text.IndexOf(',', xStart);
+            if (xEnd == -1) return false;
+            var xStr = text.Substring(xStart, xEnd - xStart);
+
+            // Y
+            var yStart = yIndex + 2;
+            var yEnd = text.IndexOf(',', yStart);
+            if (yEnd == -1) return false;
+            var yStr = text.Substring(yStart, yEnd - yStart);
+
+            // Z
+            var zStart = zIndex + 2;
+            var zEnd = text.Length;
+
+            var commaAfterZ = text.IndexOf(',', zStart);
+            if (commaAfterZ != -1) zEnd = commaAfterZ;
+            var zStr = text.Substring(zStart, zEnd - zStart);
+
+            // TryParse
+            if (!float.TryParse(xStr, out var x)) return false;
+            if (!float.TryParse(yStr, out var y)) return false;
+            if (!float.TryParse(zStr, out var z)) return false;
+
+            position = new Vector3(x, y, z);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

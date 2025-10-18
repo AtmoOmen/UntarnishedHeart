@@ -16,6 +16,7 @@ using Lumina.Excel.Sheets;
 using OmenTools.Service;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Executor;
+using UntarnishedHeart.Utils;
 using ContentsFinder = FFXIVClientStructs.FFXIV.Client.Game.UI.ContentsFinder;
 using Status = Lumina.Excel.Sheets.Status;
 
@@ -71,6 +72,11 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             {
                 DrawExecutionModeSelector();
 
+                ImGui.Separator();
+                ImGui.Spacing();
+
+                DrawPathFindingControls();
+                
                 ImGui.Separator();
                 ImGui.Spacing();
 
@@ -430,6 +436,28 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         }
         
         ImGui.Text($"步骤数: {selectedRoute.Steps.Count}");
+    }
+
+    private static void DrawPathFindingControls()
+    {
+        ImGui.TextColored(LightBlue, "寻路控制:");
+
+        using var indent = ImRaii.PushIndent();
+        using var group  = ImRaii.Group();
+
+        if (ImGui.Button("继续寻路"))
+        {
+            GameFunctions.PathFindResume();
+        }
+        ImGuiOm.TooltipHover("尝试继续上一次的寻路/移动");
+
+        ImGui.SameLine();
+        if (ImGui.Button("停止寻路"))
+        {
+            GameFunctions.PathFindCancel();
+            Chat($"已停止寻路", Main.UTHPrefix);
+        }
+        ImGuiOm.TooltipHover("立即停止当前的寻路任务");
     }
 
     public void Dispose()

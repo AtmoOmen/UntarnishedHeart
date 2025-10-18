@@ -1,20 +1,27 @@
 using System;
 using System.Drawing;
+using System.Numerics;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Game.ClientState.Keys;
 using Lumina.Excel.Sheets;
 using OmenTools.Service;
+using OmenTools.Helpers;
+using UntarnishedHeart.Utils;
 using Status = Lumina.Excel.Sheets.Status;
 
 namespace UntarnishedHeart.Windows;
 
 public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisposable
 {
+    private static long lastCopyTime = 0;
+
     public override void Draw()
     {
         using var tabBar = ImRaii.TabBar("###DebugTabBar");
@@ -41,6 +48,14 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
             if (statusTabItem)
             {
                 DrawDebugStatusInfo();
+            }
+        }
+
+        using (var cursorTabItem = ImRaii.TabItem("鼠标位置转换"))
+        {
+            if (cursorTabItem)
+            {
+                DrawCursorToWorld();
             }
         }
     }
@@ -181,18 +196,64 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
         }
     }
 
+    private static unsafe void DrawCursorToWorld()
+    {
+        var mousePos = ImGui.GetMousePos();
+        ImGui.Text($"屏幕坐标: X={mousePos.X:F0}, Y={mousePos.Y:F0}");
+
+        ImGui.Spacing();
+        
+        var camera = FFXIVClientStructs.FFXIV.Client.Game.Control.CameraManager.Instance()->GetActiveCamera();
+        if (camera == null) return;
+        
+        var success = DService.Gui.ScreenToWorld(mousePos, out var worldPos);
+
+        if (success)
+        {
+            var coordText = $"X: {worldPos.X:F2}, Y: {worldPos.Y:F2}, Z: {worldPos.Z:F2}";
+            ImGui.Text("游戏世界坐标:");
+            ImGui.SameLine();
+            ImGui.TextColored(ImGuiColors.ParsedGreen, coordText);
+
+            ImGui.Spacing();
+            
+            if (DService.KeyState[VirtualKey.CONTROL] && DService.KeyState[VirtualKey.C] &&
+                Environment.TickCount64 - lastCopyTime > 500)
+            {
+                ImGui.SetClipboardText(coordText);
+                lastCopyTime = Environment.TickCount64;
+                NotifyHelper.NotificationSuccess($"已复制坐标到剪贴板: <{worldPos.X:F2}, {worldPos.Y:F2}, {worldPos.Z:F2}>");
+            }
+
+            if (ImGui.Button("复制 (Ctrl + C)"))
+            {
+                ImGui.SetClipboardText(coordText);
+                NotifyHelper.NotificationSuccess($"已复制坐标到剪贴板: <{worldPos.X:F2}, {worldPos.Y:F2}, {worldPos.Z:F2}>");
+            }
+
+            ImGui.Spacing();
+            ImGui.Separator();
+            
+            if (DService.ObjectTable.LocalPlayer is { } localPlayer)
+            {
+                var distanceToPlayer = Vector3.Distance(localPlayer.Position, worldPos);
+                ImGui.Text($"距离玩家: {distanceToPlayer:F2}");
+            }
+        }
+    }
+
     private static void DrawTableRow(string label, string value)
     {
         ImGui.TableNextRow();
         ImGui.TableSetColumnIndex(0);
         ImGui.Text(label);
-        
+
         ImGui.TableSetColumnIndex(1);
         if (ImGui.Selectable(value, false, ImGuiSelectableFlags.SpanAllColumns))
         {
             ImGui.SetClipboardText(value);
         }
-        
+
         if (ImGui.IsItemHovered())
         {
             ImGui.SetTooltip("点击复制到剪贴板");
