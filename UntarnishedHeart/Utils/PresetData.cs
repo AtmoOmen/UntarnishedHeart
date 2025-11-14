@@ -7,7 +7,7 @@ namespace UntarnishedHeart.Utils;
 
 public static class PresetData
 {
-    public static Dictionary<uint, ContentFinderCondition> Contents        => contents.Value;
+    public static Dictionary<uint, ContentFinderCondition> Contents => contents.Value;
     
     private static readonly Lazy<Dictionary<uint, ContentFinderCondition>> contents =
         new(() => LuminaGetter.Get<ContentFinderCondition>()

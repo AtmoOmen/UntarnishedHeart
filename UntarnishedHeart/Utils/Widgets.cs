@@ -11,7 +11,8 @@ namespace UntarnishedHeart.Utils;
 
 public static class Widgets
 {
-    public static bool ContentSelectCombo(ref uint selected, ref string contentSearchInput, 
+    public static bool ContentSelectCombo(ref uint                                  selected,
+                                          ref string                                contentSearchInput,
                                           Dictionary<uint, ContentFinderCondition>? sourceData = null)
     {
         var selectState = false;
@@ -20,7 +21,7 @@ public static class Widgets
             LuminaGetter.TryGetRow<TerritoryType>(selected, out var zone) && zone.ContentFinderCondition.IsValid
                 ? $"{zone.ContentFinderCondition.Value.Name.ExtractText()}"
                 : "未选择任何有效副本";
-        
+
         if (ImGui.BeginCombo("###ContentSelectCombo", previewText, ImGuiComboFlags.HeightLarge))
             ImGui.EndCombo();
 
@@ -36,14 +37,14 @@ public static class Widgets
 
             ImGui.Separator();
 
-            var tableSize = new Vector2(ImGui.GetContentRegionAvail().X, 0);
-            using var table = ImRaii.Table("###ContentSelectTable", 5, ImGuiTableFlags.Borders, tableSize);
+            var       tableSize = new Vector2(ImGui.GetContentRegionAvail().X, 0);
+            using var table     = ImRaii.Table("###ContentSelectTable", 5, ImGuiTableFlags.Borders, tableSize);
             if (table)
             {
-                ImGui.TableSetupColumn("Checkbox", ImGuiTableColumnFlags.WidthFixed, ImGui.GetTextLineHeightWithSpacing());
-                ImGui.TableSetupColumn("Icon", ImGuiTableColumnFlags.WidthFixed, 20f * ImGuiHelpers.GlobalScale);
-                ImGui.TableSetupColumn("Level", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("等级数").X);
-                ImGui.TableSetupColumn("DutyName", ImGuiTableColumnFlags.WidthStretch, 40);
+                ImGui.TableSetupColumn("Checkbox",  ImGuiTableColumnFlags.WidthFixed,   ImGui.GetTextLineHeightWithSpacing());
+                ImGui.TableSetupColumn("Icon",      ImGuiTableColumnFlags.WidthFixed,   20f * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn("Level",     ImGuiTableColumnFlags.WidthFixed,   ImGui.CalcTextSize("等级数").X);
+                ImGui.TableSetupColumn("DutyName",  ImGuiTableColumnFlags.WidthStretch, 40);
                 ImGui.TableSetupColumn("PlaceName", ImGuiTableColumnFlags.WidthStretch, 40);
 
                 ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
@@ -57,15 +58,15 @@ public static class Widgets
                 ImGui.Text("区域名");
 
                 var selectedCopy = selected;
-                var data = (sourceData ?? PresetData.Contents)
-                                     .OrderByDescending(x => selectedCopy == x.Key);
+                var data         = (sourceData ?? PresetData.Contents).OrderByDescending(x => selectedCopy == x.Key);
                 foreach (var contentPair in data)
                 {
                     var contentName = contentPair.Value.Name.ExtractText();
-                    var placeName = contentPair.Value.TerritoryType.Value.PlaceName.Value.Name.ExtractText();
-                    if (!string.IsNullOrWhiteSpace(contentSearchInput) &&
+                    var placeName   = contentPair.Value.TerritoryType.Value.PlaceName.Value.Name.ExtractText();
+                    if (!string.IsNullOrWhiteSpace(contentSearchInput)                                &&
                         !contentName.Contains(contentSearchInput, StringComparison.OrdinalIgnoreCase) &&
-                        !placeName.Contains(contentSearchInput, StringComparison.OrdinalIgnoreCase)) continue;
+                        !placeName.Contains(contentSearchInput, StringComparison.OrdinalIgnoreCase))
+                        continue;
 
                     using var id = ImRaii.PushId($"{contentName}_{contentPair.Key}");
                     ImGui.TableNextRow();
@@ -85,7 +86,7 @@ public static class Widgets
                     ImGui.TableNextColumn();
                     if (ImGui.Selectable(contentName, state, ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.DontClosePopups))
                     {
-                        selected = contentPair.Key;
+                        selected    = contentPair.Key;
                         selectState = true;
                     }
 

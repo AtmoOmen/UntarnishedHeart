@@ -3,11 +3,8 @@ using System.Numerics;
 using System.Threading;
 using System.Windows.Forms;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using OmenTools.Managers;
-using UntarnishedHeart.Managers;
 using UntarnishedHeart.Windows;
 using Task = System.Threading.Tasks.Task;
 
@@ -16,7 +13,7 @@ namespace UntarnishedHeart.Utils;
 public static class GameFunctions
 {
     private static TaskHelper? TaskHelper;
-    
+
     internal static PathFindHelper?          PathFinder;
     internal static Task?                    PathFindTask;
     internal static CancellationTokenSource? PathFindCancelSource;
@@ -65,13 +62,13 @@ public static class GameFunctions
     }
 
     /// <summary>
-    /// 寻路到目标位置（使用 PathFindHelper）
+    ///     寻路到目标位置（使用 PathFindHelper）
     /// </summary>
     public static void PathFindStart(Vector3 pos)
     {
-        LastMoveMode = PathMoveMode.PathFindHelper;
+        LastMoveMode  = PathMoveMode.PathFindHelper;
         LastTargetPos = pos;
-        LastFly = false;
+        LastFly       = false;
         if (PathFinder is null)
         {
             Chat("PathFindHelper未初始化", Main.UTHPrefix);
@@ -91,14 +88,14 @@ public static class GameFunctions
             return PathFindTask.IsCompleted;
         });
     }
-    
+
     private static async Task PathFindInternalTask(Vector3 targetPos)
     {
         if (PathFinder is null)
             return;
 
         PathFinder.DesiredPosition = targetPos;
-        PathFinder.Enabled = true;
+        PathFinder.Enabled         = true;
 
         while (true)
         {
@@ -110,19 +107,19 @@ public static class GameFunctions
             await Task.Delay(500);
         }
 
-        PathFinder.Enabled = false;
+        PathFinder.Enabled         = false;
         PathFinder.DesiredPosition = default;
     }
 
     /// <summary>
-    /// 寻路到目标位置（使用 vnavmesh）
+    ///     寻路到目标位置（使用 vnavmesh）
     /// </summary>
     public static void vnavmeshMove(Vector3 pos, bool fly = false)
     {
         LastMoveMode  = PathMoveMode.vnavmesh;
         LastTargetPos = pos;
         LastFly       = fly;
-        
+
         PathFindCancel();
         PathFindCancelSource = new();
         TaskHelper.Enqueue(() =>
@@ -138,7 +135,7 @@ public static class GameFunctions
     }
 
     /// <summary>
-    /// 取消寻路/移动
+    ///     取消寻路/移动
     /// </summary>
     public static void PathFindCancel()
     {
@@ -158,7 +155,7 @@ public static class GameFunctions
         {
             try
             {
-                PathFinder.Enabled = false;
+                PathFinder.Enabled         = false;
                 PathFinder.DesiredPosition = default;
             }
             catch (Exception ex)
@@ -176,14 +173,14 @@ public static class GameFunctions
         {
             Chat($"停止 vnavmesh 时出错: {ex.Message}", Main.UTHPrefix);
         }
-        
+
         PathFindCancelSource?.Dispose();
         PathFindCancelSource = null;
-        PathFindTask = null;
+        PathFindTask         = null;
     }
 
     /// <summary>
-    /// 继续上一次的寻路/移动
+    ///     继续上一次的寻路/移动
     /// </summary>
     public static void PathFindResume()
     {
@@ -205,7 +202,7 @@ public static class GameFunctions
     }
 
     /// <summary>
-    /// vnavmeshIPC 移动任务
+    ///     vnavmeshIPC 移动任务
     /// </summary>
     private static async Task vnavmeshMoveTask(Vector3 targetPos, bool fly)
     {
@@ -225,7 +222,7 @@ public static class GameFunctions
             Chat("vnavmesh 寻路启动失败", Main.UTHPrefix);
             return;
         }
-        
+
         await Task.Delay(500);
 
         // wait finish pathFind
@@ -251,10 +248,7 @@ public static class GameFunctions
                 await Task.Delay(500);
 
                 distance = Vector3.Distance(localPlayer.Position, targetPos);
-                if (distance <= 2f)
-                {
-                    break;
-                }
+                if (distance <= 2f) break;
 
                 Chat($"vnavmesh 寻路结束但未到达目标，距离: {distance:F2}米", Main.UTHPrefix);
                 break;
@@ -281,5 +275,5 @@ internal enum PathMoveMode
 {
     None,
     PathFindHelper,
-    vnavmesh,
+    vnavmesh
 }
