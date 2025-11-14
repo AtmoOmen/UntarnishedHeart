@@ -14,8 +14,6 @@ public class Service
         Config.Init();
 
         GameFunctions.Init();
-
-        FontManager.Init();
         
         WindowManager.Init();
         CommandManager.Init();
@@ -27,8 +25,6 @@ public class Service
         WindowManager.Uninit();
         Config.Uninit();
         
-        FontManager.Uninit();
-
         GameFunctions.Uninit();
 
         DService.Uninit();

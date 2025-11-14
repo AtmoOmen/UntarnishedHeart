@@ -1,5 +1,6 @@
 using System.Linq;
 using Dalamud.Interface.Windowing;
+using OmenTools.Managers;
 using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Managers;
@@ -56,8 +57,8 @@ public class WindowManager
         return true;
     }
 
-    public static T? Get<T>() where T : Window
-        => WindowSystem?.Windows.FirstOrDefault(x => x.GetType() == typeof(T)) as T;
+    public static T? Get<T>() where T : Window => 
+        WindowSystem?.Windows.FirstOrDefault(x => x.GetType() == typeof(T)) as T;
 
     internal void Uninit()
     {
