@@ -16,7 +16,8 @@ namespace UntarnishedHeart;
 
 public sealed class Plugin : IDalamudPlugin
 {
-    public static string PluginName => "Untarnished Heart";
+    public const string PluginName = "Untarnished Heart";
+    
     public static Version? Version { get; private set; }
 
     public Plugin(IDalamudPluginInterface pluginInterface)
