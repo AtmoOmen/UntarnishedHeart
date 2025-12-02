@@ -5,6 +5,7 @@ using Dalamud.Bindings.ImGui;
 using System.Collections.Generic;
 using System;
 using System.Linq;
+using System.Numerics;
 using UntarnishedHeart.Windows;
 using System.Text;
 using Newtonsoft.Json;
@@ -56,59 +57,74 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
 
     private void DrawBasicInfo()
     {
-        var name = Name;
-        if (ImGuiOm.CompLabelLeft("名称:", -1f, () => ImGui.InputText("###PresetNameInput", ref name, 128)))
-            Name = name;
+        using var table = ImRaii.Table("PresetBasicInfoTable", 2, ImGuiTableFlags.Resizable);
+        if (!table) return;
+
+        ImGui.TableSetupColumn("Label", ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn("Control", ImGuiTableColumnFlags.WidthStretch);
+
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
         
-        ImGui.NewLine();
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("名称:");
+        
+        ImGui.TableNextColumn();
+        ImGui.SetNextItemWidth(-1f);
+        var name = Name;
+        if (ImGui.InputText("###PresetNameInput", ref name, 128))
+            Name = name;
 
-        using (ImRaii.Group())
+        ImGui.TableNextRow();
+        ImGui.TableSetColumnIndex(0);
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("副本区域:");
+        ImGui.TableSetColumnIndex(1);
+        var zone = (uint)Zone;
+        ImGui.SetNextItemWidth(350f * ImGuiHelpers.GlobalScale);
+        if (ContentSelectCombo(ref zone, ref ZoneSearchInput))
+            Zone = (ushort)zone;
+        ImGui.SameLine();
+        if (ImGuiOm.ButtonIcon("GetZone", FontAwesomeIcon.MapMarkedAlt, "取当前区域", true))
+            Zone = DService.ClientState.TerritoryType;
+        using (ImRaii.PushIndent())
         {
-            ImGui.AlignTextToFramePadding();
-            ImGui.Text("副本区域:");
-
-            var zone = (uint)Zone;
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(350f * ImGuiHelpers.GlobalScale);
-            if (ContentSelectCombo(ref zone, ref ZoneSearchInput))
-                Zone = (ushort)zone;
-
-            ImGui.SameLine();
-            if (ImGuiOm.ButtonIcon("GetZone", FontAwesomeIcon.MapMarkedAlt, "取当前区域", true))
-                Zone = DService.ClientState.TerritoryType;
-
-            using (ImRaii.PushIndent())
+            if (LuminaGetter.TryGetRow<TerritoryType>(Zone, out var zoneData))
             {
-                if (LuminaGetter.TryGetRow<TerritoryType>(Zone, out var zoneData))
-                {
-                    var zoneName    = zoneData.PlaceName.Value.Name.ExtractText()              ?? "未知区域";
-                    var contentName = zoneData.ContentFinderCondition.Value.Name.ExtractText() ?? "未知副本";
-
-                    ImGui.Text($"({zoneName} / {contentName})");
-                }
+                var zoneName    = zoneData.PlaceName.Value.Name.ExtractText()              ?? "未知区域";
+                var contentName = zoneData.ContentFinderCondition.Value.Name.ExtractText() ?? "未知副本";
+                ImGui.Text($"({zoneName} / {contentName})");
             }
         }
 
+        ImGui.TableNextRow();
+        ImGui.TableSetColumnIndex(0);
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("退出延迟:");
+        ImGui.TableSetColumnIndex(1);
         var delay = DutyDelay;
-        if (ImGuiOm.CompLabelLeft(
-                "退出延迟:", 350f * ImGuiHelpers.GlobalScale,
-                () => ImGui.InputInt("(ms)###PresetLeaveDutyDelayInput", ref delay)))
+        ImGui.SetNextItemWidth(350f * ImGuiHelpers.GlobalScale);
+        if (ImGui.InputInt("(ms)###PresetLeaveDutyDelayInput", ref delay))
             DutyDelay = Math.Max(0, delay);
         ImGuiOm.TooltipHover("完成副本后, 在退出副本前需要等待的时间");
 
-        ImGui.Spacing();
-
+        ImGui.TableNextRow();
+        ImGui.TableSetColumnIndex(0);
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("自动开启:");
+        ImGui.TableSetColumnIndex(1);
         var autoOpenTreasure = AutoOpenTreasures;
         if (ImGui.Checkbox("副本结束时, 自动开启宝箱", ref autoOpenTreasure))
             AutoOpenTreasures = autoOpenTreasure;
         ImGuiOm.HelpMarker("请确保本副本的确有宝箱, 否则流程将卡死", 20f, FontAwesomeIcon.InfoCircle, true);
 
-        ImGui.NewLine();
-
+        ImGui.TableNextRow();
+        ImGui.TableSetColumnIndex(0);
+        ImGui.AlignTextToFramePadding();
         ImGui.Text("备注:");
+        ImGui.TableSetColumnIndex(1);
         var remark = Remark;
-        if (ImGui.InputTextMultiline("###RemarkInput", ref remark, 2056,
-                                     ImGui.GetContentRegionAvail() - ImGui.GetStyle().ItemSpacing))
+        if (ImGui.InputTextMultiline("###RemarkInput", ref remark, 2056, new(-1f)))
             Remark = remark;
     }
 
@@ -119,43 +135,37 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         else if (CurrentStep >= Steps.Count)
             CurrentStep = Steps.Count - 1;
 
-        var availableContent  = ImGui.GetContentRegionAvail();
+        using var table = ImRaii.Table("PresetStepsTable", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV);
+        if (!table) return;
 
-        var leftChildWidth   = Math.Min(175f * ImGuiHelpers.GlobalScale, availableContent.X * 0.3f);
-        var rightChildHeight = availableContent.X - leftChildWidth - ImGui.GetStyle().ItemSpacing.X;
-        var childHeight      = availableContent.Y - ImGui.GetStyle().ItemSpacing.Y;
+        ImGui.TableSetupColumn("StepsList", ImGuiTableColumnFlags.WidthFixed, 300f * ImGuiHelpers.GlobalScale);
+        ImGui.TableSetupColumn("StepDetails", ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableNextRow();
 
-        using (var child = ImRaii.Child("StepsSelectChild", new(leftChildWidth, childHeight)))
+        ImGui.TableSetColumnIndex(0);
+        if (ImGuiOm.ButtonSelectable("添加步骤"))
+            Steps.Add(new());
+        ImGuiOm.TooltipHover("每一步骤内的各判断, 都遵循界面绘制顺序, 从上到下、从左到右依次判断执行");
+
+        using (var child = ImRaii.Child("StepsSelectChild", ImGui.GetContentRegionAvail(), true))
         {
             if (child)
             {
-                if (ImGuiOm.ButtonSelectable("添加新步骤"))
-                    Steps.Add(new());
-                ImGuiOm.TooltipHover("每一步骤内的各判断, 都遵循界面绘制顺序, 从上到下、从左到右依次判断执行");
-
-                ImGui.Separator();
-                ImGui.Spacing();
-
                 for (var i = 0; i < Steps.Count; i++)
                 {
                     var step = Steps[i];
-
                     var stepName = $"{i}. {step.Note}" + (step.Delay > 0 ? $" ({(float)step.Delay / 1000:F2}s)" : string.Empty);
-                    
-                    // 拖拽源
-                    if (ImGui.Selectable(stepName, i == CurrentStep))
+
+                    if (ImGui.Selectable(stepName, i == CurrentStep, ImGuiSelectableFlags.AllowDoubleClick))
                         CurrentStep = i;
-                    
-                    // 开始拖拽
+
                     if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
                     {
                         ImGui.SetDragDropPayload("STEP_REORDER", BitConverter.GetBytes(i));
                         ImGui.Text($"步骤: {stepName}");
-                        
                         ImGui.EndDragDropSource();
                     }
-                    
-                    // 拖拽目标
+
                     if (ImGui.BeginDragDropTarget())
                     {
                         var payload = ImGui.AcceptDragDropPayload("STEP_REORDER");
@@ -164,10 +174,8 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                             var sourceIndex = *(int*)payload.Data;
                             if (sourceIndex != i && sourceIndex >= 0 && sourceIndex < Steps.Count)
                             {
-                                // 执行拖拽排序 - 直接交换两个步骤的位置
                                 (Steps[sourceIndex], Steps[i]) = (Steps[i], Steps[sourceIndex]);
 
-                                // 更新当前选中步骤
                                 if (CurrentStep == sourceIndex)
                                     CurrentStep = i;
                                 else if (CurrentStep == i)
@@ -177,22 +185,24 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
 
                         ImGui.EndDragDropTarget();
                     }
-                    
-                    ImGuiOm.TooltipHover(stepName);
+
                     DrawStepContextMenu(i, step);
                 }
             }
         }
 
-        ImGui.SameLine();
-        using (var child = ImRaii.Child("StepsDrawChild", new(rightChildHeight, childHeight)))
+        ImGui.TableSetColumnIndex(1);
+        using (var child = ImRaii.Child("StepsDrawChild", ImGui.GetContentRegionAvail(), true, ImGuiWindowFlags.NoBackground))
         {
             if (child)
             {
-                if (CurrentStep == -1) return;
+                if (CurrentStep < 0 || CurrentStep >= Steps.Count)
+                {
+                    ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1f), "请选择一个步骤进行编辑");
+                    return;
+                }
 
                 var step = Steps[CurrentStep];
-
                 step.Draw(ref CurrentStep, Steps);
             }
         }

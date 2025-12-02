@@ -183,11 +183,9 @@ public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor
         
         ImGui.TableNextRow();
         
-        // 左侧：步骤列表
         ImGui.TableSetColumnIndex(0);
         DrawStepsList(route);
         
-        // 右侧：步骤详情
         ImGui.TableSetColumnIndex(1);
         DrawStepDetails(route);
     }

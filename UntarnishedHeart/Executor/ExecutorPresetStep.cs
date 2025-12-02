@@ -63,12 +63,12 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         if (ImGui.IsItemDeactivatedAfterEdit())
             Note = stepName;
 
-        ImGui.Separator();
         ImGui.Spacing();
 
         using var child = ImRaii.Child("StepContentChild", ImGui.GetContentRegionAvail() - ImGui.GetStyle().ItemSpacing);
         if (!child) return;
-        
+
+        using var color  = ImRaii.PushColor(ImGuiCol.ChildBg, Vector4.Zero);
         using var tabBar = ImRaii.TabBar("###StepContentTabBar");
         if (!tabBar) return;
 
