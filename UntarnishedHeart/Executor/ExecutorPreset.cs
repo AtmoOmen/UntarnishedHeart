@@ -92,7 +92,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         var delay = DutyDelay;
         if (ImGuiOm.CompLabelLeft(
                 "退出延迟:", 350f * ImGuiHelpers.GlobalScale,
-                () => ImGui.InputInt("(ms)###PresetLeaveDutyDelayInput", ref delay, 0, 0)))
+                () => ImGui.InputInt("(ms)###PresetLeaveDutyDelayInput", ref delay)))
             DutyDelay = Math.Max(0, delay);
         ImGuiOm.TooltipHover("完成副本后, 在退出副本前需要等待的时间");
 
@@ -140,7 +140,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 {
                     var step = Steps[i];
 
-                    var stepName = $"{i + 1}. {step.Note}" + (step.Delay > 0 ? $" ({(float)step.Delay / 1000:F2}s)" : string.Empty);
+                    var stepName = $"{i}. {step.Note}" + (step.Delay > 0 ? $" ({(float)step.Delay / 1000:F2}s)" : string.Empty);
                     
                     // 拖拽源
                     if (ImGui.Selectable(stepName, i == CurrentStep))
@@ -149,9 +149,9 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                     // 开始拖拽
                     if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
                     {
-                        var dragIndex = i;
-                        ImGui.SetDragDropPayload("STEP_REORDER", BitConverter.GetBytes(dragIndex));
+                        ImGui.SetDragDropPayload("STEP_REORDER", BitConverter.GetBytes(i));
                         ImGui.Text($"步骤: {stepName}");
+                        
                         ImGui.EndDragDropSource();
                     }
                     
@@ -159,7 +159,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                     if (ImGui.BeginDragDropTarget())
                     {
                         var payload = ImGui.AcceptDragDropPayload("STEP_REORDER");
-                        if (payload.Data != null)
+                        if (!payload.IsNull && payload.Data != null)
                         {
                             var sourceIndex = *(int*)payload.Data;
                             if (sourceIndex != i && sourceIndex >= 0 && sourceIndex < Steps.Count)
@@ -209,7 +209,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             using var context = ImRaii.ContextPopupItem($"StepContentMenu_{i}");
             if (!context) return;
 
-            ImGui.Text($"第 {i + 1} 步: {step.Note}");
+            ImGui.Text($"第 {i} 步: {step.Note}");
 
             ImGui.Separator();
 
@@ -311,8 +311,34 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         }
     }
 
-    public List<Action> GetTasks(TaskHelper t) => 
-        Steps.SelectMany(x => x.GetTasks(t)).ToList();
+    public List<Action> GetTasks(TaskHelper t)
+    {
+        var tasks = new List<Action>();
+        foreach (var step in Steps)
+        {
+            tasks.AddRange(step.GetTasks(t));
+
+            var step1 = step;
+            tasks.Add(() =>
+            {
+                var target = step1.JumpToIndex;
+                if (target < 0 || target >= Steps.Count) return;
+
+                t.Enqueue(() =>
+                          {
+                              t.RemoveAllTasks(0);
+                              for (var j = target; j < Steps.Count; j++)
+                              {
+                                  foreach (var action in Steps[j].GetTasks(t))
+                                      action.Invoke();
+                              }
+                              return true;
+                          }, $"跳转至第 {target} 步");
+            });
+        }
+
+        return tasks;
+    }
 
     public override string ToString() => $"ExecutorPreset_{Name}_{Zone}_{Steps.Count}Steps";
 

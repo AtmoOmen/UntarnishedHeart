@@ -51,6 +51,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
     public string           Commands                   { get; set; } = string.Empty;
     public CommandCondition CommandCondition           { get; set; } = new();
     public uint             Delay                      { get; set; } = 5000;
+    public int              JumpToIndex                { get; set; } = -1;
 
     public void Draw(ref int i, List<ExecutorPresetStep> steps)
     {
@@ -323,6 +324,28 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
             }
         }
 
+        using (var flowControl = ImRaii.TabItem("流程控制"))
+        {
+            if (flowControl)
+            {
+                var jumpToIndex = JumpToIndex;
+                ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+                if (ImGui.InputInt("目标步骤 (设置为 -1 以禁用)###StepJumpToIndex", ref jumpToIndex))
+                {
+                    jumpToIndex = Math.Clamp(jumpToIndex, -1, steps.Count - 1);
+                    JumpToIndex = jumpToIndex;
+                }
+
+                if (JumpToIndex >= 0 && JumpToIndex < steps.Count)
+                {
+                    var targetStep = steps[JumpToIndex];
+                    ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"第 {JumpToIndex} 步 - {targetStep.Note}");
+                }
+            }
+            else
+                ImGuiOm.TooltipHover("为流程添加跳转, 在本步骤完成后跳转到指定步骤继续执行");
+        }
+
         if (i > 0)
         {
             if (ImGui.TabItemButton("↑"))
@@ -569,6 +592,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
             Commands                   = source.Commands,
             CommandCondition           = CommandCondition.Copy(source.CommandCondition),
             Delay                      = source.Delay,
+            JumpToIndex                = source.JumpToIndex,
         };
 
     /// <summary>

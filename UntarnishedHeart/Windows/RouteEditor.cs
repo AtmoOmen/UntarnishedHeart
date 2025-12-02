@@ -196,7 +196,7 @@ public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor
     {
         if (ImGuiOm.ButtonSelectable("添加步骤"))
         {
-            route.Steps.Add(new RouteStep { Name = $"步骤 {route.Steps.Count + 1}" });
+            route.Steps.Add(new RouteStep { Name = $"步骤 {route.Steps.Count}" });
             selectedStepIndex = route.Steps.Count - 1; // 选中新添加的步骤
         }
 
@@ -230,9 +230,9 @@ public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor
         // 开始拖拽
         if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
         {
-            var dragIndex = index;
-            ImGui.SetDragDropPayload("STEP_REORDER", BitConverter.GetBytes(dragIndex));
+            ImGui.SetDragDropPayload("STEP_REORDER", BitConverter.GetBytes(index));
             ImGui.Text($"步骤: {stepName}");
+            
             ImGui.EndDragDropSource();
         }
         
@@ -240,7 +240,7 @@ public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor
         if (ImGui.BeginDragDropTarget())
         {
             var payload = ImGui.AcceptDragDropPayload("STEP_REORDER");
-            if (payload.Data != null)
+            if (!payload.IsNull && payload.Data != null)
             {
                 var sourceIndex = *(int*)payload.Data;
                 if (sourceIndex != index && sourceIndex >= 0 && sourceIndex < route.Steps.Count)
