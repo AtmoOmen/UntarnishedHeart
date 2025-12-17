@@ -262,7 +262,7 @@ public static class GameFunctions
     {
         var instance = RecommendEquipModule.Instance();
 
-        instance->SetupForClassJob((byte)(DService.ClientState.LocalPlayer?.ClassJob.RowId ?? 0));
+        instance->SetupForClassJob((byte)LocalPlayerState.ClassJob);
 
         DService.Framework.RunOnTick(() => instance->EquipRecommendedGear(), TimeSpan.FromMilliseconds(100));
     }
