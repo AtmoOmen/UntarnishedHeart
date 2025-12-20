@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<Project Sdk="Dalamud.CN.NET.Sdk/14.0.0">
+<Project Sdk="Dalamud.CN.NET.Sdk/14.0.1">
     <PropertyGroup>
         <Authors>AtmoOmen</Authors>
-        <Version>0.3.2.0</Version>
+        <Version>0.3.3.0</Version>
         <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
@@ -33,9 +33,5 @@
     <ItemGroup>
       <ProjectReference Include="..\OmenTools\OmenTools.csproj" />
     </ItemGroup>
-
-    <PropertyGroup Condition="'$(Configuration)'=='Release'">
-        <MakeZIP>true</MakeZIP>
-    </PropertyGroup>
 
 </Project>
