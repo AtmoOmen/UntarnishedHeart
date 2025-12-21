@@ -248,6 +248,22 @@ public class Executor : IDisposable
         GameFunctions.PathFindCancel();
     }
 
-    public void ManualEnqueueNewRound() => 
-        OnDutyCompleted(null, ExecutorPreset?.Zone ?? DService.ClientState.TerritoryType);
+    public void ManualEnqueueNewRound()
+    {
+        AbortPrevious();
+        TaskHelper.Enqueue(() =>
+        {
+            GameFunctions.LeaveDuty();
+            CurrentRound++;
+
+            if (MaxRound != -1 && CurrentRound >= MaxRound)
+            {
+                Dispose();
+                return;
+            }
+
+            if (!Service.Config.LeaderMode) return;
+            EnqueueRegDuty();
+        });
+    }
 }
