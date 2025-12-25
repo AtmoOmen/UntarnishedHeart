@@ -10,6 +10,7 @@ using System.Drawing;
 using System.Numerics;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
+using OmenTools.Managers;
 using OmenTools.Service;
 using UntarnishedHeart.Utils;
 using UntarnishedHeart.Windows;
@@ -519,7 +520,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 }
                 
                 SpecialCommandHandle:
-                t.Enqueue(() => ChatHelper.SendMessage(command), $"使用文本指令: {Note} {command}", weight: weight);
+                t.Enqueue(() => ChatManager.SendCommand(command), $"使用文本指令: {Note} {command}", weight: weight);
                 t.DelayNext(100, $"使用文本指令节流: {Note} {command}", weight: weight);
             }
         }
