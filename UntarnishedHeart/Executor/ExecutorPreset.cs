@@ -1,37 +1,40 @@
-using Dalamud.Interface.Utility.Raii;
-using Dalamud.Interface.Utility;
-using Dalamud.Interface;
-using Dalamud.Bindings.ImGui;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using UntarnishedHeart.Windows;
 using System.Text;
-using Newtonsoft.Json;
 using System.Windows.Forms;
+using Dalamud.Interface.Utility;
 using Lumina.Excel.Sheets;
-using UntarnishedHeart.Utils;
+using Newtonsoft.Json;
+using UntarnishedHeart.Windows;
 using Action = System.Action;
 
 namespace UntarnishedHeart.Executor;
 
 public class ExecutorPreset : IEquatable<ExecutorPreset>
 {
-    public string                   Name              { get; set; } = string.Empty;
-    public string                   Remark            { get; set; } = string.Empty;
-    public ushort                   Zone              { get; set; }
-    public List<ExecutorPresetStep> Steps             { get; set; } = [];
-    public bool                     AutoOpenTreasures { get; set; }
-    public int                      DutyDelay         { get; set; } = 500;
-
-    public bool IsValid => Zone != 0 && Steps.Count > 0 && Main.ZonePlaceNames.ContainsKey(Zone);
+    private int CurrentStep = -1;
 
     private ExecutorPresetStep? StepToCopy;
 
-    private string ZoneSearchInput = string.Empty;
-    
-    private int CurrentStep = -1;
+    private string                   ZoneSearchInput = string.Empty;
+    public  string                   Name              { get; set; } = string.Empty;
+    public  string                   Remark            { get; set; } = string.Empty;
+    public  ushort                   Zone              { get; set; }
+    public  List<ExecutorPresetStep> Steps             { get; set; } = [];
+    public  bool                     AutoOpenTreasures { get; set; }
+    public  int                      DutyDelay         { get; set; } = 500;
+
+    public bool IsValid => Zone != 0 && Steps.Count > 0 && Main.ZonePlaceNames.ContainsKey(Zone);
+
+    public bool Equals(ExecutorPreset? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+
+        return Name == other.Name && Zone == other.Zone && Steps.SequenceEqual(other.Steps);
+    }
 
     public void Draw()
     {
@@ -41,17 +44,13 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         using (var basicInfo = ImRaii.TabItem("基本信息"))
         {
             if (basicInfo)
-            {
                 DrawBasicInfo();
-            }
         }
 
         using (var stepInfo = ImRaii.TabItem("步骤"))
         {
             if (stepInfo)
-            {
                 DrawStepInfo();
-            }
         }
     }
 
@@ -60,15 +59,15 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         using var table = ImRaii.Table("PresetBasicInfoTable", 2, ImGuiTableFlags.Resizable);
         if (!table) return;
 
-        ImGui.TableSetupColumn("Label", ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn("Label",   ImGuiTableColumnFlags.WidthFixed);
         ImGui.TableSetupColumn("Control", ImGuiTableColumnFlags.WidthStretch);
 
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
-        
+
         ImGui.AlignTextToFramePadding();
         ImGui.Text("名称:");
-        
+
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(-1f);
         var name = Name;
@@ -86,7 +85,8 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             Zone = (ushort)zone;
         ImGui.SameLine();
         if (ImGuiOm.ButtonIcon("GetZone", FontAwesomeIcon.MapMarkedAlt, "取当前区域", true))
-            Zone = DService.ClientState.TerritoryType;
+            Zone = DService.Instance().ClientState.TerritoryType;
+
         using (ImRaii.PushIndent())
         {
             if (LuminaGetter.TryGetRow<TerritoryType>(Zone, out var zoneData))
@@ -138,7 +138,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         using var table = ImRaii.Table("PresetStepsTable", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV);
         if (!table) return;
 
-        ImGui.TableSetupColumn("StepsList", ImGuiTableColumnFlags.WidthFixed, 300f * ImGuiHelpers.GlobalScale);
+        ImGui.TableSetupColumn("StepsList",   ImGuiTableColumnFlags.WidthFixed, 300f * ImGuiHelpers.GlobalScale);
         ImGui.TableSetupColumn("StepDetails", ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableNextRow();
 
@@ -153,7 +153,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             {
                 for (var i = 0; i < Steps.Count; i++)
                 {
-                    var step = Steps[i];
+                    var step     = Steps[i];
                     var stepName = $"{i}. {step.Note}" + (step.Delay > 0 ? $" ({(float)step.Delay / 1000:F2}s)" : string.Empty);
 
                     if (ImGui.Selectable(stepName, i == CurrentStep, ImGuiSelectableFlags.AllowDoubleClick))
@@ -169,9 +169,11 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                     if (ImGui.BeginDragDropTarget())
                     {
                         var payload = ImGui.AcceptDragDropPayload("STEP_REORDER");
+
                         if (!payload.IsNull && payload.Data != null)
                         {
                             var sourceIndex = *(int*)payload.Data;
+
                             if (sourceIndex != i && sourceIndex >= 0 && sourceIndex < Steps.Count)
                             {
                                 (Steps[sourceIndex], Steps[i]) = (Steps[i], Steps[sourceIndex]);
@@ -192,6 +194,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         }
 
         ImGui.TableSetColumnIndex(1);
+
         using (var child = ImRaii.Child("StepsDrawChild", ImGui.GetContentRegionAvail(), true, ImGuiWindowFlags.NoBackground))
         {
             if (child)
@@ -247,12 +250,16 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 contextOperation = StepOperationType.Delete;
 
             if (i > 0)
+            {
                 if (ImGui.MenuItem("上移"))
                     contextOperation = StepOperationType.MoveUp;
+            }
 
             if (i < Steps.Count - 1)
+            {
                 if (ImGui.MenuItem("下移"))
                     contextOperation = StepOperationType.MoveDown;
+            }
 
             ImGui.Separator();
 
@@ -269,7 +276,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
 
             Action contextOperationAction = contextOperation switch
             {
-                StepOperationType.Delete   => () => Steps.RemoveAt(i),
+                StepOperationType.Delete => () => Steps.RemoveAt(i),
                 StepOperationType.MoveDown => () =>
                 {
                     var index = i + 1;
@@ -282,7 +289,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                     Steps.Swap(i, index);
                     CurrentStep = index;
                 },
-                StepOperationType.Pass   => () => { },
+                StepOperationType.Pass => () => { },
                 StepOperationType.Paste => () =>
                 {
                     Steps[i]    = ExecutorPresetStep.Copy(StepToCopy);
@@ -306,7 +313,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 },
                 StepOperationType.InsertDown => () =>
                 {
-                    var index = i  + 1;
+                    var index = i + 1;
                     Steps.Insert(index, new());
                     CurrentStep = index;
                 },
@@ -315,7 +322,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                     Steps.Insert(i, ExecutorPresetStep.Copy(step));
                     CurrentStep = i;
                 },
-                _                        => () => { }
+                _ => () => { }
             };
             contextOperationAction();
         }
@@ -324,27 +331,32 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
     public List<Action> GetTasks(TaskHelper t)
     {
         var tasks = new List<Action>();
+
         foreach (var step in Steps)
         {
             tasks.AddRange(step.GetTasks(t));
 
             var step1 = step;
-            tasks.Add(() =>
-            {
-                var target = step1.JumpToIndex;
-                if (target < 0 || target >= Steps.Count) return;
+            tasks.Add
+            (() =>
+                {
+                    var target = step1.JumpToIndex;
+                    if (target < 0 || target >= Steps.Count) return;
 
-                t.Enqueue(() =>
-                          {
-                              t.RemoveAllTasks(0);
-                              for (var j = target; j < Steps.Count; j++)
-                              {
-                                  foreach (var action in Steps[j].GetTasks(t))
-                                      action.Invoke();
-                              }
-                              return true;
-                          }, $"跳转至第 {target} 步");
-            });
+                    t.Enqueue
+                    (
+                        () =>
+                        {
+                            t.RemoveQueueTasks(0);
+                            for (var j = target; j < Steps.Count; j++)
+                                foreach (var action in Steps[j].GetTasks(t))
+                                    action.Invoke();
+                            return true;
+                        },
+                        $"跳转至第 {target} 步"
+                    );
+                }
+            );
         }
 
         return tasks;
@@ -352,26 +364,18 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
 
     public override string ToString() => $"ExecutorPreset_{Name}_{Zone}_{Steps.Count}Steps";
 
-    public bool Equals(ExecutorPreset? other)
-    {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-
-        return Name == other.Name && Zone == other.Zone && Steps.SequenceEqual(other.Steps);
-    }
-
     public void ExportToClipboard()
     {
         try
         {
-            var json = JsonConvert.SerializeObject(this);
+            var json   = JsonConvert.SerializeObject(this);
             var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
             Clipboard.SetText(base64);
-            Chat($"已成功导出预设至剪贴板", Main.UTHPrefix);
+            Chat("已成功导出预设至剪贴板", Main.UTHPrefix);
         }
         catch (Exception)
         {
-            Chat($"尝试导出预设至剪贴板时发生错误", Main.UTHPrefix);
+            Chat("尝试导出预设至剪贴板时发生错误", Main.UTHPrefix);
         }
     }
 
@@ -380,20 +384,22 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         try
         {
             var base64 = Clipboard.GetText();
+
             if (!string.IsNullOrEmpty(base64))
             {
                 var json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
 
                 var config = JsonConvert.DeserializeObject<ExecutorPreset>(json);
                 if (config != null)
-                    Chat($"已成功从剪贴板导入预设", Main.UTHPrefix);
+                    Chat("已成功从剪贴板导入预设", Main.UTHPrefix);
                 return config;
             }
         }
         catch (Exception)
         {
-            Chat($"尝试从剪贴板导入预设时发生错误", Main.UTHPrefix);
+            Chat("尝试从剪贴板导入预设时发生错误", Main.UTHPrefix);
         }
+
         return null;
     }
 
@@ -401,4 +407,3 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
 
     public override int GetHashCode() => HashCode.Combine(Name, Zone, Steps);
 }
-

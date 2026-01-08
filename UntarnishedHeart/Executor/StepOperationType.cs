@@ -11,5 +11,5 @@ public enum StepOperationType
     PasteDown,
     PasteCurrent,
     InsertUp,
-    InsertDown,
+    InsertDown
 }

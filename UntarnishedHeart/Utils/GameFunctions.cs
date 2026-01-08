@@ -4,7 +4,6 @@ using System.Threading;
 using System.Windows.Forms;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
-using OmenTools.Managers;
 using UntarnishedHeart.Windows;
 using Task = System.Threading.Tasks.Task;
 
@@ -27,7 +26,7 @@ public static class GameFunctions
         PathFinder ??= new();
         vnavmeshIPC.Init();
 
-        TaskHelper ??= new() { TimeLimitMS = int.MaxValue };
+        TaskHelper ??= new() { TimeoutMS = int.MaxValue };
     }
 
     public static void Uninit()
@@ -52,13 +51,15 @@ public static class GameFunctions
     public static unsafe void Teleport(Vector3 pos)
     {
         TaskHelper.Abort();
-        TaskHelper.Enqueue(() =>
-        {
-            if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
-            localPlayer.ToStruct()->SetPosition(pos.X, pos.Y, pos.Z);
-            SendKeypress(Keys.W);
-            return true;
-        });
+        TaskHelper.Enqueue
+        (() =>
+            {
+                if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
+                localPlayer.ToStruct()->SetPosition(pos.X, pos.Y, pos.Z);
+                SendKeypress(Keys.W);
+                return true;
+            }
+        );
     }
 
     /// <summary>
@@ -69,6 +70,7 @@ public static class GameFunctions
         LastMoveMode  = PathMoveMode.PathFindHelper;
         LastTargetPos = pos;
         LastFly       = false;
+
         if (PathFinder is null)
         {
             Chat("PathFindHelper未初始化", Main.UTHPrefix);
@@ -77,16 +79,22 @@ public static class GameFunctions
 
         PathFindCancel();
         PathFindCancelSource = new();
-        TaskHelper.Enqueue(() =>
-        {
-            if (!Throttler.Throttle("寻路节流")) return false;
+        TaskHelper.Enqueue
+        (() =>
+            {
+                if (!Throttler.Throttle("寻路节流")) return false;
 
-            PathFindTask ??= DService.Framework.RunOnTick(
-                async () => await Task.Run(async () => await PathFindInternalTask(pos), PathFindCancelSource.Token),
-                TimeSpan.Zero, 0, PathFindCancelSource.Token);
+                PathFindTask ??= DService.Instance().Framework.RunOnTick
+                (
+                    async () => await Task.Run(async () => await PathFindInternalTask(pos), PathFindCancelSource.Token),
+                    TimeSpan.Zero,
+                    0,
+                    PathFindCancelSource.Token
+                );
 
-            return PathFindTask.IsCompleted;
-        });
+                return PathFindTask.IsCompleted;
+            }
+        );
     }
 
     private static async Task PathFindInternalTask(Vector3 targetPos)
@@ -99,7 +107,7 @@ public static class GameFunctions
 
         while (true)
         {
-            if (DService.ObjectTable.LocalPlayer is not { } localPlayer) continue;
+            if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) continue;
 
             var distance = Vector3.DistanceSquared(localPlayer.Position, targetPos);
             if (distance <= 2) break;
@@ -122,16 +130,22 @@ public static class GameFunctions
 
         PathFindCancel();
         PathFindCancelSource = new();
-        TaskHelper.Enqueue(() =>
-        {
-            if (!Throttler.Throttle("寻路节流")) return false;
+        TaskHelper.Enqueue
+        (() =>
+            {
+                if (!Throttler.Throttle("寻路节流")) return false;
 
-            PathFindTask ??= DService.Framework.RunOnTick(
-                async () => await Task.Run(async () => await vnavmeshMoveTask(pos, fly), PathFindCancelSource.Token),
-                TimeSpan.Zero, 0, PathFindCancelSource.Token);
+                PathFindTask ??= DService.Instance().Framework.RunOnTick
+                (
+                    async () => await Task.Run(async () => await vnavmeshMoveTask(pos, fly), PathFindCancelSource.Token),
+                    TimeSpan.Zero,
+                    0,
+                    PathFindCancelSource.Token
+                );
 
-            return PathFindTask.IsCompleted;
-        });
+                return PathFindTask.IsCompleted;
+            }
+        );
     }
 
     /// <summary>
@@ -228,7 +242,7 @@ public static class GameFunctions
         // wait finish pathFind
         while (true)
         {
-            if (DService.ObjectTable.LocalPlayer is not { } localPlayer)
+            if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
             {
                 await Task.Delay(100);
                 continue;
@@ -236,6 +250,7 @@ public static class GameFunctions
 
             // check whether arrived
             var distance = Vector3.Distance(localPlayer.Position, targetPos);
+
             if (distance <= 2f)
             {
                 vnavmeshIPC.PathStop();
@@ -264,11 +279,11 @@ public static class GameFunctions
 
         instance->SetupForClassJob((byte)LocalPlayerState.ClassJob);
 
-        DService.Framework.RunOnTick(() => instance->EquipRecommendedGear(), TimeSpan.FromMilliseconds(100));
+        DService.Instance().Framework.RunOnTick(() => instance->EquipRecommendedGear(), TimeSpan.FromMilliseconds(100));
     }
 
     public static void LeaveDuty() =>
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.LeaveDuty, DService.Condition[ConditionFlag.InCombat] ? 1U : 0);
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.LeaveDuty, DService.Instance().Condition[ConditionFlag.InCombat] ? 1U : 0);
 }
 
 internal enum PathMoveMode

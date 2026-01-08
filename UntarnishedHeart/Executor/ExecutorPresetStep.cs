@@ -1,17 +1,12 @@
-using Dalamud.Interface.Utility.Raii;
-using Dalamud.Interface.Utility;
-using Dalamud.Interface;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using Dalamud.Bindings.ImGui;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System;
-using System.Drawing;
 using System.Numerics;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
-using OmenTools.Managers;
-using OmenTools.Service;
+using Dalamud.Interface.Utility;
+using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using UntarnishedHeart.Utils;
 using UntarnishedHeart.Windows;
 
@@ -20,22 +15,22 @@ namespace UntarnishedHeart.Executor;
 public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 {
     /// <summary>
-    /// 步骤名称
+    ///     步骤名称
     /// </summary>
     public string Note { get; set; } = string.Empty;
 
     /// <summary>
-    /// 若为忙碌状态, 则等待
+    ///     若为忙碌状态, 则等待
     /// </summary>
     public bool StopWhenBusy { get; set; }
 
     /// <summary>
-    /// 若为战斗状态, 则等待
+    ///     若为战斗状态, 则等待
     /// </summary>
     public bool StopInCombat { get; set; } = true;
 
     /// <summary>
-    /// 若任一队友不在无法战斗状态, 则等待
+    ///     若任一队友不在无法战斗状态, 则等待
     /// </summary>
     public bool StopWhenAnyAlive { get; set; }
 
@@ -54,9 +49,21 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
     public uint             Delay                      { get; set; } = 5000;
     public int              JumpToIndex                { get; set; } = -1;
 
+    public bool Equals(ExecutorPresetStep? other)
+    {
+        if (ReferenceEquals(null, other)) return false;
+        if (ReferenceEquals(this, other)) return true;
+
+        return Note   == other.Note            &&
+               DataID == other.DataID          &&
+               Position.Equals(other.Position) &&
+               Delay.Equals(other.Delay)       &&
+               StopInCombat == other.StopInCombat;
+    }
+
     public void Draw(ref int i, List<ExecutorPresetStep> steps)
     {
-        using var id = ImRaii.PushId($"Step-{i}");
+        using var id    = ImRaii.PushId($"Step-{i}");
         using var group = ImRaii.Group();
 
         var stepName = Note;
@@ -105,6 +112,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
                 ImGui.SameLine();
                 ImGui.SetNextItemWidth(300f * ImGuiHelpers.GlobalScale);
+
                 using (var combo = ImRaii.Combo("###StepMoveTypeCombo", MoveType.ToString()))
                 {
                     if (combo)
@@ -112,12 +120,13 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                         foreach (var moveType in Enum.GetValues<MoveType>())
                         {
                             if (moveType == MoveType.无) continue;
-                                    
+
                             if (ImGui.Selectable(moveType.ToString(), MoveType == moveType))
                                 MoveType = moveType;
                         }
                     }
                 }
+
                 if (MoveType == MoveType.无)
                     ImGuiOm.TooltipHover("若设置为 无, 则代表使用 传送\n[废弃功能, 仅兼容用]");
 
@@ -134,38 +143,41 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                     ImGuiOm.TooltipHover("若不想执行移动, 请将坐标设置为 <0, 0, 0>");
 
                     ImGui.SameLine();
+
                     if (ImGuiOm.ButtonIcon("GetPosition", FontAwesomeIcon.Bullseye, "取当前位置", true))
                     {
-                        if (DService.ObjectTable.LocalPlayer is { } localPlayer)
+                        if (DService.Instance().ObjectTable.LocalPlayer is { } localPlayer)
                             Position = localPlayer.Position;
                     }
-                            
+
                     ImGui.SameLine();
+
                     if (ImGuiOm.ButtonIcon("PastePosition", FontAwesomeIcon.Clipboard, "粘贴坐标", true))
                     {
                         try
                         {
                             var clipboardText = ImGui.GetClipboardText();
+
                             if (TryParsePosition(clipboardText, out var parsedPosition))
                             {
                                 Position = parsedPosition;
                                 Chat($"已从剪贴板读取坐标: <{parsedPosition.X:F2}, {parsedPosition.Y:F2}, {parsedPosition.Z:F2}>", Main.UTHPrefix);
                             }
                             else
-                            {
                                 Chat("剪贴板内容格式不正确，期望格式: X: -0.41, Y: 0.00, Z: 5.46", Main.UTHPrefix);
-                            }
                         }
                         catch (Exception ex)
                         {
                             Chat($"读取剪贴板失败: {ex.Message}", Main.UTHPrefix);
                         }
                     }
-                            
+
                     ImGui.SameLine();
+
                     if (ImGuiOm.ButtonIcon("MoveToThis", FontAwesomeIcon.MapMarkerAlt, "根据当前移动方式移动到此位置", true))
                     {
                         var finalMoveType = MoveType == MoveType.无 ? MoveType.传送 : MoveType;
+
                         switch (finalMoveType)
                         {
                             case MoveType.寻路:
@@ -180,9 +192,9 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                         }
                     }
                 }
- 
+
                 ImGui.Spacing();
-                        
+
                 using (ImRaii.Group())
                 {
                     var waitForGetClose = WaitForGetClose;
@@ -203,8 +215,12 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 {
                     if (table)
                     {
-                        ImGui.TableSetupColumn("标签", ImGuiTableColumnFlags.WidthFixed,
-                                               ImGui.CalcTextSize("Data ID:").X);
+                        ImGui.TableSetupColumn
+                        (
+                            "标签",
+                            ImGuiTableColumnFlags.WidthFixed,
+                            ImGui.CalcTextSize("Data ID:").X
+                        );
                         ImGui.TableSetupColumn("操作", ImGuiTableColumnFlags.WidthStretch, 50);
 
                         ImGui.TableNextRow();
@@ -215,6 +231,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
                         ImGui.TableNextColumn();
                         ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+
                         using (var combo = ImRaii.Combo("###TargetObjectKindCombo", ObjectKind.ToString()))
                         {
                             if (combo)
@@ -241,9 +258,10 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                             DataID = stepDataID;
 
                         ImGui.SameLine();
+
                         if (ImGuiOm.ButtonIcon("GetTarget", FontAwesomeIcon.Crosshairs, "取当前目标", true))
                         {
-                            if (DService.Targets.Target is { } target)
+                            if (TargetManager.Target is { } target)
                             {
                                 DataID     = target.DataID;
                                 ObjectKind = target.ObjectKind;
@@ -253,7 +271,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 }
 
                 ImGui.Spacing();
-                        
+
                 var waitForTargetSpawn = WaitForTargetSpawn;
                 if (ImGui.Checkbox("等待目标生成", ref waitForTargetSpawn))
                     WaitForTargetSpawn = waitForTargetSpawn;
@@ -267,8 +285,11 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 var interactWithTarget = InteractWithTarget;
                 if (ImGui.Checkbox("交互此目标", ref interactWithTarget))
                     InteractWithTarget = interactWithTarget;
-                ImGuiOm.TooltipHover("勾选后, 则会尝试与当前目标进行交互\n\n" +
-                                     "注: 请自行确保位于一个可交互到目标的坐标");
+                ImGuiOm.TooltipHover
+                (
+                    "勾选后, 则会尝试与当前目标进行交互\n\n" +
+                    "注: 请自行确保位于一个可交互到目标的坐标"
+                );
 
                 if (InteractWithTarget)
                 {
@@ -277,9 +298,9 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                         InteractNeedTargetAnything = interactNeedTargetAnything;
                     ImGuiOm.TooltipHover("勾选后, 若当前未选中任何目标, 则会跳过交互");
                 }
-                        
+
                 ImGui.NewLine();
-                        
+
                 var targetNeedTargetable = TargetNeedTargetable;
                 if (ImGui.Checkbox("目标需要为\"可选中\"状态", ref targetNeedTargetable))
                     TargetNeedTargetable = targetNeedTargetable;
@@ -294,23 +315,39 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
             if (textCommand)
             {
                 var stepCommands = Commands;
-                var commandInputHeight = Math.Max(ImGui.GetTextLineHeightWithSpacing() * 5f,
-                                                  ImGui.CalcTextSize(stepCommands).Y + (2 * ImGui.GetStyle().ItemSpacing.Y));
-                        
-                if (ImGui.InputTextMultiline("###CommandsInput", ref stepCommands, 1024,
-                                             new(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X, commandInputHeight)))
+                var commandInputHeight = Math.Max
+                (
+                    ImGui.GetTextLineHeightWithSpacing() * 5f,
+                    ImGui.CalcTextSize(stepCommands).Y + 2 * ImGui.GetStyle().ItemSpacing.Y
+                );
+
+                if (ImGui.InputTextMultiline
+                    (
+                        "###CommandsInput",
+                        ref stepCommands,
+                        1024,
+                        new(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X, commandInputHeight)
+                    ))
                     Commands = stepCommands;
-                ImGuiOm.TooltipHover("支持以下特殊指令:\n" +
-                                     "/wait <时间(ms)> - 等待指定毫秒的时间 (如: /wait 2000 - 等待 2 秒)");
-                        
+                ImGuiOm.TooltipHover
+                (
+                    "支持以下特殊指令:\n" +
+                    "/wait <时间(ms)> - 等待指定毫秒的时间 (如: /wait 2000 - 等待 2 秒)"
+                );
+
                 CommandCondition.Draw();
             }
             else
-                ImGuiOm.TooltipHover("在执行完左侧的目标选择后, 会按照此处的配置选中自定义文本指令\n" +
-                                     "支持多条文本指令, 一行一条");
+            {
+                ImGuiOm.TooltipHover
+                (
+                    "在执行完左侧的目标选择后, 会按照此处的配置选中自定义文本指令\n" +
+                    "支持多条文本指令, 一行一条"
+                );
+            }
         }
 
-        using (var postWait = ImRaii.TabItem("后置等待")) 
+        using (var postWait = ImRaii.TabItem("后置等待"))
         {
             if (postWait)
             {
@@ -331,6 +368,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
             {
                 var jumpToIndex = JumpToIndex;
                 ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+
                 if (ImGui.InputInt("目标步骤 (设置为 -1 以禁用)###StepJumpToIndex", ref jumpToIndex))
                 {
                     jumpToIndex = Math.Clamp(jumpToIndex, -1, steps.Count - 1);
@@ -355,6 +393,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 steps.Swap(i, index);
                 i = index;
             }
+
             ImGuiOm.TooltipHover("上移");
         }
 
@@ -366,6 +405,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 steps.Swap(i, index);
                 i = index;
             }
+
             ImGuiOm.TooltipHover("下移");
         }
     }
@@ -375,98 +415,122 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         return
         [
             // 检查队友存活状态
-            () => t.Enqueue(() =>
-                            {
-                                if (!StopWhenAnyAlive || DService.PartyList.Length < 2) return true;
-                                if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
+            () => t.Enqueue
+            (
+                () =>
+                {
+                    if (!StopWhenAnyAlive || DService.Instance().PartyList.Length < 2) return true;
+                    if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
 
-                                foreach (var member in DService.PartyList)
-                                {
-                                    if (member.EntityId  == localPlayer.ToStruct()->EntityId) continue;
-                                    if (member.CurrentHP != 0) return false;
-                                }
+                    foreach (var member in DService.Instance().PartyList)
+                    {
+                        if (member.EntityId  == localPlayer.ToStruct()->EntityId) continue;
+                        if (member.CurrentHP != 0) return false;
+                    }
 
-                                return true;
-                            }, $"检查队友存活状态: {Note}"),
-            
+                    return true;
+                },
+                $"检查队友存活状态: {Note}"
+            ),
+
             // 检查进战状态
-            () => t.Enqueue(() => !StopInCombat || !DService.Condition[ConditionFlag.InCombat], $"检查进战状态: {Note}"),
-            
+            () => t.Enqueue(() => !StopInCombat || !DService.Instance().Condition[ConditionFlag.InCombat], $"检查进战状态: {Note}"),
+
             // 检查忙碌状态
-            () => t.Enqueue(() => !StopWhenBusy || (!OccupiedInEvent && IsScreenReady()), $"检查忙碌状态: {Note}"),
-            
+            () => t.Enqueue(() => !StopWhenBusy || !OccupiedInEvent && UIModule.IsScreenReady(), $"检查忙碌状态: {Note}"),
+
             // 执行移动
-            () => t.Enqueue(() =>
-                            {
-                                if (Position == default(Vector3)) return true;
+            () => t.Enqueue
+            (
+                () =>
+                {
+                    if (Position == default) return true;
 
-                                var finalMoveType = MoveType == MoveType.无 ? MoveType.传送 : MoveType;
-                                if (finalMoveType == MoveType.无) return true;
+                    var finalMoveType = MoveType == MoveType.无 ? MoveType.传送 : MoveType;
+                    if (finalMoveType == MoveType.无) return true;
 
-                                switch (finalMoveType)
-                                {
-                                    case MoveType.寻路:
-                                        GameFunctions.PathFindStart(Position);
-                                        break;
-                                    case MoveType.传送:
-                                        GameFunctions.Teleport(Position);
-                                        break;
-                                    case MoveType.vnavmesh:
-                                        GameFunctions.vnavmeshMove(Position);
-                                        break;
-                                }
+                    switch (finalMoveType)
+                    {
+                        case MoveType.寻路:
+                            GameFunctions.PathFindStart(Position);
+                            break;
+                        case MoveType.传送:
+                            GameFunctions.Teleport(Position);
+                            break;
+                        case MoveType.vnavmesh:
+                            GameFunctions.vnavmeshMove(Position);
+                            break;
+                    }
 
-                                return true;
-                            }, $"移动至目标位置: {Note}"),
-            
+                    return true;
+                },
+                $"移动至目标位置: {Note}"
+            ),
+
             // 执行完全接近目标等待
-            () => t.Enqueue(() =>
-                            {
-                                if (Position == default(Vector3) || !WaitForGetClose) return true;
+            () => t.Enqueue
+            (
+                () =>
+                {
+                    if (Position == default || !WaitForGetClose) return true;
 
-                                if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
-                                if (!Throttler.Throttle("接近目标位置节流")) return false;
+                    if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
+                    if (!Throttler.Throttle("接近目标位置节流")) return false;
 
-                                return Vector2.DistanceSquared(localPlayer.Position.ToVector2(), Position.ToVector2()) <= 4;
-                            }, $"等待完全接近目标位置: {Note}"),
-            
+                    return Vector2.DistanceSquared(localPlayer.Position.ToVector2(), Position.ToVector2()) <= 4;
+                },
+                $"等待完全接近目标位置: {Note}"
+            ),
+
             // 执行等待目标生成
-            () => t.Enqueue(() =>
-                            {
-                                if (DataID == 0 || !WaitForTargetSpawn) return true;
-                                if (!Throttler.Throttle("等待目标生成节流")) return false;
+            () => t.Enqueue
+            (
+                () =>
+                {
+                    if (DataID == 0 || !WaitForTargetSpawn) return true;
+                    if (!Throttler.Throttle("等待目标生成节流")) return false;
 
-                                return FindObject() != null;
-                            }, $"等待目标生成: {Note}"),
-            
+                    return FindObject() != null;
+                },
+                $"等待目标生成: {Note}"
+            ),
+
             // 执行目标选中
-            () => t.Enqueue(() =>
-                            {
-                                if (DataID == 0 || !WaitForTarget) return true;
-                                if (!Throttler.Throttle("选中目标节流")) return false;
+            () => t.Enqueue
+            (
+                () =>
+                {
+                    if (DataID == 0 || !WaitForTarget) return true;
+                    if (!Throttler.Throttle("选中目标节流")) return false;
 
-                                TargetObject();
-                                return TargetSystem.Instance()->Target != null;
-                            }, $"选中目标: {Note}"),
-            
+                    TargetObject();
+                    return TargetSystem.Instance()->Target != null;
+                },
+                $"选中目标: {Note}"
+            ),
+
             // 执行目标交互
-            () => t.Enqueue(() =>
-                            {
-                                if (DataID == 0 || !InteractWithTarget) return true;
-                                if (InteractNeedTargetAnything && DService.Targets.Target is null) return true;
-                                if (FindObject() is not { } validObject) return true;
+            () => t.Enqueue
+            (
+                () =>
+                {
+                    if (DataID == 0 || !InteractWithTarget) return true;
+                    if (InteractNeedTargetAnything && TargetManager.Target is null) return true;
+                    if (FindObject() is not { } validObject) return true;
 
-                                return validObject.TargetInteract();
-                            }, $"交互预设目标: {Note}"),
-            
+                    return validObject.TargetInteract();
+                },
+                $"交互预设目标: {Note}"
+            ),
+
             // 等待目标交互完成
             () =>
             {
                 if (!InteractWithTarget) return;
                 t.DelayNext(200, $"延迟 200 毫秒, 等待交互开始: {Note}");
             },
-            () => t.Enqueue(() => !InteractWithTarget || (!OccupiedInEvent && IsScreenReady()), $"等待目标交互完成: {Note}"),
-            
+            () => t.Enqueue(() => !InteractWithTarget || !OccupiedInEvent && UIModule.IsScreenReady(), $"等待目标交互完成: {Note}"),
+
             // 执行文本指令
             () =>
             {
@@ -476,33 +540,37 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 else
                 {
                     t.Enqueue(() => Control.GetLocalPlayer() != null, $"执行文本指令时本地玩家不能为空: {Note}");
-                    t.Enqueue(() =>
-                    {
-                        switch (CommandCondition.ExecuteType)
+                    t.Enqueue
+                    (
+                        () =>
                         {
-                            case CommandExecuteType.Pass:
-                                if (!CommandCondition.IsConditionsTrue()) break;
-                                EnqueueTextCommands(2);
-                                break;
-                            case CommandExecuteType.Wait:
-                                t.Enqueue(() => CommandCondition.IsConditionsTrue(), $"等待文本指令条件变成真: {Note}", weight: 2);
-                                t.Enqueue(() => EnqueueTextCommands(2), $"文本指令条件已为真, 入队指令执行: {Note}", weight: 2);
-                                break;
-                            case CommandExecuteType.Repeat:
-                                // 已满足条件只执行一次
-                                if (CommandCondition.IsConditionsTrue())
-                                {
+                            switch (CommandCondition.ExecuteType)
+                            {
+                                case CommandExecuteType.Pass:
+                                    if (!CommandCondition.IsConditionsTrue()) break;
                                     EnqueueTextCommands(2);
                                     break;
-                                }
-                                
-                                EnqueueTextCommandsRepeat();
-                                break;
-                        }
-                    }, $"入队文本指令条件检查任务群: {Note}");
+                                case CommandExecuteType.Wait:
+                                    t.Enqueue(() => CommandCondition.IsConditionsTrue(), $"等待文本指令条件变成真: {Note}",       weight: 2);
+                                    t.Enqueue(() => EnqueueTextCommands(2),              $"文本指令条件已为真, 入队指令执行: {Note}", weight: 2);
+                                    break;
+                                case CommandExecuteType.Repeat:
+                                    // 已满足条件只执行一次
+                                    if (CommandCondition.IsConditionsTrue())
+                                    {
+                                        EnqueueTextCommands(2);
+                                        break;
+                                    }
+
+                                    EnqueueTextCommandsRepeat();
+                                    break;
+                            }
+                        },
+                        $"入队文本指令条件检查任务群: {Note}"
+                    );
                 }
             },
-            
+
             // 延迟
             () => t.DelayNext((int)Delay, $"等待 {Delay} 秒: {Note}")
         ];
@@ -515,13 +583,13 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 {
                     var spilted = command.Split(' ');
                     if (spilted.Length != 2 || !uint.TryParse(spilted[1], out var waitTime)) goto SpecialCommandHandle;
-                    t.DelayNext((int)waitTime, $"特殊文本指令 {command}: {Note}", weight: weight);
+                    t.DelayNext((int)waitTime, $"特殊文本指令 {command}: {Note}", weight);
                     continue;
                 }
-                
+
                 SpecialCommandHandle:
-                t.Enqueue(() => ChatManager.SendCommand(command), $"使用文本指令: {Note} {command}", weight: weight);
-                t.DelayNext(100, $"使用文本指令节流: {Note} {command}", weight: weight);
+                t.Enqueue(() => ChatManager.Instance().SendCommand(command), $"使用文本指令: {Note} {command}", weight: weight);
+                t.DelayNext(100, $"使用文本指令节流: {Note} {command}", weight);
             }
         }
 
@@ -530,7 +598,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
             if (CommandCondition.IsConditionsTrue()) return;
             t.Enqueue(() => EnqueueTextCommands(2), $"文本指令不为真, 入队指令执行: {Note}", weight: 2);
             if (CommandCondition.TimeValue > 0)
-                t.DelayNext((int)CommandCondition.TimeValue, $"文本指令完成, 等待: {Note}", weight: 2);
+                t.DelayNext((int)CommandCondition.TimeValue, $"文本指令完成, 等待: {Note}", 2);
             t.Enqueue(EnqueueTextCommandsRepeat, "开始新一轮重复检查", weight: 2);
         }
     }
@@ -538,39 +606,29 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
     public unsafe void TargetObject()
     {
         if (FindObject() is not { } obj) return;
-        
+
         TargetSystem.Instance()->Target = obj.ToStruct();
     }
 
-    public IGameObject? FindObject() => 
-        DService.ObjectTable.FirstOrDefault(x => x.ObjectKind == ObjectKind && x.DataID == DataID && 
-                                                 (!TargetNeedTargetable || x.IsTargetable));
+    public IGameObject? FindObject() =>
+        DService.Instance().ObjectTable.FirstOrDefault
+        (x => x.ObjectKind == ObjectKind && x.DataID == DataID &&
+              (!TargetNeedTargetable || x.IsTargetable)
+        );
 
-    public override string ToString() => 
+    public override string ToString() =>
         $"ExecutorPresetStep_{Note}_{DataID}_{Position}_{Delay}_{StopInCombat}";
-
-    public bool Equals(ExecutorPresetStep? other)
-    {
-        if(ReferenceEquals(null, other)) return false;
-        if(ReferenceEquals(this, other)) return true;
-        
-        return Note == other.Note && 
-               DataID == other.DataID && 
-               Position.Equals(other.Position) && 
-               Delay.Equals(other.Delay) && 
-               StopInCombat == other.StopInCombat;
-    }
 
     public override bool Equals(object? obj)
     {
-        if(ReferenceEquals(null, obj)) return false;
-        if(ReferenceEquals(this, obj)) return true;
-        if(obj.GetType() != this.GetType()) return false;
-        
+        if (ReferenceEquals(null, obj)) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        if (obj.GetType() != GetType()) return false;
+
         return Equals((ExecutorPresetStep)obj);
     }
 
-    public override int GetHashCode() => 
+    public override int GetHashCode() =>
         HashCode.Combine(Note, DataID, Position, Delay, StopInCombat);
 
     public static ExecutorPresetStep Copy(ExecutorPresetStep source) =>
@@ -593,12 +651,12 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
             Commands                   = source.Commands,
             CommandCondition           = CommandCondition.Copy(source.CommandCondition),
             Delay                      = source.Delay,
-            JumpToIndex                = source.JumpToIndex,
+            JumpToIndex                = source.JumpToIndex
         };
 
     /// <summary>
-    /// 尝试从字符串解析坐标
-    /// 格式: "X: -0.41, Y: 0.00, Z: 5.46"
+    ///     尝试从字符串解析坐标
+    ///     格式: "X: -0.41, Y: 0.00, Z: 5.46"
     /// </summary>
     private static bool TryParsePosition(string text, out Vector3 position)
     {
@@ -608,7 +666,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
         try
         {
             text = text.Replace(" ", "");
-            
+
             var xIndex = text.IndexOf("X:", StringComparison.OrdinalIgnoreCase);
             var yIndex = text.IndexOf("Y:", StringComparison.OrdinalIgnoreCase);
             var zIndex = text.IndexOf("Z:", StringComparison.OrdinalIgnoreCase);
@@ -617,23 +675,23 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
             // X
             var xStart = xIndex + 2;
-            var xEnd = text.IndexOf(',', xStart);
+            var xEnd   = text.IndexOf(',', xStart);
             if (xEnd == -1) return false;
             var xStr = text.Substring(xStart, xEnd - xStart);
 
             // Y
             var yStart = yIndex + 2;
-            var yEnd = text.IndexOf(',', yStart);
+            var yEnd   = text.IndexOf(',', yStart);
             if (yEnd == -1) return false;
             var yStr = text.Substring(yStart, yEnd - yStart);
 
             // Z
             var zStart = zIndex + 2;
-            var zEnd = text.Length;
+            var zEnd   = text.Length;
 
-            var commaAfterZ = text.IndexOf(',', zStart);
+            var commaAfterZ             = text.IndexOf(',', zStart);
             if (commaAfterZ != -1) zEnd = commaAfterZ;
-            var zStr = text.Substring(zStart, zEnd - zStart);
+            var zStr                    = text.Substring(zStart, zEnd - zStart);
 
             // TryParse
             if (!float.TryParse(xStr, out var x)) return false;

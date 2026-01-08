@@ -1,94 +1,83 @@
 using System;
-using System.Drawing;
 using System.Numerics;
-using Dalamud.Interface;
+using Dalamud.Game.ClientState.Keys;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
-using Dalamud.Bindings.ImGui;
-using Dalamud.Game.ClientState.Keys;
+using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using Lumina.Excel.Sheets;
-using OmenTools.Service;
-using OmenTools.Helpers;
-using UntarnishedHeart.Utils;
 using Status = Lumina.Excel.Sheets.Status;
 
 namespace UntarnishedHeart.Windows;
 
 public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisposable
 {
-    private static long lastCopyTime = 0;
+    private static long lastCopyTime;
+
+    public void Dispose()
+    {
+        // 清理资源
+    }
 
     public override void Draw()
     {
         using var tabBar = ImRaii.TabBar("###DebugTabBar");
         if (!tabBar) return;
-        
+
         using (var generalTabItem = ImRaii.TabItem("一般信息"))
         {
             if (generalTabItem)
-            {
                 DrawDebugGeneralInfo();
-            }
         }
-        
+
         using (var targetTabItem = ImRaii.TabItem("目标信息"))
         {
             if (targetTabItem)
-            {
                 DrawDebugTargetInfo();
-            }
         }
-        
+
         using (var statusTabItem = ImRaii.TabItem("状态效果信息"))
         {
             if (statusTabItem)
-            {
                 DrawDebugStatusInfo();
-            }
         }
 
         using (var cursorTabItem = ImRaii.TabItem("鼠标位置转换"))
         {
             if (cursorTabItem)
-            {
                 DrawCursorToWorld();
-            }
         }
     }
-    
+
     private static void DrawDebugGeneralInfo()
     {
         if (ImGui.BeginTable("GeneralInfoTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
         {
             ImGui.TableSetupColumn("属性", ImGuiTableColumnFlags.WidthFixed, 120);
-            ImGui.TableSetupColumn("值", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("值",  ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableHeadersRow();
 
-            var isCurrentZoneValid = LuminaGetter.TryGetRow<TerritoryType>(DService.ClientState.TerritoryType, out var zoneRow);
-            
+            var isCurrentZoneValid = LuminaGetter.TryGetRow<TerritoryType>(DService.Instance().ClientState.TerritoryType, out var zoneRow);
+
             // 当前区域
-            var zoneName = LuminaWrapper.GetZonePlaceName(DService.ClientState.TerritoryType);
-            var zoneValue = $"{zoneName} ({DService.ClientState.TerritoryType})";
+            var zoneName  = LuminaWrapper.GetZonePlaceName(DService.Instance().ClientState.TerritoryType);
+            var zoneValue = $"{zoneName} ({DService.Instance().ClientState.TerritoryType})";
             DrawTableRow("当前区域", zoneValue);
 
             if (isCurrentZoneValid)
             {
                 // 副本区域
-                var contentName = LuminaWrapper.GetContentName(zoneRow.ContentFinderCondition.RowId);
+                var contentName  = LuminaWrapper.GetContentName(zoneRow.ContentFinderCondition.RowId);
                 var contentValue = $"{contentName} ({zoneRow.ContentFinderCondition.RowId})";
                 DrawTableRow("副本区域", contentValue);
-                
+
                 // 副本用途
                 var territoryUseValue = $"{zoneRow.TerritoryIntendedUse.RowId}";
                 DrawTableRow("副本用途", territoryUseValue);
             }
 
             // 当前位置
-            var positionValue = $"{DService.ObjectTable.LocalPlayer?.Position:F2}";
+            var positionValue = $"{DService.Instance().ObjectTable.LocalPlayer?.Position:F2}";
             DrawTableRow("当前位置", positionValue);
 
             ImGui.EndTable();
@@ -97,7 +86,7 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
 
     private static void DrawDebugTargetInfo()
     {
-        if (DService.Targets.Target is not IBattleChara target)
+        if (TargetManager.Target is not IBattleChara target)
         {
             ImGui.Text("无目标");
             return;
@@ -107,7 +96,7 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
         {
             ImGui.TableSetupColumn("属性", ImGuiTableColumnFlags.WidthFixed, 120);
             ImGui.TableSetupColumn("值",  ImGuiTableColumnFlags.WidthStretch);
-            
+
             ImGui.TableHeadersRow();
 
             // 当前目标
@@ -151,9 +140,9 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
 
     private static void DrawDebugStatusInfo()
     {
-        using var group  = ImRaii.Group();
-        
-        if (DService.ObjectTable.LocalPlayer is { } localPlayer)
+        using var group = ImRaii.Group();
+
+        if (DService.Instance().ObjectTable.LocalPlayer is { } localPlayer)
         {
             using (ImRaii.Group())
             {
@@ -162,7 +151,7 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
                 foreach (var status in localPlayer.StatusList)
                 {
                     if (!LuminaGetter.TryGetRow<Status>(status.StatusID, out var row)) continue;
-                    if (!DService.Texture.TryGetFromGameIcon(new(row.Icon), out var iconTexture)) continue;
+                    if (!DService.Instance().Texture.TryGetFromGameIcon(new(row.Icon), out var iconTexture)) continue;
 
                     ImGui.Image(iconTexture.GetWrapOrEmpty().Handle, ImGuiHelpers.ScaledVector2(24f));
 
@@ -172,10 +161,10 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
                 }
             }
         }
-        
+
         ImGui.NewLine();
-        
-        if (DService.Targets.Target is IBattleChara target)
+
+        if (TargetManager.Target is IBattleChara target)
         {
             using (ImRaii.Group())
             {
@@ -184,7 +173,7 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
                 foreach (var status in target.StatusList)
                 {
                     if (!LuminaGetter.TryGetRow<Status>(status.StatusID, out var row)) continue;
-                    if (!DService.Texture.TryGetFromGameIcon(new(row.Icon), out var iconTexture)) continue;
+                    if (!DService.Instance().Texture.TryGetFromGameIcon(new(row.Icon), out var iconTexture)) continue;
 
                     ImGui.Image(iconTexture.GetWrapOrEmpty().Handle, ImGuiHelpers.ScaledVector2(24f));
 
@@ -202,11 +191,11 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
         ImGui.Text($"屏幕坐标: X={mousePos.X:F0}, Y={mousePos.Y:F0}");
 
         ImGui.Spacing();
-        
-        var camera = FFXIVClientStructs.FFXIV.Client.Game.Control.CameraManager.Instance()->GetActiveCamera();
+
+        var camera = CameraManager.Instance()->GetActiveCamera();
         if (camera == null) return;
-        
-        var success = DService.Gui.ScreenToWorld(mousePos, out var worldPos);
+
+        var success = DService.Instance().Gui.ScreenToWorld(mousePos, out var worldPos);
 
         if (success)
         {
@@ -216,25 +205,25 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
             ImGui.TextColored(ImGuiColors.ParsedGreen, coordText);
 
             ImGui.Spacing();
-            
-            if (DService.KeyState[VirtualKey.CONTROL] && DService.KeyState[VirtualKey.C] &&
+
+            if (DService.Instance().KeyState[VirtualKey.CONTROL] && DService.Instance().KeyState[VirtualKey.C] &&
                 Environment.TickCount64 - lastCopyTime > 500)
             {
                 ImGui.SetClipboardText(coordText);
                 lastCopyTime = Environment.TickCount64;
-                NotifyHelper.NotificationSuccess($"已复制坐标到剪贴板: <{worldPos.X:F2}, {worldPos.Y:F2}, {worldPos.Z:F2}>");
+                NotificationSuccess($"已复制坐标到剪贴板: <{worldPos.X:F2}, {worldPos.Y:F2}, {worldPos.Z:F2}>");
             }
 
             if (ImGui.Button("复制 (Ctrl + C)"))
             {
                 ImGui.SetClipboardText(coordText);
-                NotifyHelper.NotificationSuccess($"已复制坐标到剪贴板: <{worldPos.X:F2}, {worldPos.Y:F2}, {worldPos.Z:F2}>");
+                NotificationSuccess($"已复制坐标到剪贴板: <{worldPos.X:F2}, {worldPos.Y:F2}, {worldPos.Z:F2}>");
             }
 
             ImGui.Spacing();
             ImGui.Separator();
-            
-            if (DService.ObjectTable.LocalPlayer is { } localPlayer)
+
+            if (DService.Instance().ObjectTable.LocalPlayer is { } localPlayer)
             {
                 var distanceToPlayer = Vector3.Distance(localPlayer.Position, worldPos);
                 ImGui.Text($"距离玩家: {distanceToPlayer:F2}");
@@ -250,18 +239,9 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
 
         ImGui.TableSetColumnIndex(1);
         if (ImGui.Selectable(value, false, ImGuiSelectableFlags.SpanAllColumns))
-        {
             ImGui.SetClipboardText(value);
-        }
 
         if (ImGui.IsItemHovered())
-        {
             ImGui.SetTooltip("点击复制到剪贴板");
-        }
-    }
-
-    public void Dispose()
-    {
-        // 清理资源
     }
 }

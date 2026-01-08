@@ -1,31 +1,26 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
 using System.Linq;
-using Dalamud.Interface;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using Dalamud.Bindings.ImGui;
-using OmenTools.Service;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
 namespace UntarnishedHeart.Executor;
 
 public class CommandCondition
 {
-    public List<CommandSingleCondition> Conditions   { get; set; } = [];
-    public CommandRelationType          RelationType { get; set; } = CommandRelationType.And;
-    public CommandExecuteType           ExecuteType  { get; set; } = CommandExecuteType.Wait;
-    public float                        TimeValue    { get; set; }
-    
-    private CommandSingleCondition? ConditionToCopy;
+    private CommandSingleCondition?      ConditionToCopy;
+    public  List<CommandSingleCondition> Conditions   { get; set; } = [];
+    public  CommandRelationType          RelationType { get; set; } = CommandRelationType.And;
+    public  CommandExecuteType           ExecuteType  { get; set; } = CommandExecuteType.Wait;
+    public  float                        TimeValue    { get; set; }
 
     public void Draw()
     {
         ImGui.SetNextItemWidth(300f * ImGuiHelpers.GlobalScale);
+
         using (var combo = ImRaii.Combo("处理类型###ExecuteTypeCombo", ExecuteType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -47,8 +42,9 @@ public class CommandCondition
                 TimeValue = timeValue;
             ImGuiOm.TooltipHover("每执行一轮间的时间间隔");
         }
-        
+
         ImGui.SetNextItemWidth(300f * ImGuiHelpers.GlobalScale);
+
         using (var combo = ImRaii.Combo("关系类型###RelationTypeCombo", RelationType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -61,7 +57,7 @@ public class CommandCondition
                 }
             }
         }
-        
+
         ImGui.NewLine();
 
         if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, "添加新条件", true))
@@ -74,6 +70,7 @@ public class CommandCondition
             var step = Conditions[i];
 
             using var node = ImRaii.TreeNode($"第 {i + 1} 条###Step-{i}");
+
             if (!node)
             {
                 DrawStepContextMenu(i, step);
@@ -83,7 +80,7 @@ public class CommandCondition
             step.Draw(i);
             DrawStepContextMenu(i, step);
         }
-        
+
         return;
 
         void DrawStepContextMenu(int i, CommandSingleCondition step)
@@ -95,7 +92,7 @@ public class CommandCondition
 
             using var context = ImRaii.ContextPopupItem($"ConditionContentMenu_{i}");
             if (!context) return;
-            
+
             if (ImGui.MenuItem("复制"))
                 ConditionToCopy = CommandSingleCondition.Copy(step);
 
@@ -118,12 +115,16 @@ public class CommandCondition
                 contextOperation = StepOperationType.Delete;
 
             if (i > 0)
+            {
                 if (ImGui.MenuItem("上移"))
                     contextOperation = StepOperationType.MoveUp;
+            }
 
             if (i < Conditions.Count - 1)
+            {
                 if (ImGui.MenuItem("下移"))
                     contextOperation = StepOperationType.MoveDown;
+            }
 
             ImGui.Separator();
 
@@ -151,34 +152,22 @@ public class CommandCondition
                     var index = i - 1;
                     Conditions.Swap(i, index);
                 },
-                StepOperationType.Pass => () => { },
-                StepOperationType.Paste => () =>
-                {
-                    Conditions[i] = CommandSingleCondition.Copy(ConditionToCopy);
-                },
-                StepOperationType.PasteUp => () =>
-                {
-                    Conditions.Insert(i, CommandSingleCondition.Copy(ConditionToCopy));
-                },
+                StepOperationType.Pass    => () => { },
+                StepOperationType.Paste   => () => { Conditions[i] = CommandSingleCondition.Copy(ConditionToCopy); },
+                StepOperationType.PasteUp => () => { Conditions.Insert(i, CommandSingleCondition.Copy(ConditionToCopy)); },
                 StepOperationType.PasteDown => () =>
                 {
                     var index = i + 1;
                     Conditions.Insert(index, CommandSingleCondition.Copy(ConditionToCopy));
                 },
-                StepOperationType.InsertUp => () =>
-                {
-                    Conditions.Insert(i, new());
-                },
+                StepOperationType.InsertUp => () => { Conditions.Insert(i, new()); },
                 StepOperationType.InsertDown => () =>
                 {
                     var index = i + 1;
                     Conditions.Insert(index, new());
                 },
-                StepOperationType.PasteCurrent => () =>
-                {
-                    Conditions.Insert(i, CommandSingleCondition.Copy(step));
-                },
-                _ => () => { }
+                StepOperationType.PasteCurrent => () => { Conditions.Insert(i, CommandSingleCondition.Copy(step)); },
+                _                              => () => { }
             };
             contextOperationAction();
         }
@@ -196,13 +185,13 @@ public class CommandCondition
     {
         var conditions = new List<CommandSingleCondition>();
         source.Conditions.ForEach(x => conditions.Add(CommandSingleCondition.Copy(x)));
-        
+
         return new CommandCondition
         {
             Conditions   = conditions.ToList(),
             RelationType = source.RelationType,
             ExecuteType  = source.ExecuteType,
-            TimeValue    = source.TimeValue,
+            TimeValue    = source.TimeValue
         };
     }
 }
@@ -218,21 +207,22 @@ public class CommandSingleCondition
     {
         using var id    = ImRaii.PushId($"CommandSingleCondition-{i}");
         using var group = ImRaii.Group();
-        
+
         using var table = ImRaii.Table("SingleConditionTable", 2);
         if (!table) return;
-        
+
         ImGui.TableSetupColumn("名称", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("六个中国汉字").X);
         ImGui.TableSetupColumn("内容", ImGuiTableColumnFlags.WidthStretch);
-        
+
         // 检测类型
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "检测类型:");
-        
+
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
+
         using (var combo = ImRaii.Combo("###DetectTypeCombo", DetectType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -245,15 +235,16 @@ public class CommandSingleCondition
                 }
             }
         }
-        
+
         // 比较类型
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "比较类型:");
-        
+
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
+
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -266,15 +257,16 @@ public class CommandSingleCondition
                 }
             }
         }
-        
+
         // 比较类型
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "目标类型:");
-        
+
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
+
         using (var combo = ImRaii.Combo("###TargetTypeCombo", TargetType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -287,13 +279,13 @@ public class CommandSingleCondition
                 }
             }
         }
-        
+
         // 比较类型
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "值:");
-        
+
         // 值
         var value = Value;
         ImGui.TableNextColumn();
@@ -305,18 +297,18 @@ public class CommandSingleCondition
     public unsafe bool IsConditionTrue()
     {
         if (TargetType == CommandTargetType.Target && TargetSystem.Instance()->Target == null) return true;
-        
+
         switch (DetectType)
         {
             case CommandDetectType.Health:
                 var health = TargetType switch
                 {
-                    CommandTargetType.Target => DService.Targets.Target is IBattleChara target ? (float)target.CurrentHp          / target.MaxHp * 100 : -1,
-                    CommandTargetType.Self   => DService.ObjectTable.LocalPlayer is IBattleChara target ? (float)target.CurrentHp / target.MaxHp * 100 : -1,
-                    _                        => -1
+                    CommandTargetType.Target => TargetManager.Target is IBattleChara target ? (float)target.CurrentHp / target.MaxHp * 100 : -1,
+                    CommandTargetType.Self => DService.Instance().ObjectTable.LocalPlayer is IBattleChara target ? (float)target.CurrentHp / target.MaxHp * 100 : -1,
+                    _ => -1
                 };
                 if (health == -1) return false;
-                
+
                 var healthValue = Value;
                 return ComparisonType switch
                 {
@@ -326,15 +318,15 @@ public class CommandSingleCondition
                     CommandComparisonType.NotEqualTo  => health != healthValue,
                     _                                 => false
                 };
-            
+
             case CommandDetectType.Status:
-                var statusID  = (uint)Value;
+                var statusID = (uint)Value;
 
                 bool? hasStatus = TargetType switch
                 {
-                    CommandTargetType.Target => DService.Targets.Target is IBattleChara { ObjectKind: ObjectKind.BattleNpc or ObjectKind.Player } target ? 
-                                                    target.ToBCStruct()->StatusManager.HasStatus(statusID) : 
-                                                    null,
+                    CommandTargetType.Target => TargetManager.Target is IBattleChara { ObjectKind: ObjectKind.BattleNpc or ObjectKind.Player } target
+                                                    ? target.ToBCStruct()->StatusManager.HasStatus(statusID)
+                                                    : null,
                     CommandTargetType.Self => Control.GetLocalPlayer()->StatusManager.HasStatus(statusID),
                     _                      => null
                 };
@@ -346,26 +338,26 @@ public class CommandSingleCondition
                     CommandComparisonType.NotHas => !hasStatus.Value,
                     _                            => false
                 };
-            
+
             case CommandDetectType.ActionCooldown:
                 var actionID      = (uint)Value;
                 var isOffCooldown = ActionManager.Instance()->IsActionOffCooldown(ActionType.Action, actionID);
-                
+
                 return ComparisonType switch
                 {
                     CommandComparisonType.Finished    => isOffCooldown,
                     CommandComparisonType.NotFinished => !isOffCooldown,
                     _                                 => false
                 };
-            
+
             case CommandDetectType.ActionCastStart:
                 if (TargetType != CommandTargetType.Target || ComparisonType != CommandComparisonType.Has) return false;
-                if (DService.Targets.Target is not IBattleChara targetCast) return false;
+                if (TargetManager.Target is not IBattleChara targetCast) return false;
                 if (!targetCast.IsCasting || targetCast.CastActionType != ActionType.Action) return false;
 
                 var castActionID = (uint)Value;
                 return targetCast.CastActionID == castActionID;
-            
+
             default:
                 return false;
         }
@@ -379,7 +371,7 @@ public class CommandSingleCondition
             DetectType     = source.DetectType,
             ComparisonType = source.ComparisonType,
             TargetType     = source.TargetType,
-            Value          = source.Value,
+            Value          = source.Value
         };
 }
 
@@ -387,49 +379,58 @@ public enum CommandDetectType
 {
     [Description("生命值百分比 (大于/小于/等于/不等于)")]
     Health,
-    
+
     [Description("状态效果 (拥有/不拥有)")]
     Status,
-    
+
     [Description("技能冷却 [自身] (完成/未完成)")]
     ActionCooldown,
-    
+
     [Description("技能咏唱开始 [目标] (拥有)")]
-    ActionCastStart,
+    ActionCastStart
 }
 
 public enum CommandComparisonType
 {
-     [Description("大于")]
-     GreaterThan,
-     [Description("小于")]
-     LessThan,
-     [Description("等于")]
-     EqualTo,
-     [Description("不等于")]
-     NotEqualTo,
-     [Description("拥有")]
-     Has,
-     [Description("不拥有")]
-     NotHas,
-     [Description("完成")]
-     Finished,
-     [Description("未完成")]
-     NotFinished,
+    [Description("大于")]
+    GreaterThan,
+
+    [Description("小于")]
+    LessThan,
+
+    [Description("等于")]
+    EqualTo,
+
+    [Description("不等于")]
+    NotEqualTo,
+
+    [Description("拥有")]
+    Has,
+
+    [Description("不拥有")]
+    NotHas,
+
+    [Description("完成")]
+    Finished,
+
+    [Description("未完成")]
+    NotFinished
 }
 
 public enum CommandTargetType
 {
     [Description("自身")]
     Self,
+
     [Description("目标")]
-    Target,
+    Target
 }
 
 public enum CommandRelationType
 {
     [Description("和 (全部条件均需满足)")]
     And,
+
     [Description("或 (任一条件满足即可)")]
     Or
 }
@@ -438,10 +439,10 @@ public enum CommandExecuteType
 {
     [Description("等待 (不满足条件时, 等待满足, 再继续)")]
     Wait,
-    
+
     [Description("跳过 (不满足条件时, 直接跳过执行)")]
     Pass,
-    
+
     [Description("重复 (不满足条件时, 重复执行; 满足时, 仅执行一次)")]
-    Repeat,
+    Repeat
 }

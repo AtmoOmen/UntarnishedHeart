@@ -104,53 +104,53 @@ public static class vnavmeshIPC
 
     [IPCSubscriber("vnavmesh.DTR.SetShown")]
     private static IPCSubscriber<bool, object>? dtrSetShown;
-    
+
     [IPCSubscriber("vnavmesh.Path.IsGenerating", DefaultValue = "false")]
     private static IPCSubscriber<bool>? pathIsGenerating;
-    
+
     [IPCSubscriber("vnavmesh.Path.GetDistance", DefaultValue = "0")]
     private static IPCSubscriber<float>? pathGetDistance;
 
     /// <summary>
-    /// 检查剩余路径距离
+    ///     检查剩余路径距离
     /// </summary>
-    public static float PathGetDistance() => 
+    public static float PathGetDistance() =>
         pathGetDistance ?? 0f;
-    
+
     /// <summary>
-    /// 检查是否正在生成导航路径
+    ///     检查是否正在生成导航路径
     /// </summary>
-    public static bool PathIsGenerating() => 
+    public static bool PathIsGenerating() =>
         pathIsGenerating ?? false;
-    
+
     /// <summary>
-    /// 检查导航网格是否准备就绪
+    ///     检查导航网格是否准备就绪
     /// </summary>
     /// <returns></returns>
-    public static bool NavIsReady() => 
+    public static bool NavIsReady() =>
         navIsReady ?? false;
 
     /// <summary>
-    /// 获取导航网格的构建进度
+    ///     获取导航网格的构建进度
     /// </summary>
     /// <returns></returns>
-    public static float NavBuildProgress() => 
+    public static float NavBuildProgress() =>
         navBuildProgress ?? 0f;
 
     /// <summary>
-    /// 重新加载导航网格
+    ///     重新加载导航网格
     /// </summary>
-    public static void NavReload() => 
+    public static void NavReload() =>
         navReload?.InvokeFunc();
 
     /// <summary>
-    /// 重新构建导航网格
+    ///     重新构建导航网格
     /// </summary>
-    public static void NavRebuild() => 
+    public static void NavRebuild() =>
         navRebuild?.InvokeFunc();
 
     /// <summary>
-    /// 寻路
+    ///     寻路
     /// </summary>
     /// <param name="from">起点</param>
     /// <param name="to">终点</param>
@@ -160,7 +160,7 @@ public static class vnavmeshIPC
         navPathfind?.InvokeFunc(from, to, fly);
 
     /// <summary>
-    /// 可取消的寻路
+    ///     可取消的寻路
     /// </summary>
     /// <param name="from">起点</param>
     /// <param name="to">终点</param>
@@ -171,14 +171,14 @@ public static class vnavmeshIPC
         navPathfindCancelable?.InvokeFunc(from, to, fly, cancellationToken);
 
     /// <summary>
-    /// 获取排队的寻路请求数量
+    ///     获取排队的寻路请求数量
     /// </summary>
     /// <returns></returns>
-    public static int NavPathfindNumQueued() => 
+    public static int NavPathfindNumQueued() =>
         navPathfindNumQueued ?? 0;
 
     /// <summary>
-    /// 构建导航网格的位图表示
+    ///     构建导航网格的位图表示
     /// </summary>
     /// <param name="startingPos">起始位置</param>
     /// <param name="filename">文件名</param>
@@ -188,7 +188,7 @@ public static class vnavmeshIPC
         navBuildBitmap?.InvokeFunc(startingPos, filename, pixelSize) ?? false;
 
     /// <summary>
-    /// 在限定范围内构建导航网格的位图表示
+    ///     在限定范围内构建导航网格的位图表示
     /// </summary>
     /// <param name="startingPos">起始位置</param>
     /// <param name="filename">文件名</param>
@@ -200,28 +200,28 @@ public static class vnavmeshIPC
         navBuildBitmapBounded?.InvokeFunc(startingPos, filename, pixelSize, minBounds, maxBounds) ?? false;
 
     /// <summary>
-    /// 检查是否启用了自动加载
+    ///     检查是否启用了自动加载
     /// </summary>
     /// <returns></returns>
-    public static bool NavIsAutoLoad() => 
+    public static bool NavIsAutoLoad() =>
         navIsAutoLoad ?? false;
 
     /// <summary>
-    /// 设置是否启用自动加载
+    ///     设置是否启用自动加载
     /// </summary>
     /// <param name="value">值</param>
-    public static void NavSetAutoLoad(bool value) => 
+    public static void NavSetAutoLoad(bool value) =>
         navSetAutoLoad?.InvokeAction(value);
 
     /// <summary>
-    /// 检查寻路是否正在进行中
+    ///     检查寻路是否正在进行中
     /// </summary>
     /// <returns></returns>
-    public static bool NavPathfindInProgress() => 
+    public static bool NavPathfindInProgress() =>
         navPathfindInProgress ?? false;
 
     /// <summary>
-    /// 查询网格上最近的点
+    ///     查询网格上最近的点
     /// </summary>
     /// <param name="pos">位置</param>
     /// <param name="halfExtentXZ">XZ半区</param>
@@ -231,7 +231,7 @@ public static class vnavmeshIPC
         queryMeshNearestPoint?.InvokeFunc(pos, halfExtentXZ, halfExtentY);
 
     /// <summary>
-    /// 查询地板上的点
+    ///     查询地板上的点
     /// </summary>
     /// <param name="pos">位置</param>
     /// <param name="allowUnlandable">允许无法降落</param>
@@ -241,84 +241,84 @@ public static class vnavmeshIPC
         queryMeshPointOnFloor?.InvokeFunc(pos, allowUnlandable, halfExtentXZ);
 
     /// <summary>
-    /// 移动到路径点
+    ///     移动到路径点
     /// </summary>
     /// <param name="waypoints">路径点</param>
     /// <param name="fly">是否飞行</param>
-    public static void PathMoveTo(List<Vector3> waypoints, bool fly) => 
+    public static void PathMoveTo(List<Vector3> waypoints, bool fly) =>
         pathMoveTo?.InvokeAction(waypoints, fly);
 
     /// <summary>
-    /// 停止移动
+    ///     停止移动
     /// </summary>
-    public static void PathStop() => 
+    public static void PathStop() =>
         pathStop?.InvokeAction();
 
     /// <summary>
-    /// 检查是否正在移动
+    ///     检查是否正在移动
     /// </summary>
     /// <returns></returns>
-    public static bool PathIsRunning() => 
+    public static bool PathIsRunning() =>
         pathIsRunning ?? false;
 
     /// <summary>
-    /// 获取路径点的数量
+    ///     获取路径点的数量
     /// </summary>
     /// <returns></returns>
-    public static int PathNumWaypoints() => 
+    public static int PathNumWaypoints() =>
         pathNumWaypoints ?? 0;
 
     /// <summary>
-    /// 获取路径点列表
+    ///     获取路径点列表
     /// </summary>
     /// <returns></returns>
-    public static List<Vector3> PathListWaypoints() => 
+    public static List<Vector3> PathListWaypoints() =>
         pathListWaypoints?.InvokeFunc() ?? [];
 
     /// <summary>
-    /// 获取是否允许移动
+    ///     获取是否允许移动
     /// </summary>
     /// <returns></returns>
-    public static bool PathGetMovementAllowed() => 
+    public static bool PathGetMovementAllowed() =>
         pathGetMovementAllowed ?? false;
 
     /// <summary>
-    /// 设置是否允许移动
+    ///     设置是否允许移动
     /// </summary>
     /// <param name="value">值</param>
-    public static void PathSetMovementAllowed(bool value) => 
+    public static void PathSetMovementAllowed(bool value) =>
         pathSetMovementAllowed?.InvokeAction(value);
 
     /// <summary>
-    /// 获取是否对齐镜头
+    ///     获取是否对齐镜头
     /// </summary>
     /// <returns></returns>
-    public static bool PathGetAlignCamera() => 
+    public static bool PathGetAlignCamera() =>
         pathGetAlignCamera ?? false;
 
     /// <summary>
-    /// 设置是否对齐镜头
+    ///     设置是否对齐镜头
     /// </summary>
     /// <param name="value">值</param>
-    public static void PathSetAlignCamera(bool value) => 
+    public static void PathSetAlignCamera(bool value) =>
         pathSetAlignCamera?.InvokeAction(value);
 
     /// <summary>
-    /// 获取容差
+    ///     获取容差
     /// </summary>
     /// <returns></returns>
-    public static float PathGetTolerance() => 
+    public static float PathGetTolerance() =>
         pathGetTolerance ?? 0f;
 
     /// <summary>
-    /// 设置容差
+    ///     设置容差
     /// </summary>
     /// <param name="tolerance">容差值</param>
-    public static void PathSetTolerance(float tolerance) => 
+    public static void PathSetTolerance(float tolerance) =>
         pathSetTolerance?.InvokeAction(tolerance);
 
     /// <summary>
-    /// 寻路并移动到目标点
+    ///     寻路并移动到目标点
     /// </summary>
     /// <param name="pos">目标点</param>
     /// <param name="fly">是否飞行</param>
@@ -327,49 +327,49 @@ public static class vnavmeshIPC
         pathfindAndMoveTo?.InvokeFunc(pos, fly) ?? false;
 
     /// <summary>
-    /// 检查寻路是否正在进行中
+    ///     检查寻路是否正在进行中
     /// </summary>
     /// <returns></returns>
-    public static bool PathfindInProgress() => 
+    public static bool PathfindInProgress() =>
         pathfindInProgress ?? false;
 
     /// <summary>
-    /// 取消所有查询
+    ///     取消所有查询
     /// </summary>
-    public static void CancelAllQueries() => 
+    public static void CancelAllQueries() =>
         pathfindCancelAll?.InvokeAction();
 
     /// <summary>
-    /// 检查窗口是否打开
+    ///     检查窗口是否打开
     /// </summary>
     /// <returns></returns>
-    public static bool WindowIsOpen() => 
+    public static bool WindowIsOpen() =>
         windowIsOpen ?? false;
 
     /// <summary>
-    /// 设置窗口是否打开
+    ///     设置窗口是否打开
     /// </summary>
     /// <param name="value">值</param>
-    public static void WindowSetOpen(bool value) => 
+    public static void WindowSetOpen(bool value) =>
         windowSetOpen?.InvokeAction(value);
 
     /// <summary>
-    /// 检查DTR栏信息是否显示
+    ///     检查DTR栏信息是否显示
     /// </summary>
     /// <returns></returns>
-    public static bool DtrIsShown() => 
+    public static bool DtrIsShown() =>
         dtrIsShown ?? false;
 
     /// <summary>
-    /// 设置DTR栏信息是否显示
+    ///     设置DTR栏信息是否显示
     /// </summary>
     /// <param name="value">值</param>
-    public static void DtrSetShown(bool value) => 
+    public static void DtrSetShown(bool value) =>
         dtrSetShown?.InvokeAction(value);
-    
-    internal static void Init() => 
+
+    internal static void Init() =>
         IPCAttributeRegistry.RegStaticIPCs(typeof(vnavmeshIPC));
 
-    internal static void Uninit() => 
+    internal static void Uninit() =>
         IPCAttributeRegistry.UnregStaticIPCs(typeof(vnavmeshIPC));
 }

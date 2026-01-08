@@ -1,6 +1,5 @@
 using System.Linq;
 using Dalamud.Interface.Windowing;
-using OmenTools.Managers;
 using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Managers;
@@ -13,16 +12,16 @@ public class WindowManager
     {
         WindowSystem ??= new WindowSystem(PluginName);
         WindowSystem.RemoveAllWindows();
-        
+
         InternalWindows.Init();
-        
-        DService.UIBuilder.Draw       += DrawWindows;
-        DService.UIBuilder.OpenMainUi += ToggleMainWindow;
+
+        DService.Instance().UIBuilder.Draw       += DrawWindows;
+        DService.Instance().UIBuilder.OpenMainUi += ToggleMainWindow;
     }
 
     private static void DrawWindows()
     {
-        using var font = FontManager.UIFont.Push();
+        using var font = FontManager.Instance().UIFont.Push();
         WindowSystem?.Draw();
     }
 
@@ -30,7 +29,7 @@ public class WindowManager
     {
         var main = Get<Main>();
         if (main == null) return;
-        
+
         main.IsOpen ^= true;
     }
 
@@ -57,16 +56,16 @@ public class WindowManager
         return true;
     }
 
-    public static T? Get<T>() where T : Window => 
+    public static T? Get<T>() where T : Window =>
         WindowSystem?.Windows.FirstOrDefault(x => x.GetType() == typeof(T)) as T;
 
     internal void Uninit()
     {
-        DService.UIBuilder.Draw       -= DrawWindows;
-        DService.UIBuilder.OpenMainUi -= ToggleMainWindow;
-        
+        DService.Instance().UIBuilder.Draw       -= DrawWindows;
+        DService.Instance().UIBuilder.OpenMainUi -= ToggleMainWindow;
+
         InternalWindows.Uninit();
-        
+
         WindowSystem?.RemoveAllWindows();
         WindowSystem = null;
     }

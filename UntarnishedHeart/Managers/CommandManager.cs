@@ -13,7 +13,7 @@ public sealed class CommandManager
 
     private static readonly ConcurrentDictionary<string, CommandInfo> addedCommands = [];
     private static readonly ConcurrentDictionary<string, CommandInfo> subCommands   = [];
-    
+
     internal void Init()
     {
         RefreshCommandDetails();
@@ -23,7 +23,7 @@ public sealed class CommandManager
     private static void RefreshCommandDetails()
     {
         var helpMessage = new StringBuilder("打开主界面\n");
-        
+
         foreach (var (command, commandInfo) in subCommands.Where(x => x.Value.ShowInHelp))
             helpMessage.AppendLine($"{MainCommand} {command} → {commandInfo.HelpMessage}");
 
@@ -33,10 +33,10 @@ public sealed class CommandManager
 
     public static bool AddCommand(string command, CommandInfo commandInfo, bool isForceToAdd = false)
     {
-        if (!isForceToAdd && DService.Command.Commands.ContainsKey(command)) return false;
+        if (!isForceToAdd && DService.Instance().Command.Commands.ContainsKey(command)) return false;
 
         RemoveCommand(command);
-        DService.Command.AddHandler(command, commandInfo);
+        DService.Instance().Command.AddHandler(command, commandInfo);
         addedCommands[command] = commandInfo;
 
         return true;
@@ -44,9 +44,9 @@ public sealed class CommandManager
 
     public static bool RemoveCommand(string command)
     {
-        if (DService.Command.Commands.ContainsKey(command))
+        if (DService.Instance().Command.Commands.ContainsKey(command))
         {
-            DService.Command.RemoveHandler(command);
+            DService.Instance().Command.RemoveHandler(command);
             addedCommands.TryRemove(command, out _);
             return true;
         }
@@ -103,17 +103,17 @@ public sealed class CommandManager
     {
         public const string AutoInteractCommand    = "autointeract";
         public const string EnqueueNewRoundCommand = "newround";
-        
+
         internal static void Init()
         {
             AddSubCommand(AutoInteractCommand,    new(OnCommandAutoInteract) { HelpMessage    = "尝试交互最近可交互物体" });
             AddSubCommand(EnqueueNewRoundCommand, new(OnCommandEnqueueNewRound) { HelpMessage = "若当前正在运行某一预设, 则立刻退出副本并开始新一轮执行" });
         }
 
-        private static void OnCommandAutoInteract(string command, string args) => 
+        private static void OnCommandAutoInteract(string command, string args) =>
             AutoObjectInteract.TryInteractNearestObject();
-        
-        private static void OnCommandEnqueueNewRound(string command, string args) => 
+
+        private static void OnCommandEnqueueNewRound(string command, string args) =>
             Main.PresetExecutor?.ManualEnqueueNewRound();
     }
 }

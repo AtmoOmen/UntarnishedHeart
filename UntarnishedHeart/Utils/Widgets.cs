@@ -3,17 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
-using Dalamud.Bindings.ImGui;
 using Lumina.Excel.Sheets;
 
 namespace UntarnishedHeart.Utils;
 
 public static class Widgets
 {
-    public static bool ContentSelectCombo(ref uint                                  selected,
-                                          ref string                                contentSearchInput,
-                                          Dictionary<uint, ContentFinderCondition>? sourceData = null)
+    public static bool ContentSelectCombo
+    (
+        ref uint                                  selected,
+        ref string                                contentSearchInput,
+        Dictionary<uint, ContentFinderCondition>? sourceData = null
+    )
     {
         var selectState = false;
 
@@ -30,6 +31,7 @@ public static class Widgets
 
         ImGui.SetNextWindowSize(ImGuiHelpers.ScaledVector2(600f, 400f));
         using var popup = ImRaii.Popup("###ContentSelectPopup");
+
         if (popup)
         {
             ImGui.SetNextItemWidth(-1f);
@@ -39,6 +41,7 @@ public static class Widgets
 
             var       tableSize = new Vector2(ImGui.GetContentRegionAvail().X, 0);
             using var table     = ImRaii.Table("###ContentSelectTable", 5, ImGuiTableFlags.Borders, tableSize);
+
             if (table)
             {
                 ImGui.TableSetupColumn("Checkbox",  ImGuiTableColumnFlags.WidthFixed,   ImGui.GetTextLineHeightWithSpacing());
@@ -59,6 +62,7 @@ public static class Widgets
 
                 var selectedCopy = selected;
                 var data         = (sourceData ?? PresetData.Contents).OrderByDescending(x => selectedCopy == x.Key);
+
                 foreach (var contentPair in data)
                 {
                     var contentName = contentPair.Value.Name.ExtractText();
@@ -77,13 +81,17 @@ public static class Widgets
                         ImGui.RadioButton(string.Empty, state);
 
                     ImGui.TableNextColumn();
-                    ImGui.Image(ImageHelper.GetGameIcon(contentPair.Value.ContentType.Value.Icon).Handle,
-                                ImGuiHelpers.ScaledVector2(20f));
+                    ImGui.Image
+                    (
+                        ImageHelper.GetGameIcon(contentPair.Value.ContentType.Value.Icon).Handle,
+                        ImGuiHelpers.ScaledVector2(20f)
+                    );
 
                     ImGui.TableNextColumn();
                     ImGui.Text(contentPair.Value.ClassJobLevelRequired.ToString());
 
                     ImGui.TableNextColumn();
+
                     if (ImGui.Selectable(contentName, state, ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.DontClosePopups))
                     {
                         selected    = contentPair.Key;
@@ -91,6 +99,7 @@ public static class Widgets
                     }
 
                     var image = ImageHelper.GetGameIcon(contentPair.Value.Image);
+
                     if (image != null && ImGui.IsItemHovered())
                     {
                         using (ImRaii.Tooltip())

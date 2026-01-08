@@ -1,39 +1,23 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using Dalamud.Bindings.ImGui;
 using Lumina.Excel.Sheets;
-using OmenTools.Service;
-using UntarnishedHeart.Managers;
 using UntarnishedHeart.Executor;
+using UntarnishedHeart.Managers;
 using UntarnishedHeart.Utils;
 using ContentsFinder = FFXIVClientStructs.FFXIV.Client.Game.UI.ContentsFinder;
-using Status = Lumina.Excel.Sheets.Status;
 
 namespace UntarnishedHeart.Windows;
 
 public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-MainWindow"), IDisposable
 {
-    public static Executor.Executor? PresetExecutor { get; private set; }
-    public static RouteExecutor? RouteExecutor { get; private set; }
-
-    public static SeString UTHPrefix { get; } = new SeStringBuilder()
-                                                .AddUiForeground(SeIconChar.BoxedLetterU.ToIconString(), 31)
-                                                .AddUiForeground(SeIconChar.BoxedLetterT.ToIconString(), 31)
-                                                .AddUiForeground(SeIconChar.BoxedLetterH.ToIconString(), 31)
-                                                .AddUiForegroundOff().Build();
-
     public static readonly Dictionary<ContentsFinder.LootRule, string> LootRuleLOC = new()
     {
         [ContentsFinder.LootRule.Normal]     = "通常",
@@ -47,8 +31,25 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                     .Where(x => !string.IsNullOrWhiteSpace(x.Item2))
                     .ToDictionary(x => x.RowId, x => x.Item2);
 
-    private static int SelectedPresetIndex;
-    private static int SelectedRouteIndex;
+    private static int                SelectedPresetIndex;
+    private static int                SelectedRouteIndex;
+    public static  Executor.Executor? PresetExecutor { get; private set; }
+    public static  RouteExecutor?     RouteExecutor  { get; private set; }
+
+    public static SeString UTHPrefix { get; } = new SeStringBuilder()
+                                                .AddUiForeground(SeIconChar.BoxedLetterU.ToIconString(), 31)
+                                                .AddUiForeground(SeIconChar.BoxedLetterT.ToIconString(), 31)
+                                                .AddUiForeground(SeIconChar.BoxedLetterH.ToIconString(), 31)
+                                                .AddUiForegroundOff().Build();
+
+    public void Dispose()
+    {
+        PresetExecutor?.Dispose();
+        PresetExecutor = null;
+
+        RouteExecutor?.Stop();
+        RouteExecutor = null;
+    }
 
 
     public override void Draw()
@@ -66,7 +67,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 
         using var tabBar = ImRaii.TabBar("###MainTabBar");
         if (!tabBar) return;
-        
+
         using (var mainPageItem = ImRaii.TabItem("主页"))
         {
             if (mainPageItem)
@@ -77,7 +78,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                 ImGui.Spacing();
 
                 DrawPathFindingControls();
-                
+
                 ImGui.Separator();
                 ImGui.Spacing();
 
@@ -94,7 +95,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                     ImGui.Spacing();
 
                     DrawHomeContentConfig();
-                    
+
                     ImGui.Separator();
                     ImGui.Spacing();
 
@@ -105,8 +106,11 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                             PresetExecutor?.Dispose();
                             PresetExecutor = null;
 
-                            PresetExecutor ??= new(Service.Config.Presets[SelectedPresetIndex],
-                                                   Service.Config.RunTimes);
+                            PresetExecutor ??= new
+                            (
+                                Service.Config.Presets[SelectedPresetIndex],
+                                Service.Config.RunTimes
+                            );
                         }
                     }
 
@@ -116,11 +120,11 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                         PresetExecutor = null;
 
                         // 如果在排本就取消
-                        if (DService.Condition[ConditionFlag.InDutyQueue])
+                        if (DService.Instance().Condition[ConditionFlag.InDutyQueue])
                         {
                             unsafe
                             {
-                                SendEvent(AgentId.ContentsFinder, 0, 12, 0);
+                                AgentId.ContentsFinder.SendEvent(0, 12, 0);
                             }
                         }
                     }
@@ -151,11 +155,11 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                         RouteExecutor = null;
 
                         // 如果在排本就取消
-                        if (DService.Condition[ConditionFlag.InDutyQueue])
+                        if (DService.Instance().Condition[ConditionFlag.InDutyQueue])
                         {
                             unsafe
                             {
-                                SendEvent(AgentId.ContentsFinder, 0, 12, 0);
+                                AgentId.ContentsFinder.SendEvent(0, 12, 0);
                             }
                         }
                     }
@@ -165,10 +169,10 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 
         if (ImGui.TabItemButton("预设"))
             WindowManager.Get<PresetEditor>().IsOpen ^= true;
-            
+
         if (ImGui.TabItemButton("路线"))
             WindowManager.Get<RouteEditor>().IsOpen ^= true;
-            
+
         if (ImGui.TabItemButton("调试"))
             WindowManager.Get<Debug>().IsOpen ^= true;
     }
@@ -181,23 +185,24 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         using var indent = ImRaii.PushIndent();
 
         var currentMode = Service.Config.CurrentExecutionMode;
-        
+
         if (ImGui.RadioButton("简单模式", currentMode == ExecutionMode.Simple))
         {
             Service.Config.CurrentExecutionMode = ExecutionMode.Simple;
             Service.Config.Save();
-            
+
             // 切换模式时停止当前执行
             RouteExecutor?.Stop();
             RouteExecutor = null;
         }
-        
+
         ImGui.SameLine();
+
         if (ImGui.RadioButton("运行路线", currentMode == ExecutionMode.Route))
         {
             Service.Config.CurrentExecutionMode = ExecutionMode.Route;
             Service.Config.Save();
-            
+
             // 切换模式时停止当前执行
             PresetExecutor?.Dispose();
             PresetExecutor = null;
@@ -212,10 +217,14 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         ImGui.Text("当前状态:");
 
         ImGui.SameLine();
+
         if (Service.Config.CurrentExecutionMode == ExecutionMode.Simple)
         {
-            ImGui.TextColored(PresetExecutor == null || PresetExecutor.IsDisposed ? ImGuiColors.DalamudRed : ImGuiColors.ParsedGreen,
-                              PresetExecutor == null || PresetExecutor.IsDisposed ? "等待中" : "运行中");
+            ImGui.TextColored
+            (
+                PresetExecutor == null || PresetExecutor.IsDisposed ? ImGuiColors.DalamudRed : ImGuiColors.ParsedGreen,
+                PresetExecutor == null || PresetExecutor.IsDisposed ? "等待中" : "运行中"
+            );
 
             ImGui.Text("运行次数:");
             ImGui.SameLine();
@@ -227,28 +236,32 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         }
         else
         {
-            ImGui.TextColored(RouteExecutor?.IsRunning == true ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudRed,
-                              RouteExecutor?.IsRunning == true ? "运行中" : "等待中");
+            ImGui.TextColored
+            (
+                RouteExecutor?.IsRunning == true ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudRed,
+                RouteExecutor?.IsRunning == true ? "运行中" : "等待中"
+            );
 
             ImGui.Text("当前步骤:");
             ImGui.SameLine();
-            ImGui.Text($"{(RouteExecutor?.CurrentStepIndex ?? -1)} / {(RouteExecutor?.Steps.Count ?? 0) -1}");
+            ImGui.Text($"{RouteExecutor?.CurrentStepIndex ?? -1} / {(RouteExecutor?.Steps.Count ?? 0) - 1}");
 
             ImGui.Text("运行信息:");
             ImGui.SameLine();
             ImGui.TextWrapped($"{RouteExecutor?.RunningMessage ?? string.Empty}");
         }
     }
-    
+
     private static void DrawHomeExecutorConfig()
     {
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "运行设置:");
-        
+
         using var indent = ImRaii.PushIndent();
         using var group  = ImRaii.Group();
 
         var selectedPreset = Service.Config.Presets[SelectedPresetIndex];
         ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+
         using (var combo = ImRaii.Combo("选择预设###PresetSelectCombo", $"{selectedPreset.Name}", ImGuiComboFlags.HeightLarge))
         {
             if (combo)
@@ -260,6 +273,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                         SelectedPresetIndex = i;
 
                     using var popup = ImRaii.ContextPopupItem($"{preset}-{i}ContextPopup");
+
                     if (popup)
                     {
                         using (ImRaii.Disabled(Service.Config.Presets.Count == 1))
@@ -275,40 +289,47 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         var runTimes = Service.Config.RunTimes;
         ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
         ImGui.InputInt("运行次数###RunTimes", ref runTimes);
+
         if (ImGui.IsItemDeactivatedAfterEdit())
         {
             Service.Config.RunTimes = runTimes;
             Service.Config.Save();
         }
+
         ImGuiOm.TooltipHover("若输入 -1, 则为无限运行");
 
         var isLeaderMode = Service.Config.LeaderMode;
+
         if (ImGui.Checkbox("队长模式", ref isLeaderMode))
         {
             Service.Config.LeaderMode = isLeaderMode;
             Service.Config.Save();
         }
+
         ImGuiOm.TooltipHover("启用队长模式时, 副本结束后会自动尝试排入同一副本", 20f * ImGuiHelpers.GlobalScale);
         ImGui.SameLine();
         var isAutoRecommendGear = Service.Config.AutoRecommendGear;
+
         if (ImGui.Checkbox("自动最强", ref isAutoRecommendGear))
         {
             Service.Config.AutoRecommendGear = isAutoRecommendGear;
             Service.Config.Save();
         }
+
         ImGuiOm.TooltipHover("启用自动最强时，进入副本时会尝试装备当前职业最强装备", 20f * ImGuiHelpers.GlobalScale);
     }
 
     private static void DrawHomeContentConfig()
     {
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "副本选项:");
-        
+
         using var indent = ImRaii.PushIndent();
         using var group  = ImRaii.Group();
-        
+
         using (ImRaii.Group())
         {
             var isUnrest = Service.Config.ContentsFinderOption.UnrestrictedParty;
+
             if (ImGui.Checkbox("解除限制", ref isUnrest))
             {
                 var newOption = Service.Config.ContentsFinderOption.Clone();
@@ -320,6 +341,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 
             ImGui.SameLine();
             var isSync = Service.Config.ContentsFinderOption.LevelSync;
+
             if (ImGui.Checkbox("等级同步", ref isSync))
             {
                 var newOption = Service.Config.ContentsFinderOption.Clone();
@@ -331,6 +353,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 
             ImGui.SameLine();
             var isMinIL = Service.Config.ContentsFinderOption.MinimalIL;
+
             if (ImGui.Checkbox("最低品级", ref isMinIL))
             {
                 var newOption = Service.Config.ContentsFinderOption.Clone();
@@ -342,6 +365,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 
             ImGui.SameLine();
             var isNoEcho = Service.Config.ContentsFinderOption.SilenceEcho;
+
             if (ImGui.Checkbox("超越之力无效化", ref isNoEcho))
             {
                 var newOption = Service.Config.ContentsFinderOption.Clone();
@@ -352,13 +376,14 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             }
 
             var lootRule = Service.Config.ContentsFinderOption.LootRules;
-            var isFirst = true;
+            var isFirst  = true;
+
             foreach (var (loot, loc) in LootRuleLOC)
             {
                 if (!isFirst)
                     ImGui.SameLine();
                 isFirst = false;
-                
+
                 if (ImGui.RadioButton($"{loc}##{loot}", loot == lootRule))
                 {
                     var newOption = Service.Config.ContentsFinderOption.Clone();
@@ -369,9 +394,10 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                 }
             }
         }
-        
+
         var contentEntry = Service.Config.ContentEntryType;
         ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+
         using (var combo = ImRaii.Combo("副本入口###ContentEntryCombo", contentEntry.GetDescription()))
         {
             if (combo)
@@ -386,13 +412,14 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                 }
             }
         }
+
         ImGuiOm.TooltipHover("单人进入多变迷宫:\n\t勾选解除限制, 入口选择一般副本");
     }
-    
+
     private static void DrawRouteExecutorConfig()
     {
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "路线设置:");
-        
+
         using var indent = ImRaii.PushIndent();
         using var group  = ImRaii.Group();
 
@@ -407,6 +434,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 
         var selectedRoute = Service.Config.Routes[SelectedRouteIndex];
         ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+
         using (var combo = ImRaii.Combo("选择路线###RouteSelectCombo", $"{selectedRoute.Name}", ImGuiComboFlags.HeightLarge))
         {
             if (combo)
@@ -418,6 +446,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                         SelectedRouteIndex = i;
 
                     using var popup = ImRaii.ContextPopupItem($"{route}-{i}ContextPopup");
+
                     if (popup)
                     {
                         using (ImRaii.Disabled(Service.Config.Routes.Count == 1))
@@ -432,10 +461,8 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 
         // 显示路线信息
         if (!string.IsNullOrWhiteSpace(selectedRoute.Note))
-        {
             ImGui.Text($"备注: {selectedRoute.Note}");
-        }
-        
+
         ImGui.Text($"步骤数: {selectedRoute.Steps.Count}");
     }
 
@@ -447,26 +474,17 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         using var group  = ImRaii.Group();
 
         if (ImGui.Button("继续寻路"))
-        {
             GameFunctions.PathFindResume();
-        }
         ImGuiOm.TooltipHover("尝试继续上一次的寻路/移动");
 
         ImGui.SameLine();
+
         if (ImGui.Button("停止寻路"))
         {
             GameFunctions.PathFindCancel();
-            Chat($"已停止寻路", Main.UTHPrefix);
+            Chat("已停止寻路", UTHPrefix);
         }
-        ImGuiOm.TooltipHover("立即停止当前的寻路任务");
-    }
 
-    public void Dispose()
-    {
-        PresetExecutor?.Dispose();
-        PresetExecutor = null;
-        
-        RouteExecutor?.Stop();
-        RouteExecutor = null;
+        ImGuiOm.TooltipHover("立即停止当前的寻路任务");
     }
 }
