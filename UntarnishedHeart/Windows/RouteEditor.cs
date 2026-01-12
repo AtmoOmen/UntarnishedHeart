@@ -2,9 +2,11 @@ using System;
 using System.Numerics;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
+using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
 using UntarnishedHeart.Executor;
 using UntarnishedHeart.Managers;
+using Achievement = Lumina.Excel.Sheets.Achievement;
 
 namespace UntarnishedHeart.Windows;
 
@@ -476,17 +478,34 @@ public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor
                 // 额外ID（成就ID或物品ID）
                 if (step.ConditionType is ConditionType.AchievementCount or ConditionType.ItemCount)
                 {
-                    var idLabel = step.ConditionType == ConditionType.AchievementCount ? "成就ID:" : "物品ID:";
                     ImGui.TableNextRow();
                     ImGui.TableSetColumnIndex(0);
                     ImGui.AlignTextToFramePadding();
-                    ImGui.Text(idLabel);
+                    ImGui.Text(step.ConditionType == ConditionType.AchievementCount ? "成就 ID:" : "物品 ID:");
 
                     ImGui.TableSetColumnIndex(1);
                     ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
-                    var extraId = step.ExtraId;
-                    if (ImGui.InputInt("###ExtraId", ref extraId))
-                        step.ExtraId = extraId;
+                    var extraID = step.ExtraID;
+                    if (ImGui.InputInt("###ExtraId", ref extraID))
+                        step.ExtraID = extraID;
+
+                    if(extraID != 0)
+                    {
+                        switch (step.ConditionType)
+                        {
+                            case ConditionType.AchievementCount when LuminaGetter.TryGetRow((uint)extraID, out Achievement achievementRow):
+                                ImGui.SameLine();
+                                ImGui.TextUnformatted($"{achievementRow.Name}");
+                                ImGuiOm.TooltipHover($"{achievementRow.Description}");
+                                break;
+                            
+                            case ConditionType.ItemCount when LuminaGetter.TryGetRow((uint)extraID, out Item itemRow):
+                                ImGui.SameLine();
+                                ImGui.TextUnformatted($"{itemRow.Name}");
+                                ImGuiOm.TooltipHover($"{itemRow.Description}");
+                                break;
+                        }
+                    }
                 }
 
                 // 比较类型和条件值

@@ -15,13 +15,13 @@ namespace UntarnishedHeart.Executor;
 
 public class Executor : IDisposable
 {
-    private TaskHelper? TaskHelper;
+    private TaskHelper? taskHelper;
 
     public Executor(ExecutorPreset? preset, int maxRound = -1, DutyOptions? dutyOptions = null)
     {
         if (preset is not { IsValid: true }) return;
 
-        TaskHelper ??= new() { TimeoutMS = int.MaxValue };
+        taskHelper ??= new() { TimeoutMS = int.MaxValue, ShowDebug = true };
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "ContentsFinderConfirm", OnAddonDraw);
 
@@ -55,7 +55,7 @@ public class Executor : IDisposable
     public uint            CurrentRound   { get; private set; }
     public int             MaxRound       { get; init; }
     public ExecutorPreset? ExecutorPreset { get; init; }
-    public string          RunningMessage => TaskHelper?.CurrentTaskName ?? string.Empty;
+    public string          RunningMessage => taskHelper?.CurrentTaskName ?? string.Empty;
     public bool            IsDisposed     { get; private set; }
 
     public bool IsFinished => CurrentRound == MaxRound;
@@ -80,9 +80,9 @@ public class Executor : IDisposable
         DService.Instance().DutyState.DutyRecommenced    -= OnDutyStarted;
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddonDraw);
 
-        TaskHelper?.Abort();
-        TaskHelper?.Dispose();
-        TaskHelper = null;
+        taskHelper?.Abort();
+        taskHelper?.Dispose();
+        taskHelper = null;
 
         IsDisposed = true;
     }
@@ -110,7 +110,7 @@ public class Executor : IDisposable
         if (ExecutorPreset == null || zone != ExecutorPreset.Zone) return;
 
         if (Service.Config.AutoRecommendGear)
-            TaskHelper.Enqueue(GameFunctions.EquipRecommendGear, "尝试切换最强装备");
+            taskHelper.Enqueue(GameFunctions.EquipRecommendGear, "尝试切换最强装备");
 
         EnqueuePreset();
     }
@@ -118,9 +118,9 @@ public class Executor : IDisposable
     // 填装预设步骤
     private void EnqueuePreset()
     {
-        TaskHelper.Enqueue(() => DService.Instance().ObjectTable.LocalPlayer != null && UIModule.IsScreenReady(), "等待区域加载结束");
+        taskHelper.Enqueue(() => DService.Instance().ObjectTable.LocalPlayer != null && UIModule.IsScreenReady(), "等待区域加载结束");
 
-        TaskHelper.Enqueue
+        taskHelper.Enqueue
         (
             () =>
             {
@@ -130,7 +130,7 @@ public class Executor : IDisposable
             "等待副本开始"
         );
 
-        foreach (var task in ExecutorPreset.GetTasks(TaskHelper))
+        foreach (var task in ExecutorPreset.GetTasks(taskHelper))
             task.Invoke();
     }
 
@@ -144,9 +144,9 @@ public class Executor : IDisposable
             EnqueueTreasureHunt();
 
         if (ExecutorPreset.DutyDelay > 0)
-            TaskHelper.DelayNext(ExecutorPreset.DutyDelay);
+            taskHelper.DelayNext(ExecutorPreset.DutyDelay);
 
-        TaskHelper.Enqueue
+        taskHelper.Enqueue
         (() =>
             {
                 GameFunctions.LeaveDuty();
@@ -160,14 +160,15 @@ public class Executor : IDisposable
 
                 if (!Service.Config.LeaderMode) return;
                 EnqueueRegDuty();
-            }
+            },
+            "副本完成, 离开副本, 进入下一局"
         );
     }
 
     // 填装进入副本
     private void EnqueueRegDuty()
     {
-        TaskHelper.Enqueue
+        taskHelper.Enqueue
         (
             () =>
             {
@@ -177,13 +178,13 @@ public class Executor : IDisposable
             "等待副本结束"
         );
 
-        TaskHelper.Enqueue
+        taskHelper.Enqueue
         (
             () => DService.Instance().ObjectTable.LocalPlayer != null && !DService.Instance().Condition[ConditionFlag.BetweenAreas],
             "等待区域加载结束"
         );
 
-        TaskHelper.Enqueue
+        taskHelper.Enqueue
         (
             () =>
             {
@@ -229,7 +230,7 @@ public class Executor : IDisposable
             data.ContentType.RowId is 4 or 5)
             setDelayTime = 2300;
 
-        TaskHelper.Enqueue
+        taskHelper.Enqueue
         (
             () =>
             {
@@ -240,7 +241,7 @@ public class Executor : IDisposable
 
                 foreach (var obj in treasures)
                 {
-                    TaskHelper.Enqueue
+                    taskHelper.Enqueue
                     (
                         () =>
                         {
@@ -250,8 +251,8 @@ public class Executor : IDisposable
                         "传送至宝箱",
                         weight: 2
                     );
-                    TaskHelper.DelayNext(setDelayTime, "等待位置确认", 2);
-                    TaskHelper.Enqueue
+                    taskHelper.DelayNext(setDelayTime, "等待位置确认", 2);
+                    taskHelper.Enqueue
                     (
                         () =>
                         {
@@ -268,20 +269,20 @@ public class Executor : IDisposable
             "搜寻宝箱中"
         );
 
-        TaskHelper.Enqueue(() => GameFunctions.Teleport(origPosition), "传送回原始位置");
+        taskHelper.Enqueue(() => GameFunctions.Teleport(origPosition), "传送回原始位置");
     }
 
     // 放弃先前任务
     private void AbortPrevious()
     {
-        TaskHelper.Abort();
+        taskHelper.Abort();
         GameFunctions.PathFindCancel();
     }
 
     public void ManualEnqueueNewRound()
     {
         AbortPrevious();
-        TaskHelper.Enqueue
+        taskHelper.Enqueue
         (() =>
             {
                 GameFunctions.LeaveDuty();
@@ -295,7 +296,8 @@ public class Executor : IDisposable
 
                 if (!Service.Config.LeaderMode) return;
                 EnqueueRegDuty();
-            }
+            },
+            "手动退出副本开启新一局"
         );
     }
 }

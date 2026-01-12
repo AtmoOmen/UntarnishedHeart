@@ -63,7 +63,8 @@ public class RouteStep : IEquatable<RouteStep>
     /// <summary>
     ///     额外ID（用于成就数和物品数条件）
     /// </summary>
-    public int ExtraId { get; set; }
+    [JsonProperty("ExtraId")]
+    public int ExtraID { get; set; }
 
     /// <summary>
     ///     条件满足时的执行逻辑
@@ -88,16 +89,13 @@ public class RouteStep : IEquatable<RouteStep>
     /// <summary>
     ///     步骤是否有效
     /// </summary>
-    [JsonIgnore] public bool IsValid
-    {
-        get =>
-            StepType switch
-            {
-                RouteStepType.SwitchPreset   => !string.IsNullOrEmpty(PresetName),
-                RouteStepType.ConditionCheck => true, // 条件判断步骤总是有效的
-                _                            => false
-            };
-    }
+    [JsonIgnore] public bool IsValid =>
+        StepType switch
+        {
+            RouteStepType.SwitchPreset   => !string.IsNullOrEmpty(PresetName),
+            RouteStepType.ConditionCheck => true, // 条件判断步骤总是有效的
+            _                            => false
+        };
 
     public bool Equals(RouteStep? other)
     {
@@ -114,7 +112,7 @@ public class RouteStep : IEquatable<RouteStep>
                ConditionType        == other.ConditionType        &&
                ComparisonType       == other.ComparisonType       &&
                ConditionValue       == other.ConditionValue       &&
-               ExtraId              == other.ExtraId              &&
+               ExtraID              == other.ExtraID              &&
                TrueAction           == other.TrueAction           &&
                TrueJumpIndex        == other.TrueJumpIndex        &&
                FalseAction          == other.FalseAction          &&
@@ -149,7 +147,7 @@ public class RouteStep : IEquatable<RouteStep>
             ConditionType        = source.ConditionType,
             ComparisonType       = source.ComparisonType,
             ConditionValue       = source.ConditionValue,
-            ExtraId              = source.ExtraId,
+            ExtraID              = source.ExtraID,
             TrueAction           = source.TrueAction,
             TrueJumpIndex        = source.TrueJumpIndex,
             FalseAction          = source.FalseAction,
@@ -172,7 +170,7 @@ public class RouteStep : IEquatable<RouteStep>
         hash.Add(ConditionType);
         hash.Add(ComparisonType);
         hash.Add(ConditionValue);
-        hash.Add(ExtraId);
+        hash.Add(ExtraID);
         hash.Add(TrueAction);
         hash.Add(TrueJumpIndex);
         hash.Add(FalseAction);

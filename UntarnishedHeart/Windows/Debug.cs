@@ -12,7 +12,7 @@ namespace UntarnishedHeart.Windows;
 
 public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisposable
 {
-    private static long lastCopyTime;
+    private static long LastCopyTime;
 
     public void Dispose()
     {
@@ -108,12 +108,12 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
             DrawTableRow("目标类型", objectKindValue);
 
             // Data ID
-            var dataIdValue = $"{target.DataID}";
-            DrawTableRow("Data ID", dataIdValue);
+            var dataIDValue = $"{target.DataID}";
+            DrawTableRow("Data ID", dataIDValue);
 
             // Entity ID
-            var entityIdValue = $"{target.EntityID}";
-            DrawTableRow("Entity ID", entityIdValue);
+            var entityIDValue = $"{target.EntityID}";
+            DrawTableRow("Entity ID", entityIDValue);
 
             // 目标位置
             var positionValue = $"{target.Position:F2}";
@@ -195,7 +195,7 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
         var camera = CameraManager.Instance()->GetActiveCamera();
         if (camera == null) return;
 
-        var success = DService.Instance().Gui.ScreenToWorld(mousePos, out var worldPos);
+        var success = DService.Instance().GameGUI.ScreenToWorld(mousePos, out var worldPos);
 
         if (success)
         {
@@ -207,10 +207,10 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
             ImGui.Spacing();
 
             if (DService.Instance().KeyState[VirtualKey.CONTROL] && DService.Instance().KeyState[VirtualKey.C] &&
-                Environment.TickCount64 - lastCopyTime > 500)
+                Environment.TickCount64 - LastCopyTime > 500)
             {
                 ImGui.SetClipboardText(coordText);
-                lastCopyTime = Environment.TickCount64;
+                LastCopyTime = Environment.TickCount64;
                 NotificationSuccess($"已复制坐标到剪贴板: <{worldPos.X:F2}, {worldPos.Y:F2}, {worldPos.Z:F2}>");
             }
 

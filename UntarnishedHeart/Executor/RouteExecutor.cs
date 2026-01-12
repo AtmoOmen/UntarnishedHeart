@@ -241,7 +241,7 @@ public class RouteExecutor : IDisposable
             return;
 
         var currentStep = Steps[CurrentStepIndex];
-
+        
         try
         {
             switch (currentStep.StepType)
@@ -316,6 +316,8 @@ public class RouteExecutor : IDisposable
 
         // 等待执行器完成
         await WaitForExecutorCompletionAsync(cancellationToken);
+        await Task.WaitForConditionAsync(() => UIModule.IsScreenReady() && GameState.ContentFinderCondition == 0);
+        await Task.Delay(1000, cancellationToken);
 
         // 预设执行完成后，根据AfterPresetAction执行相应动作
         if (State != RouteExecutorState.Error && State != RouteExecutorState.Stopped)
@@ -416,7 +418,7 @@ public class RouteExecutor : IDisposable
     /// </summary>
     private bool EvaluateCondition(RouteStep step)
     {
-        var actualValue   = GetConditionValue(step.ConditionType, step.ExtraId);
+        var actualValue   = GetConditionValue(step.ConditionType, step.ExtraID);
         var expectedValue = step.ConditionValue;
 
         return step.ComparisonType switch

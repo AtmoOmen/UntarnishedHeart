@@ -34,4 +34,11 @@
         <ProjectReference Include="..\OmenTools\OmenTools.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="DailyRoutines.CodeAnalysis" Version="2.3.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+    </ItemGroup>
+
 </Project>
