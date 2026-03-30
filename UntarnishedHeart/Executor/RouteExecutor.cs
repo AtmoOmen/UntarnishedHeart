@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using OmenTools.Dalamud;
+using OmenTools.OmenService;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Windows;
 
@@ -187,7 +184,7 @@ public class RouteExecutor : IDisposable
         catch (Exception ex)
         {
             State = RouteExecutorState.Error;
-            Chat($"路线执行出错: {ex.Message}", Main.UTHPrefix);
+            NotifyHelper.Instance().Chat($"路线执行出错: {ex.Message}");
         }
     }
 
@@ -228,7 +225,7 @@ public class RouteExecutor : IDisposable
         if (CurrentStepIndex >= Steps.Count && State == RouteExecutorState.Running)
         {
             State = RouteExecutorState.Completed;
-            Chat("路线执行完成", Main.UTHPrefix);
+            NotifyHelper.Instance().Chat("路线执行完成");
         }
     }
 
@@ -241,7 +238,7 @@ public class RouteExecutor : IDisposable
             return;
 
         var currentStep = Steps[CurrentStepIndex];
-        
+
         try
         {
             switch (currentStep.StepType)
@@ -253,7 +250,7 @@ public class RouteExecutor : IDisposable
                     ExecuteConditionCheckStep(currentStep);
                     break;
                 default:
-                    Chat($"未知的步骤类型: {currentStep.StepType}", Main.UTHPrefix);
+                    NotifyHelper.Instance().Chat($"未知的步骤类型: {currentStep.StepType}");
                     MoveToNextStep();
                     break;
             }
@@ -265,7 +262,7 @@ public class RouteExecutor : IDisposable
         catch (Exception ex)
         {
             State = RouteExecutorState.Error;
-            Chat($"执行步骤时出错: {ex.Message}", Main.UTHPrefix);
+            NotifyHelper.Instance().Chat($"执行步骤时出错: {ex.Message}");
         }
     }
 
@@ -278,7 +275,7 @@ public class RouteExecutor : IDisposable
     {
         if (string.IsNullOrEmpty(step.PresetName))
         {
-            Chat("预设名称为空，跳过此步骤", Main.UTHPrefix);
+            NotifyHelper.Instance().Chat("预设名称为空，跳过此步骤");
             MoveToNextStep();
             return;
         }
@@ -292,21 +289,21 @@ public class RouteExecutor : IDisposable
         {
             DisposeCurrentExecutor();
 
-            Chat($"无法找到有效预设: {step.PresetName}", Main.UTHPrefix);
+            NotifyHelper.Instance().Chat($"无法找到有效预设: {step.PresetName}");
             MoveToNextStep();
             return;
         }
 
         if (step.Name != currentPreset)
         {
-            Debug("预设发生变化, 重置副本计数");
+            DLog.Debug("预设发生变化, 重置副本计数");
             CompletedDutyCount = 0;
         }
 
         // 释放当前执行器
         DisposeCurrentExecutor();
 
-        Chat($"开始执行预设: {preset.Name}", Main.UTHPrefix);
+        NotifyHelper.Instance().Chat($"开始执行预设: {preset.Name}");
 
         // 创建执行器（构造函数会自动开始执行）
         CurrentExecutor = new Executor(preset, 1, step.DutyOptions);
@@ -334,13 +331,13 @@ public class RouteExecutor : IDisposable
     /// <param name="step">路线步骤</param>
     private void ExecuteConditionCheckStep(RouteStep step)
     {
-        Chat($"检查条件: {step.ConditionType.GetDescription()}", Main.UTHPrefix);
+        NotifyHelper.Instance().Chat($"检查条件: {step.ConditionType.GetDescription()}");
 
         var conditionMet = CheckCondition(step);
         var actionType   = conditionMet ? step.TrueAction : step.FalseAction;
         var jumpIndex    = conditionMet ? step.TrueJumpIndex : step.FalseJumpIndex;
 
-        Chat($"条件{(conditionMet ? "满足" : "不满足")}，执行动作: {actionType.GetDescription()}", Main.UTHPrefix);
+        NotifyHelper.Instance().Chat($"条件{(conditionMet ? "满足" : "不满足")}，执行动作: {actionType.GetDescription()}");
 
         ExecuteAction(actionType, jumpIndex);
     }
@@ -363,7 +360,7 @@ public class RouteExecutor : IDisposable
         {
             case RouteStepActionType.RepeatCurrentStep:
                 // 重复当前步骤，不改变CurrentStepIndex
-                Chat("重复当前步骤", Main.UTHPrefix);
+                NotifyHelper.Instance().Chat("重复当前步骤");
                 break;
 
             case RouteStepActionType.JumpToStep:
@@ -371,16 +368,16 @@ public class RouteExecutor : IDisposable
                 if (jumpIndex >= 0 && jumpIndex < Steps.Count)
                 {
                     CurrentStepIndex = jumpIndex;
-                    Chat($"跳转到步骤 {jumpIndex}: {Steps[jumpIndex].Name}", Main.UTHPrefix);
+                    NotifyHelper.Instance().Chat($"跳转到步骤 {jumpIndex}: {Steps[jumpIndex].Name}");
                 }
                 else
-                    Chat($"无效的跳转索引: {jumpIndex}", Main.UTHPrefix);
+                    NotifyHelper.Instance().Chat($"无效的跳转索引: {jumpIndex}");
 
                 break;
 
             case RouteStepActionType.EndRoute:
                 // 结束路线执行
-                Chat("结束路线执行", Main.UTHPrefix);
+                NotifyHelper.Instance().Chat("结束路线执行");
                 Stop();
                 break;
 
@@ -389,10 +386,10 @@ public class RouteExecutor : IDisposable
                 if (CurrentStepIndex > 0)
                 {
                     CurrentStepIndex--;
-                    Chat($"回到上一步: {Steps[CurrentStepIndex].Name}", Main.UTHPrefix);
+                    NotifyHelper.Instance().Chat($"回到上一步: {Steps[CurrentStepIndex].Name}");
                 }
                 else
-                    Chat("已经是第一步，无法回到上一步", Main.UTHPrefix);
+                    NotifyHelper.Instance().Chat("已经是第一步，无法回到上一步");
 
                 break;
 
@@ -401,11 +398,11 @@ public class RouteExecutor : IDisposable
                 if (CurrentStepIndex < Steps.Count - 1)
                 {
                     CurrentStepIndex++;
-                    Chat($"顺延到下一步: {Steps[CurrentStepIndex].Name}", Main.UTHPrefix);
+                    NotifyHelper.Instance().Chat($"顺延到下一步: {Steps[CurrentStepIndex].Name}");
                 }
                 else
                 {
-                    Chat("已经是最后一步，路线执行完成", Main.UTHPrefix);
+                    NotifyHelper.Instance().Chat("已经是最后一步，路线执行完成");
                     State = RouteExecutorState.Completed;
                 }
 
@@ -460,7 +457,7 @@ public class RouteExecutor : IDisposable
             // 检查执行器是否完成
             if (IsExecutorCompleted() && GameState.ContentFinderCondition == 0 && UIModule.IsScreenReady())
             {
-                Chat("执行器已完成", Main.UTHPrefix);
+                NotifyHelper.Instance().Chat("执行器已完成");
                 State = RouteExecutorState.Running;
                 CompletedDutyCount++;
                 break;

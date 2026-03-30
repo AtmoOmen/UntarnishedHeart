@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Text;
 using Dalamud.Game.Command;
+using OmenTools.OmenService;
 using UntarnishedHeart.Utils;
 using UntarnishedHeart.Windows;
 
@@ -9,10 +9,10 @@ namespace UntarnishedHeart.Managers;
 
 public sealed class CommandManager
 {
-    public const string MainCommand = "/uth";
+    public const string MAIN_COMMAND = "/uth";
 
-    private static readonly ConcurrentDictionary<string, CommandInfo> addedCommands = [];
-    private static readonly ConcurrentDictionary<string, CommandInfo> subCommands   = [];
+    private static readonly ConcurrentDictionary<string, CommandInfo> AddedCommands = [];
+    private static readonly ConcurrentDictionary<string, CommandInfo> SubCommands   = [];
 
     internal void Init()
     {
@@ -24,11 +24,11 @@ public sealed class CommandManager
     {
         var helpMessage = new StringBuilder("打开主界面\n");
 
-        foreach (var (command, commandInfo) in subCommands.Where(x => x.Value.ShowInHelp))
-            helpMessage.AppendLine($"{MainCommand} {command} → {commandInfo.HelpMessage}");
+        foreach (var (command, commandInfo) in SubCommands.Where(x => x.Value.ShowInHelp))
+            helpMessage.AppendLine($"{MAIN_COMMAND} {command} → {commandInfo.HelpMessage}");
 
-        RemoveCommand(MainCommand);
-        AddCommand(MainCommand, new CommandInfo(OnCommandPDR) { HelpMessage = helpMessage.ToString() }, true);
+        RemoveCommand(MAIN_COMMAND);
+        AddCommand(MAIN_COMMAND, new CommandInfo(OnCommandPDR) { HelpMessage = helpMessage.ToString() }, true);
     }
 
     public static bool AddCommand(string command, CommandInfo commandInfo, bool isForceToAdd = false)
@@ -37,7 +37,7 @@ public sealed class CommandManager
 
         RemoveCommand(command);
         DService.Instance().Command.AddHandler(command, commandInfo);
-        addedCommands[command] = commandInfo;
+        AddedCommands[command] = commandInfo;
 
         return true;
     }
@@ -47,7 +47,7 @@ public sealed class CommandManager
         if (DService.Instance().Command.Commands.ContainsKey(command))
         {
             DService.Instance().Command.RemoveHandler(command);
-            addedCommands.TryRemove(command, out _);
+            AddedCommands.TryRemove(command, out _);
             return true;
         }
 
@@ -56,16 +56,16 @@ public sealed class CommandManager
 
     public static bool AddSubCommand(string args, CommandInfo commandInfo, bool isForceToAdd = false)
     {
-        if (!isForceToAdd && subCommands.ContainsKey(args)) return false;
+        if (!isForceToAdd && SubCommands.ContainsKey(args)) return false;
 
-        subCommands[args] = commandInfo;
+        SubCommands[args] = commandInfo;
         RefreshCommandDetails();
         return true;
     }
 
     public static bool RemoveSubCommand(string args)
     {
-        if (subCommands.TryRemove(args, out _))
+        if (SubCommands.TryRemove(args, out _))
         {
             RefreshCommandDetails();
             return true;
@@ -84,30 +84,30 @@ public sealed class CommandManager
         }
 
         var spitedArgs = args.Split(' ', 2);
-        if (subCommands.TryGetValue(spitedArgs[0], out var commandInfo))
+        if (SubCommands.TryGetValue(spitedArgs[0], out var commandInfo))
             commandInfo.Handler(spitedArgs[0], spitedArgs.Length > 1 ? spitedArgs[1] : string.Empty);
         else
-            ChatError($"子命令 {spitedArgs[0]} 不存在");
+            NotifyHelper.Instance().ChatError($"子命令 {spitedArgs[0]} 不存在");
     }
 
     internal void Uninit()
     {
-        foreach (var command in addedCommands.Keys)
+        foreach (var command in AddedCommands.Keys)
             RemoveCommand(command);
 
-        addedCommands.Clear();
-        subCommands.Clear();
+        AddedCommands.Clear();
+        SubCommands.Clear();
     }
 
     private static class InternalCommands
     {
-        public const string AutoInteractCommand    = "autointeract";
-        public const string EnqueueNewRoundCommand = "newround";
+        public const string AUTO_INTERACT_COMMAND    = "autointeract";
+        public const string ENQUEUE_NEW_ROUND_COMMAND = "newround";
 
         internal static void Init()
         {
-            AddSubCommand(AutoInteractCommand,    new(OnCommandAutoInteract) { HelpMessage    = "尝试交互最近可交互物体" });
-            AddSubCommand(EnqueueNewRoundCommand, new(OnCommandEnqueueNewRound) { HelpMessage = "若当前正在运行某一预设, 则立刻退出副本并开始新一轮执行" });
+            AddSubCommand(AUTO_INTERACT_COMMAND,    new(OnCommandAutoInteract) { HelpMessage    = "尝试交互最近可交互物体" });
+            AddSubCommand(ENQUEUE_NEW_ROUND_COMMAND, new(OnCommandEnqueueNewRound) { HelpMessage = "若当前正在运行某一预设, 则立刻退出副本并开始新一轮执行" });
         }
 
         private static void OnCommandAutoInteract(string command, string args) =>

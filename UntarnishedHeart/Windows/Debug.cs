@@ -1,4 +1,3 @@
-using System;
 using System.Numerics;
 using Dalamud.Game.ClientState.Keys;
 using Dalamud.Interface.Colors;
@@ -6,11 +5,13 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using Lumina.Excel.Sheets;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 using Status = Lumina.Excel.Sheets.Status;
 
 namespace UntarnishedHeart.Windows;
 
-public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisposable
+public class Debug() : Window($"调试窗口###{Plugin.PLUGIN_NAME}-DebugWindow"), IDisposable
 {
     private static long LastCopyTime;
 
@@ -206,18 +207,19 @@ public class Debug() : Window($"调试窗口###{PluginName}-DebugWindow"), IDisp
 
             ImGui.Spacing();
 
-            if (DService.Instance().KeyState[VirtualKey.CONTROL] && DService.Instance().KeyState[VirtualKey.C] &&
+            if (DService.Instance().KeyState[VirtualKey.CONTROL] &&
+                DService.Instance().KeyState[VirtualKey.C]       &&
                 Environment.TickCount64 - LastCopyTime > 500)
             {
                 ImGui.SetClipboardText(coordText);
                 LastCopyTime = Environment.TickCount64;
-                NotificationSuccess($"已复制坐标到剪贴板: <{worldPos.X:F2}, {worldPos.Y:F2}, {worldPos.Z:F2}>");
+                NotifyHelper.Instance().NotificationSuccess($"已复制坐标到剪贴板: <{worldPos.X:F2}, {worldPos.Y:F2}, {worldPos.Z:F2}>");
             }
 
             if (ImGui.Button("复制 (Ctrl + C)"))
             {
                 ImGui.SetClipboardText(coordText);
-                NotificationSuccess($"已复制坐标到剪贴板: <{worldPos.X:F2}, {worldPos.Y:F2}, {worldPos.Z:F2}>");
+                NotifyHelper.Instance().NotificationSuccess($"已复制坐标到剪贴板: <{worldPos.X:F2}, {worldPos.Y:F2}, {worldPos.Z:F2}>");
             }
 
             ImGui.Spacing();

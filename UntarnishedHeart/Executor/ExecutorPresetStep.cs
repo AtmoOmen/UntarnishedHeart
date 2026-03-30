@@ -1,14 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Interface.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using OmenTools.OmenService;
+using OmenTools.Threading;
+using OmenTools.Threading.TaskHelper;
 using UntarnishedHeart.Utils;
 using UntarnishedHeart.Windows;
+using Control = System.Windows.Forms.Control;
 
 namespace UntarnishedHeart.Executor;
 
@@ -161,14 +162,14 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                             if (TryParsePosition(clipboardText, out var parsedPosition))
                             {
                                 Position = parsedPosition;
-                                Chat($"已从剪贴板读取坐标: <{parsedPosition.X:F2}, {parsedPosition.Y:F2}, {parsedPosition.Z:F2}>", Main.UTHPrefix);
+                                NotifyHelper.Instance().Chat($"已从剪贴板读取坐标: <{parsedPosition.X:F2}, {parsedPosition.Y:F2}, {parsedPosition.Z:F2}>");
                             }
                             else
-                                Chat("剪贴板内容格式不正确，期望格式: X: -0.41, Y: 0.00, Z: 5.46", Main.UTHPrefix);
+                                NotifyHelper.Instance().Chat("剪贴板内容格式不正确，期望格式: X: -0.41, Y: 0.00, Z: 5.46");
                         }
                         catch (Exception ex)
                         {
-                            Chat($"读取剪贴板失败: {ex.Message}", Main.UTHPrefix);
+                            NotifyHelper.Instance().Chat($"读取剪贴板失败: {ex.Message}");
                         }
                     }
 
@@ -437,7 +438,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
             () => t.Enqueue(() => !StopInCombat || !DService.Instance().Condition[ConditionFlag.InCombat], $"检查进战状态: {Note}"),
 
             // 检查忙碌状态
-            () => t.Enqueue(() => !StopWhenBusy || !OccupiedInEvent && UIModule.IsScreenReady(), $"检查忙碌状态: {Note}"),
+            () => t.Enqueue(() => !StopWhenBusy || !DService.Instance().Condition.IsOccupiedInEvent && UIModule.IsScreenReady(), $"检查忙碌状态: {Note}"),
 
             // 执行移动
             () => t.Enqueue
@@ -475,7 +476,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                     if (Position == default || !WaitForGetClose) return true;
 
                     if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
-                    if (!Throttler.Throttle("接近目标位置节流")) return false;
+                    if (!Throttler.Shared.Throttle("接近目标位置节流")) return false;
 
                     return Vector2.DistanceSquared(localPlayer.Position.ToVector2(), Position.ToVector2()) <= 4;
                 },
@@ -488,7 +489,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 () =>
                 {
                     if (DataID == 0 || !WaitForTargetSpawn) return true;
-                    if (!Throttler.Throttle("等待目标生成节流")) return false;
+                    if (!Throttler.Shared.Throttle("等待目标生成节流")) return false;
 
                     return FindObject() != null;
                 },
@@ -501,7 +502,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 () =>
                 {
                     if (DataID == 0 || !WaitForTarget) return true;
-                    if (!Throttler.Throttle("选中目标节流")) return false;
+                    if (!Throttler.Shared.Throttle("选中目标节流")) return false;
 
                     TargetObject();
                     return TargetSystem.Instance()->Target != null;
@@ -529,7 +530,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                 if (!InteractWithTarget) return;
                 t.DelayNext(200, $"延迟 200 毫秒, 等待交互开始: {Note}");
             },
-            () => t.Enqueue(() => !InteractWithTarget || !OccupiedInEvent && UIModule.IsScreenReady(), $"等待目标交互完成: {Note}"),
+            () => t.Enqueue(() => !InteractWithTarget || !DService.Instance().Condition.IsOccupiedInEvent && UIModule.IsScreenReady(), $"等待目标交互完成: {Note}"),
 
             // 执行文本指令
             () =>
@@ -539,7 +540,7 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
                     EnqueueTextCommands();
                 else
                 {
-                    t.Enqueue(() => Control.GetLocalPlayer() != null, $"执行文本指令时本地玩家不能为空: {Note}");
+                    t.Enqueue(() => DService.Instance().ObjectTable.LocalPlayer != null, $"执行文本指令时本地玩家不能为空: {Note}");
                     t.Enqueue
                     (
                         () =>
@@ -612,7 +613,8 @@ public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 
     public IGameObject? FindObject() =>
         DService.Instance().ObjectTable.FirstOrDefault
-        (x => x.ObjectKind == ObjectKind && x.DataID == DataID &&
+        (x => x.ObjectKind == ObjectKind &&
+              x.DataID     == DataID     &&
               (!TargetNeedTargetable || x.IsTargetable)
         );
 

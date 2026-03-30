@@ -1,5 +1,5 @@
-using System.Linq;
 using Dalamud.Interface.Windowing;
+using OmenTools.OmenService;
 using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Managers;
@@ -10,7 +10,7 @@ public class WindowManager
 
     internal void Init()
     {
-        WindowSystem ??= new WindowSystem(PluginName);
+        WindowSystem ??= new WindowSystem(Plugin.PLUGIN_NAME);
         WindowSystem.RemoveAllWindows();
 
         InternalWindows.Init();
@@ -21,7 +21,7 @@ public class WindowManager
 
     private static void DrawWindows()
     {
-        using var font = FontManager.Instance().UIFont.Push();
+        using var font = FontManager.Instance().UIFont80.Push();
         WindowSystem?.Draw();
     }
 

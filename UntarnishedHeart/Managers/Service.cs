@@ -1,4 +1,7 @@
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin;
+using OmenTools.OmenService;
 using UntarnishedHeart.Utils;
 
 namespace UntarnishedHeart.Managers;
@@ -16,6 +19,13 @@ public class Service
 
         Config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         Config.Init();
+
+        var notifyHelper = NotifyHelper.Instance();
+        notifyHelper.ChatPrefix = new SeStringBuilder()
+                                  .AddUiForeground(SeIconChar.BoxedLetterU.ToIconString(), 31)
+                                  .AddUiForeground(SeIconChar.BoxedLetterT.ToIconString(), 31)
+                                  .AddUiForeground(SeIconChar.BoxedLetterH.ToIconString(), 31)
+                                  .Build();
 
         GameFunctions.Init();
 

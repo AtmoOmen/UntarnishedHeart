@@ -1,10 +1,9 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using Dalamud.Interface.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using OmenTools.OmenService;
+using Control = System.Windows.Forms.Control;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
 namespace UntarnishedHeart.Executor;
@@ -327,7 +326,7 @@ public class CommandSingleCondition
                     CommandTargetType.Target => TargetManager.Target is IBattleChara { ObjectKind: ObjectKind.BattleNpc or ObjectKind.Player } target
                                                     ? target.ToBCStruct()->StatusManager.HasStatus(statusID)
                                                     : null,
-                    CommandTargetType.Self => Control.GetLocalPlayer()->StatusManager.HasStatus(statusID),
+                    CommandTargetType.Self => LocalPlayerState.HasStatus(statusID, out _),
                     _                      => null
                 };
                 if (hasStatus == null) return false;

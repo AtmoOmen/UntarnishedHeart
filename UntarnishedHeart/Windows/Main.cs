@@ -1,14 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.Text;
-using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 using UntarnishedHeart.Executor;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Utils;
@@ -16,9 +13,9 @@ using ContentsFinder = FFXIVClientStructs.FFXIV.Client.Game.UI.ContentsFinder;
 
 namespace UntarnishedHeart.Windows;
 
-public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-MainWindow"), IDisposable
+public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.PLUGIN_NAME}-MainWindow"), IDisposable
 {
-    public static readonly Dictionary<ContentsFinder.LootRule, string> LootRuleLOC = new()
+    public static readonly Dictionary<ContentsFinder.LootRule, string> LootRuleLoc = new()
     {
         [ContentsFinder.LootRule.Normal]     = "通常",
         [ContentsFinder.LootRule.GreedOnly]  = "仅限贪婪",
@@ -35,12 +32,6 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
     private static int                SelectedRouteIndex;
     public static  Executor.Executor? PresetExecutor { get; private set; }
     public static  RouteExecutor?     RouteExecutor  { get; private set; }
-
-    public static SeString UTHPrefix { get; } = new SeStringBuilder()
-                                                .AddUiForeground(SeIconChar.BoxedLetterU.ToIconString(), 31)
-                                                .AddUiForeground(SeIconChar.BoxedLetterT.ToIconString(), 31)
-                                                .AddUiForeground(SeIconChar.BoxedLetterH.ToIconString(), 31)
-                                                .AddUiForegroundOff().Build();
 
     public void Dispose()
     {
@@ -59,9 +50,9 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
 
         if (Service.Config.Presets.Count == 0)
         {
-            Service.Config.Presets.Add(Configuration.ExamplePreset0);
-            Service.Config.Presets.Add(Configuration.ExamplePreset1);
-            Service.Config.Presets.Add(Configuration.ExamplePreset2);
+            Service.Config.Presets.Add(ExecutorPreset.ExamplePreset0);
+            Service.Config.Presets.Add(ExecutorPreset.ExamplePreset1);
+            Service.Config.Presets.Add(ExecutorPreset.ExamplePreset2);
             Service.Config.Save();
         }
 
@@ -99,7 +90,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                     ImGui.Separator();
                     ImGui.Spacing();
 
-                    using (ImRaii.Disabled(PresetExecutor is { IsDisposed: false } || BetweenAreas))
+                    using (ImRaii.Disabled(PresetExecutor is { IsDisposed: false } || DService.Instance().Condition.IsBetweenAreas))
                     {
                         if (ImGuiOm.ButtonSelectable("开始"))
                         {
@@ -136,7 +127,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
                     ImGui.Separator();
                     ImGui.Spacing();
 
-                    using (ImRaii.Disabled(RouteExecutor is { IsRunning: true } || BetweenAreas))
+                    using (ImRaii.Disabled(RouteExecutor is { IsRunning: true } || DService.Instance().Condition.IsBetweenAreas))
                     {
                         if (ImGuiOm.ButtonSelectable("开始路线"))
                         {
@@ -378,7 +369,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
             var lootRule = Service.Config.ContentsFinderOption.LootRules;
             var isFirst  = true;
 
-            foreach (var (loot, loc) in LootRuleLOC)
+            foreach (var (loot, loc) in LootRuleLoc)
             {
                 if (!isFirst)
                     ImGui.SameLine();
@@ -482,7 +473,7 @@ public class Main() : Window($"{PluginName} {Plugin.Version}###{PluginName}-Main
         if (ImGui.Button("停止寻路"))
         {
             GameFunctions.PathFindCancel();
-            Chat("已停止寻路", UTHPrefix);
+            NotifyHelper.Instance().Chat("已停止寻路");
         }
 
         ImGuiOm.TooltipHover("立即停止当前的寻路任务");

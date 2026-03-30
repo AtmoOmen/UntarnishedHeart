@@ -1,5 +1,5 @@
-using System;
 using Newtonsoft.Json;
+using OmenTools.Interop.Game.Helpers;
 
 namespace UntarnishedHeart.Executor;
 
@@ -89,7 +89,8 @@ public class RouteStep : IEquatable<RouteStep>
     /// <summary>
     ///     步骤是否有效
     /// </summary>
-    [JsonIgnore] public bool IsValid =>
+    [JsonIgnore]
+    public bool IsValid =>
         StepType switch
         {
             RouteStepType.SwitchPreset   => !string.IsNullOrEmpty(PresetName),

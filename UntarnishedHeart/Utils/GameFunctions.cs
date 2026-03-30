@@ -1,9 +1,13 @@
-using System;
 using System.Numerics;
-using System.Threading;
-using System.Windows.Forms;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
+using OmenTools.Dalamud;
+using OmenTools.Info.Game.Enums;
+using OmenTools.Interop.Game;
+using OmenTools.Interop.Windows.Helpers;
+using OmenTools.OmenService;
+using OmenTools.Threading;
+using OmenTools.Threading.TaskHelper;
 using UntarnishedHeart.Windows;
 using Task = System.Threading.Tasks.Task;
 
@@ -13,7 +17,8 @@ public static class GameFunctions
 {
     private static TaskHelper? TaskHelper;
 
-    internal static PathFindHelper?          PathFinder;
+    internal static MovementInputController? MovementInputController;
+
     internal static Task?                    PathFindTask;
     internal static CancellationTokenSource? PathFindCancelSource;
 
@@ -23,8 +28,7 @@ public static class GameFunctions
 
     public static void Init()
     {
-        PathFinder ??= new();
-        vnavmeshIPC.Init();
+        MovementInputController ??= new();
 
         TaskHelper ??= new() { TimeoutMS = int.MaxValue };
     }
@@ -42,10 +46,8 @@ public static class GameFunctions
         PathFindTask?.Dispose();
         PathFindTask = null;
 
-        vnavmeshIPC.Uninit();
-
-        PathFinder?.Dispose();
-        PathFinder = null;
+        MovementInputController?.Dispose();
+        MovementInputController = null;
     }
 
     public static unsafe void Teleport(Vector3 pos)
@@ -56,7 +58,7 @@ public static class GameFunctions
             {
                 if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
                 localPlayer.ToStruct()->SetPosition(pos.X, pos.Y, pos.Z);
-                SendKeypress(Keys.W);
+                KeyEmulationHelper.SendKeypress(Keys.W);
                 return true;
             }
         );
@@ -71,9 +73,9 @@ public static class GameFunctions
         LastTargetPos = pos;
         LastFly       = false;
 
-        if (PathFinder is null)
+        if (MovementInputController is null)
         {
-            Chat("PathFindHelper未初始化", Main.UTHPrefix);
+            NotifyHelper.Instance().Chat("PathFindHelper未初始化");
             return;
         }
 
@@ -82,7 +84,7 @@ public static class GameFunctions
         TaskHelper.Enqueue
         (() =>
             {
-                if (!Throttler.Throttle("寻路节流")) return false;
+                if (!Throttler.Shared.Throttle("寻路节流")) return false;
 
                 PathFindTask ??= DService.Instance().Framework.RunOnTick
                 (
@@ -99,11 +101,11 @@ public static class GameFunctions
 
     private static async Task PathFindInternalTask(Vector3 targetPos)
     {
-        if (PathFinder is null)
+        if (MovementInputController is null)
             return;
 
-        PathFinder.DesiredPosition = targetPos;
-        PathFinder.Enabled         = true;
+        MovementInputController.DesiredPosition = targetPos;
+        MovementInputController.Enabled         = true;
 
         while (true)
         {
@@ -115,8 +117,8 @@ public static class GameFunctions
             await Task.Delay(500);
         }
 
-        PathFinder.Enabled         = false;
-        PathFinder.DesiredPosition = default;
+        MovementInputController.Enabled         = false;
+        MovementInputController.DesiredPosition = default;
     }
 
     /// <summary>
@@ -133,11 +135,11 @@ public static class GameFunctions
         TaskHelper.Enqueue
         (() =>
             {
-                if (!Throttler.Throttle("寻路节流")) return false;
+                if (!Throttler.Shared.Throttle("寻路节流")) return false;
 
                 PathFindTask ??= DService.Instance().Framework.RunOnTick
                 (
-                    async () => await Task.Run(async () => await vnavmeshMoveTask(pos, fly), PathFindCancelSource.Token),
+                    async () => await Task.Run(async () => await NavmeshMoveTask(pos, fly), PathFindCancelSource.Token),
                     TimeSpan.Zero,
                     0,
                     PathFindCancelSource.Token
@@ -161,31 +163,31 @@ public static class GameFunctions
         }
         catch (Exception ex)
         {
-            Chat($"取消寻路 Token 时出错: {ex.Message}", Main.UTHPrefix);
+            NotifyHelper.Instance().Chat($"取消寻路 Token 时出错: {ex.Message}");
         }
 
         // Stop PathFinder
-        if (PathFinder != null)
+        if (MovementInputController != null)
         {
             try
             {
-                PathFinder.Enabled         = false;
-                PathFinder.DesiredPosition = default;
+                MovementInputController.Enabled         = false;
+                MovementInputController.DesiredPosition = default;
             }
             catch (Exception ex)
             {
-                Chat($"停止 PathFinder 时出错: {ex.Message}", Main.UTHPrefix);
+                NotifyHelper.Instance().ChatError($"停止 MovementInputController 时出错: {ex.Message}");
             }
         }
 
         // Stop vnavmesh
         try
         {
-            vnavmeshIPC.PathStop();
+            vnavmeshIPC.StopPathfind();
         }
         catch (Exception ex)
         {
-            Chat($"停止 vnavmesh 时出错: {ex.Message}", Main.UTHPrefix);
+            NotifyHelper.Instance().ChatError($"停止 vnavmesh 时出错: {ex.Message}");
         }
 
         PathFindCancelSource?.Dispose();
@@ -210,7 +212,7 @@ public static class GameFunctions
                 break;
             case PathMoveMode.None:
             default:
-                Chat("没有可恢复的寻路任务", Main.UTHPrefix);
+                NotifyHelper.Instance().Chat("没有可恢复的寻路任务");
                 break;
         }
     }
@@ -218,22 +220,22 @@ public static class GameFunctions
     /// <summary>
     ///     vnavmeshIPC 移动任务
     /// </summary>
-    private static async Task vnavmeshMoveTask(Vector3 targetPos, bool fly)
+    private static async Task NavmeshMoveTask(Vector3 targetPos, bool fly)
     {
         // 等待 vnavmesh 准备就绪
         var timeout = DateTime.Now.AddSeconds(10);
-        while (!vnavmeshIPC.NavIsReady() && DateTime.Now < timeout)
+        while (!vnavmeshIPC.GetIsNavReady() && DateTime.Now < timeout)
             await Task.Delay(100);
 
-        if (!vnavmeshIPC.NavIsReady())
+        if (!vnavmeshIPC.GetIsNavReady())
         {
-            Chat("vnavmesh 未准备就绪", Main.UTHPrefix);
+            NotifyHelper.Instance().ChatError("vnavmesh 未准备就绪");
             return;
         }
 
         if (!vnavmeshIPC.PathfindAndMoveTo(targetPos, fly))
         {
-            Chat("vnavmesh 寻路启动失败", Main.UTHPrefix);
+            NotifyHelper.Instance().ChatError("vnavmesh 寻路启动失败");
             return;
         }
 
@@ -253,19 +255,19 @@ public static class GameFunctions
 
             if (distance <= 2f)
             {
-                vnavmeshIPC.PathStop();
+                vnavmeshIPC.StopPathfind();
                 break;
             }
 
             // check vnav status
-            if (!vnavmeshIPC.PathIsRunning() && !vnavmeshIPC.PathIsGenerating())
+            if (!vnavmeshIPC.GetIsPathfindRunning() && !vnavmeshIPC.GetIsNavPathfindInProgress())
             {
                 await Task.Delay(500);
 
                 distance = Vector3.Distance(localPlayer.Position, targetPos);
                 if (distance <= 2f) break;
 
-                Chat($"vnavmesh 寻路结束但未到达目标，距离: {distance:F2}米", Main.UTHPrefix);
+                NotifyHelper.Instance().Chat($"vnavmesh 寻路结束但未到达目标，距离: {distance:F2}米");
                 break;
             }
 

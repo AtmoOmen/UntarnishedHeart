@@ -1,44 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<Project Sdk="Dalamud.CN.NET.Sdk/14.0.1">
+<Project Sdk="Dalamud.CN.NET.Sdk/14.0.2">
     <PropertyGroup>
         <Authors>AtmoOmen</Authors>
         <Version>0.3.9.0</Version>
         <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
-        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <PropertyGroup>
-        <Nullable>enable</Nullable>
-        <LangVersion>latest</LangVersion>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
-        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <UseWindowsForms>true</UseWindowsForms>
+        <ImplicitUsings>true</ImplicitUsings>
         <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-        <PlatformTarget>AnyCPU</PlatformTarget>
-        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
         <BaseOutputPath>$(SolutionDir)bin</BaseOutputPath>
-        <NoWarn>1701;1702;CS0414;CS8601;CS8602;CS8604;CS8603;IDE1006;IDE0300;MSB3270;MSB324;CS0649</NoWarn>
-        <DebugSymbols>false</DebugSymbols>
+        <SatelliteResourceLanguages>xxx</SatelliteResourceLanguages>
+        <NoWarn>1701;1702;CS0414;CS8601;CS8602;CS8604;CS8603;IDE1006;IDE0300;MSB3270;MSB324;CS0649;CA2211;CS8509;CS8625;MSB3305;CS8618;CS8600;CS8605;CS8620</NoWarn>
         <DebugType>none</DebugType>
+        <DebugSymbols>false</DebugSymbols>
+        <Optimize>True</Optimize>
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Remove="bin\**"/>
-        <EmbeddedResource Remove="bin\**"/>
-        <None Remove="bin\**"/>
-    </ItemGroup>
+        <PackageReference Include="DailyRoutines.CodeAnalysis" Version="2.3.0"
+                          PrivateAssets="all"
+                          IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive"/>
 
-    <ItemGroup>
         <ProjectReference Include="..\OmenTools\OmenTools.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="DailyRoutines.CodeAnalysis" Version="2.3.0">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
+      <Folder Include="Info\" />
     </ItemGroup>
 
 </Project>

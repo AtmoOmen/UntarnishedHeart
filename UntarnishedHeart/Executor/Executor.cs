@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
@@ -7,6 +5,11 @@ using Dalamud.Game.ClientState.Objects.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
+using OmenTools.Interop.Game.Helpers;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
+using OmenTools.Threading;
+using OmenTools.Threading.TaskHelper;
 using UntarnishedHeart.Managers;
 using UntarnishedHeart.Utils;
 using UntarnishedHeart.Windows;
@@ -48,7 +51,7 @@ public class Executor : IDisposable
 
         if (DService.Instance().ClientState.TerritoryType == ExecutorPreset.Zone)
             OnDutyStarted(null, DService.Instance().ClientState.TerritoryType);
-        else if (!OccupiedInEvent && Service.Config.LeaderMode)
+        else if (!DService.Instance().Condition.IsOccupiedInEvent && Service.Config.LeaderMode)
             EnqueueRegDuty();
     }
 
@@ -90,7 +93,7 @@ public class Executor : IDisposable
     // 自动确认进入副本
     private static unsafe void OnAddonDraw(AddonEvent type, AddonArgs args)
     {
-        if (!Throttler.Throttle("自动确认进入副本节流")) return;
+        if (!Throttler.Shared.Throttle("自动确认进入副本节流")) return;
 
         if (args.Addon == nint.Zero) return;
         args.Addon.ToStruct()->Callback(8);
@@ -124,7 +127,7 @@ public class Executor : IDisposable
         (
             () =>
             {
-                if (!Throttler.Throttle("等待副本开始节流")) return false;
+                if (!Throttler.Shared.Throttle("等待副本开始节流")) return false;
                 return DService.Instance().DutyState.IsDutyStarted;
             },
             "等待副本开始"
@@ -147,7 +150,8 @@ public class Executor : IDisposable
             taskHelper.DelayNext(ExecutorPreset.DutyDelay);
 
         taskHelper.Enqueue
-        (() =>
+        (
+            () =>
             {
                 GameFunctions.LeaveDuty();
                 CurrentRound++;
@@ -172,7 +176,7 @@ public class Executor : IDisposable
         (
             () =>
             {
-                if (!Throttler.Throttle("等待副本结束节流")) return false;
+                if (!Throttler.Shared.Throttle("等待副本结束节流")) return false;
                 return !DService.Instance().DutyState.IsDutyStarted && DService.Instance().ClientState.TerritoryType != ExecutorPreset.Zone;
             },
             "等待副本结束"
@@ -191,7 +195,7 @@ public class Executor : IDisposable
                 if (DService.Instance().Condition.Any(ConditionFlag.WaitingForDutyFinder, ConditionFlag.WaitingForDuty, ConditionFlag.InDutyQueue))
                     return true;
 
-                if (!Throttler.Throttle("进入副本节流", 2000)) return false;
+                if (!Throttler.Shared.Throttle("进入副本节流", 2000)) return false;
                 if (!LuminaGetter.TryGetRow<TerritoryType>(ExecutorPreset.Zone, out var zone)) return false;
 
                 switch (ContentEntryType)
@@ -205,7 +209,7 @@ public class Executor : IDisposable
 
                         if (supportRow.RowId == 0)
                         {
-                            Chat("无法找到对应的剧情辅助器副本, 请检查修正后重新运行", Main.UTHPrefix);
+                            NotifyHelper.Instance().Chat("无法找到对应的剧情辅助器副本, 请检查修正后重新运行");
                             return true;
                         }
 
@@ -256,7 +260,7 @@ public class Executor : IDisposable
                     (
                         () =>
                         {
-                            if (!Throttler.Throttle("交互宝箱节流")) return false;
+                            if (!Throttler.Shared.Throttle("交互宝箱节流")) return false;
                             return obj.TargetInteract();
                         },
                         "与宝箱交互",
@@ -283,7 +287,8 @@ public class Executor : IDisposable
     {
         AbortPrevious();
         taskHelper.Enqueue
-        (() =>
+        (
+            () =>
             {
                 GameFunctions.LeaveDuty();
                 CurrentRound++;

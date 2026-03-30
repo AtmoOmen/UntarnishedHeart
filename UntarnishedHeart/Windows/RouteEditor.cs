@@ -1,16 +1,17 @@
-using System;
 using System.Numerics;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 using UntarnishedHeart.Executor;
 using UntarnishedHeart.Managers;
 using Achievement = Lumina.Excel.Sheets.Achievement;
 
 namespace UntarnishedHeart.Windows;
 
-public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
+public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-RouteEditor", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
 {
     private static int        SelectedRouteIndex;
     private static int        DraggedStepIndex = -1;
@@ -489,7 +490,7 @@ public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor
                     if (ImGui.InputInt("###ExtraId", ref extraID))
                         step.ExtraID = extraID;
 
-                    if(extraID != 0)
+                    if (extraID != 0)
                     {
                         switch (step.ConditionType)
                         {
@@ -498,7 +499,7 @@ public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor
                                 ImGui.TextUnformatted($"{achievementRow.Name}");
                                 ImGuiOm.TooltipHover($"{achievementRow.Description}");
                                 break;
-                            
+
                             case ConditionType.ItemCount when LuminaGetter.TryGetRow((uint)extraID, out Item itemRow):
                                 ImGui.SameLine();
                                 ImGui.TextUnformatted($"{itemRow.Name}");
@@ -651,7 +652,7 @@ public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor
             var lootRule = option.LootRules;
             var isFirst  = true;
 
-            foreach (var (loot, loc) in Main.LootRuleLOC)
+            foreach (var (loot, loc) in Main.LootRuleLoc)
             {
                 if (!isFirst)
                     ImGui.SameLine();
@@ -693,7 +694,7 @@ public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor
         }
         catch (Exception ex)
         {
-            Chat($"导入路线失败: {ex.Message}", Main.UTHPrefix);
+            NotifyHelper.Instance().Chat($"导入路线失败: {ex.Message}");
             return null;
         }
     }
@@ -705,11 +706,11 @@ public class RouteEditor() : Window($"路线编辑器###{PluginName}-RouteEditor
             var json = JsonConvert.SerializeObject(route, Formatting.Indented);
             ImGui.SetClipboardText(json);
 
-            Chat("路线已导出到剪贴板", Main.UTHPrefix);
+            NotifyHelper.Instance().Chat("路线已导出到剪贴板");
         }
         catch (Exception ex)
         {
-            Chat($"导出路线失败: {ex.Message}", Main.UTHPrefix);
+            NotifyHelper.Instance().Chat($"导出路线失败: {ex.Message}");
         }
     }
 

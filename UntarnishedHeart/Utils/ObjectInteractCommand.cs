@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using OmenTools.Threading.TaskHelper;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
 
@@ -28,7 +26,8 @@ public static unsafe class AutoObjectInteract
 
         var nearestObj = DService.Instance().ObjectTable.Where
                                  (x => x is { IsTargetable: true, IsDead: false }    &&
-                                       ValidInteractableKinds.Contains(x.ObjectKind) && x.IsValid()
+                                       ValidInteractableKinds.Contains(x.ObjectKind) &&
+                                       x.IsValid()
                                  )
                                  .Select
                                  (x => new
@@ -53,7 +52,7 @@ public static unsafe class AutoObjectInteract
         (
             () =>
             {
-                if (IsOnMount() || OccupiedInEvent) return false;
+                if (IsOnMount() || DService.Instance().Condition.IsOccupiedInEvent) return false;
 
                 return nearestObj.Object.TargetInteract();
             },

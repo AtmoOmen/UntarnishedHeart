@@ -1,12 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.Text;
-using System.Windows.Forms;
 using Dalamud.Interface.Utility;
 using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
+using OmenTools.ImGuiOm.Widgets.Combos;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
+using OmenTools.Threading.TaskHelper;
+using UntarnishedHeart.Utils;
 using UntarnishedHeart.Windows;
 using Action = System.Action;
 
@@ -14,19 +15,27 @@ namespace UntarnishedHeart.Executor;
 
 public class ExecutorPreset : IEquatable<ExecutorPreset>
 {
-    private int CurrentStep = -1;
-
-    private ExecutorPresetStep? StepToCopy;
-
-    private string                   ZoneSearchInput = string.Empty;
     public  string                   Name              { get; set; } = string.Empty;
     public  string                   Remark            { get; set; } = string.Empty;
     public  ushort                   Zone              { get; set; }
     public  List<ExecutorPresetStep> Steps             { get; set; } = [];
     public  bool                     AutoOpenTreasures { get; set; }
     public  int                      DutyDelay         { get; set; } = 500;
-
+    
     public bool IsValid => Zone != 0 && Steps.Count > 0 && Main.ZonePlaceNames.ContainsKey(Zone);
+    
+    private int                 currentStep = -1;
+    private ExecutorPresetStep? stepToCopy;
+
+    private readonly ContentSelectCombo contentCombo;
+
+    public ExecutorPreset()
+    {
+        contentCombo = new(ToString())
+        {
+            SelectedID = LuminaGetter.GetRow<TerritoryType>(Zone)?.ContentFinderCondition.RowId ?? 0
+        };
+    }
 
     public bool Equals(ExecutorPreset? other)
     {
@@ -79,10 +88,9 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         ImGui.AlignTextToFramePadding();
         ImGui.Text("副本区域:");
         ImGui.TableSetColumnIndex(1);
-        var zone = (uint)Zone;
         ImGui.SetNextItemWidth(350f * ImGuiHelpers.GlobalScale);
-        if (ContentSelectCombo(ref zone, ref ZoneSearchInput))
-            Zone = (ushort)zone;
+        if (contentCombo.DrawRadio())
+            Zone = (ushort)contentCombo.SelectedItem.TerritoryType.RowId;
         ImGui.SameLine();
         if (ImGuiOm.ButtonIcon("GetZone", FontAwesomeIcon.MapMarkedAlt, "取当前区域", true))
             Zone = DService.Instance().ClientState.TerritoryType;
@@ -131,9 +139,9 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
     private unsafe void DrawStepInfo()
     {
         if (Steps.Count == 0)
-            CurrentStep = -1;
-        else if (CurrentStep >= Steps.Count)
-            CurrentStep = Steps.Count - 1;
+            currentStep = -1;
+        else if (currentStep >= Steps.Count)
+            currentStep = Steps.Count - 1;
 
         using var table = ImRaii.Table("PresetStepsTable", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV);
         if (!table) return;
@@ -156,8 +164,8 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                     var step     = Steps[i];
                     var stepName = $"{i}. {step.Note}" + (step.Delay > 0 ? $" ({(float)step.Delay / 1000:F2}s)" : string.Empty);
 
-                    if (ImGui.Selectable(stepName, i == CurrentStep, ImGuiSelectableFlags.AllowDoubleClick))
-                        CurrentStep = i;
+                    if (ImGui.Selectable(stepName, i == currentStep, ImGuiSelectableFlags.AllowDoubleClick))
+                        currentStep = i;
 
                     if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
                     {
@@ -178,10 +186,10 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                             {
                                 (Steps[sourceIndex], Steps[i]) = (Steps[i], Steps[sourceIndex]);
 
-                                if (CurrentStep == sourceIndex)
-                                    CurrentStep = i;
-                                else if (CurrentStep == i)
-                                    CurrentStep = sourceIndex;
+                                if (currentStep == sourceIndex)
+                                    currentStep = i;
+                                else if (currentStep == i)
+                                    currentStep = sourceIndex;
                             }
                         }
 
@@ -199,14 +207,14 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
         {
             if (child)
             {
-                if (CurrentStep < 0 || CurrentStep >= Steps.Count)
+                if (currentStep < 0 || currentStep >= Steps.Count)
                 {
                     ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1f), "请选择一个步骤进行编辑");
                     return;
                 }
 
-                var step = Steps[CurrentStep];
-                step.Draw(ref CurrentStep, Steps);
+                var step = Steps[currentStep];
+                step.Draw(ref currentStep, Steps);
             }
         }
 
@@ -227,9 +235,9 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             ImGui.Separator();
 
             if (ImGui.MenuItem("复制"))
-                StepToCopy = ExecutorPresetStep.Copy(step);
+                stepToCopy = ExecutorPresetStep.Copy(step);
 
-            if (StepToCopy != null)
+            if (stepToCopy != null)
             {
                 using (ImRaii.Group())
                 {
@@ -243,7 +251,7 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                         contextOperation = StepOperationType.PasteDown;
                 }
 
-                ImGuiOm.TooltipHover($"已复制步骤: {StepToCopy.Note}");
+                ImGuiOm.TooltipHover($"已复制步骤: {stepToCopy.Note}");
             }
 
             if (ImGui.MenuItem("删除"))
@@ -281,46 +289,46 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
                 {
                     var index = i + 1;
                     Steps.Swap(i, index);
-                    CurrentStep = index;
+                    currentStep = index;
                 },
                 StepOperationType.MoveUp => () =>
                 {
                     var index = i - 1;
                     Steps.Swap(i, index);
-                    CurrentStep = index;
+                    currentStep = index;
                 },
                 StepOperationType.Pass => () => { },
                 StepOperationType.Paste => () =>
                 {
-                    Steps[i]    = ExecutorPresetStep.Copy(StepToCopy);
-                    CurrentStep = i;
+                    Steps[i]    = ExecutorPresetStep.Copy(stepToCopy);
+                    currentStep = i;
                 },
                 StepOperationType.PasteUp => () =>
                 {
-                    Steps.Insert(i, ExecutorPresetStep.Copy(StepToCopy));
-                    CurrentStep = i;
+                    Steps.Insert(i, ExecutorPresetStep.Copy(stepToCopy));
+                    currentStep = i;
                 },
                 StepOperationType.PasteDown => () =>
                 {
                     var index = i + 1;
-                    Steps.Insert(index, ExecutorPresetStep.Copy(StepToCopy));
-                    CurrentStep = index;
+                    Steps.Insert(index, ExecutorPresetStep.Copy(stepToCopy));
+                    currentStep = index;
                 },
                 StepOperationType.InsertUp => () =>
                 {
                     Steps.Insert(i, new());
-                    CurrentStep = i;
+                    currentStep = i;
                 },
                 StepOperationType.InsertDown => () =>
                 {
                     var index = i + 1;
                     Steps.Insert(index, new());
-                    CurrentStep = index;
+                    currentStep = index;
                 },
                 StepOperationType.PasteCurrent => () =>
                 {
                     Steps.Insert(i, ExecutorPresetStep.Copy(step));
-                    CurrentStep = i;
+                    currentStep = i;
                 },
                 _ => () => { }
             };
@@ -371,11 +379,11 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
             var json   = JsonConvert.SerializeObject(this);
             var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
             Clipboard.SetText(base64);
-            Chat("已成功导出预设至剪贴板", Main.UTHPrefix);
+            NotifyHelper.Instance().Chat("已成功导出预设至剪贴板");
         }
         catch (Exception)
         {
-            Chat("尝试导出预设至剪贴板时发生错误", Main.UTHPrefix);
+            NotifyHelper.Instance().ChatError("尝试导出预设至剪贴板时发生错误");
         }
     }
 
@@ -391,13 +399,13 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
 
                 var config = JsonConvert.DeserializeObject<ExecutorPreset>(json);
                 if (config != null)
-                    Chat("已成功从剪贴板导入预设", Main.UTHPrefix);
+                    NotifyHelper.Instance().Chat("已成功从剪贴板导入预设");
                 return config;
             }
         }
         catch (Exception)
         {
-            Chat("尝试从剪贴板导入预设时发生错误", Main.UTHPrefix);
+            NotifyHelper.Instance().ChatError("尝试从剪贴板导入预设时发生错误");
         }
 
         return null;
@@ -406,4 +414,23 @@ public class ExecutorPreset : IEquatable<ExecutorPreset>
     public override bool Equals(object? obj) => Equals(obj as ExecutorPreset);
 
     public override int GetHashCode() => HashCode.Combine(Name, Zone, Steps);
+
+    public static readonly ExecutorPreset ExamplePreset0 = new()
+    {
+        Name = "O5 魔列车", Zone = 748, Steps = [new() { DataID = 8510, Note = "魔列车", Position = new(0, 0, -15) }]
+    };
+
+    public static readonly ExecutorPreset ExamplePreset1 = new()
+    {
+        Name = "假火 (测试用)", Zone = 1045, Steps = [new() { DataID = 207, Note = "伊弗利特", Position = new(11, 0, 0) }]
+    };
+
+    public static readonly ExecutorPreset ExamplePreset2 = new()
+    {
+        Name = "极风 (测试用)", Zone = 297, Steps =
+        [
+            new() { DataID = 245, Note = "Note1", Position = new(-0.24348414f, -1.9395045f, -14.213441f), Delay = 8000, StopInCombat = false },
+            new() { DataID = 245, Note = "Note2", Position = new(-0.63603175f, -1.8021163f, 0.6449276f), Delay  = 5000, StopInCombat = false }
+        ]
+    };
 }
