@@ -7,11 +7,10 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using OmenTools.OmenService;
 using OmenTools.Threading;
 using OmenTools.Threading.TaskHelper;
+using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Utils;
-using UntarnishedHeart.Windows;
-using Control = System.Windows.Forms.Control;
 
-namespace UntarnishedHeart.Executor;
+namespace UntarnishedHeart.Execution.Preset;
 
 public class ExecutorPresetStep : IEquatable<ExecutorPresetStep>
 {

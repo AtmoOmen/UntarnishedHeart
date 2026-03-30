@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace UntarnishedHeart.Executor;
+namespace UntarnishedHeart.Execution.Enums;
 
 /// <summary>
 ///     路线步骤类型

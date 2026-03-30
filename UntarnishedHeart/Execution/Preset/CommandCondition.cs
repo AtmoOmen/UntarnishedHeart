@@ -3,18 +3,19 @@ using Dalamud.Interface.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using OmenTools.OmenService;
-using Control = System.Windows.Forms.Control;
+using UntarnishedHeart.Execution.Enums;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
-namespace UntarnishedHeart.Executor;
+namespace UntarnishedHeart.Execution.Preset;
 
 public class CommandCondition
 {
-    private CommandSingleCondition?      ConditionToCopy;
     public  List<CommandSingleCondition> Conditions   { get; set; } = [];
     public  CommandRelationType          RelationType { get; set; } = CommandRelationType.And;
     public  CommandExecuteType           ExecuteType  { get; set; } = CommandExecuteType.Wait;
     public  float                        TimeValue    { get; set; }
+
+    private CommandSingleCondition? conditionToCopy;
 
     public void Draw()
     {
@@ -93,9 +94,9 @@ public class CommandCondition
             if (!context) return;
 
             if (ImGui.MenuItem("复制"))
-                ConditionToCopy = CommandSingleCondition.Copy(step);
+                conditionToCopy = CommandSingleCondition.Copy(step);
 
-            if (ConditionToCopy != null)
+            if (conditionToCopy != null)
             {
                 using (ImRaii.Group())
                 {
@@ -152,12 +153,12 @@ public class CommandCondition
                     Conditions.Swap(i, index);
                 },
                 StepOperationType.Pass    => () => { },
-                StepOperationType.Paste   => () => { Conditions[i] = CommandSingleCondition.Copy(ConditionToCopy); },
-                StepOperationType.PasteUp => () => { Conditions.Insert(i, CommandSingleCondition.Copy(ConditionToCopy)); },
+                StepOperationType.Paste   => () => { Conditions[i] = CommandSingleCondition.Copy(conditionToCopy); },
+                StepOperationType.PasteUp => () => { Conditions.Insert(i, CommandSingleCondition.Copy(conditionToCopy)); },
                 StepOperationType.PasteDown => () =>
                 {
                     var index = i + 1;
-                    Conditions.Insert(index, CommandSingleCondition.Copy(ConditionToCopy));
+                    Conditions.Insert(index, CommandSingleCondition.Copy(conditionToCopy));
                 },
                 StepOperationType.InsertUp => () => { Conditions.Insert(i, new()); },
                 StepOperationType.InsertDown => () =>

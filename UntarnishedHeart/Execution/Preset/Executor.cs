@@ -10,11 +10,11 @@ using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 using OmenTools.Threading;
 using OmenTools.Threading.TaskHelper;
-using UntarnishedHeart.Managers;
+using UntarnishedHeart.Execution.Enums;
+using UntarnishedHeart.Execution.Route;
 using UntarnishedHeart.Utils;
-using UntarnishedHeart.Windows;
 
-namespace UntarnishedHeart.Executor;
+namespace UntarnishedHeart.Execution.Preset;
 
 public class Executor : IDisposable
 {

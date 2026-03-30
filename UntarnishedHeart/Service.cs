@@ -2,22 +2,21 @@ using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin;
 using OmenTools.OmenService;
+using UntarnishedHeart.Internal;
 using UntarnishedHeart.Utils;
 
-namespace UntarnishedHeart.Managers;
+namespace UntarnishedHeart;
 
 public class Service
 {
-    public static Configuration  Config         { get; private set; } = null!;
-    public static WindowManager  WindowManager  { get; private set; } = new();
-    public static CommandManager CommandManager { get; private set; } = new();
+    public static PluginConfig Config { get; private set; } = null!;
 
     public static void Init(IDalamudPluginInterface pluginInterface)
     {
         DService.Init(pluginInterface);
         DService.Instance().UIBuilder.DisableCutsceneUiHide = true;
 
-        Config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        Config = pluginInterface.GetPluginConfig() as PluginConfig ?? new PluginConfig();
         Config.Init();
 
         var notifyHelper = NotifyHelper.Instance();
@@ -29,15 +28,16 @@ public class Service
 
         GameFunctions.Init();
 
-        WindowManager.Init();
-        CommandManager.Init();
+        PluginWindow.Init();
+        PluginCommand.Init();
     }
 
     public static void Uninit()
     {
-        CommandManager.Uninit();
-        WindowManager.Uninit();
-        Config.Uninit();
+        PluginCommand.Uninit();
+        PluginWindow.Uninit();
+
+        PluginConfig.Instance().Save();
 
         GameFunctions.Uninit();
 

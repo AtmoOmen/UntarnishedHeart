@@ -1,22 +1,38 @@
 using System.Reflection;
 using Dalamud.Plugin;
-using UntarnishedHeart.Managers;
+using Dalamud.Plugin.Services;
 
 namespace UntarnishedHeart;
 
 public sealed class Plugin : IDalamudPlugin
 {
-    public const string PLUGIN_NAME = "Untarnished Heart";
-
-    public Plugin(IDalamudPluginInterface pluginInterface)
+    public Plugin(IDalamudPluginInterface pi, IFramework framework)
     {
-        Version ??= Assembly.GetExecutingAssembly().GetName().Version;
+        if (Instance != null || IsDisposed || IsInitialized) return;
+        IsInitialized = true;
 
-        Service.Init(pluginInterface);
+        Version  ??= Assembly.GetExecutingAssembly().GetName().Version;
+        Instance ??= this;
+
+        Framework = framework;
+        Framework.RunOnFrameworkThread(() => Service.Init(pi));
     }
 
-    public static Version? Version { get; private set; }
+    public const string PLUGIN_NAME = "Untarnished Heart";
 
-    public void Dispose() =>
-        Service.Uninit();
+    public static Version?        Version  { get; private set; }
+    public static IDalamudPlugin? Instance { get; private set; }
+
+    private bool IsDisposed    { get; set; }
+    private bool IsInitialized { get; set; }
+
+    private IFramework Framework { get; init; }
+
+    public void Dispose()
+    {
+        if (Instance == null || IsDisposed || !IsInitialized) return;
+        IsDisposed = true;
+
+        Framework.RunOnFrameworkThread(Service.Uninit);
+    }
 }

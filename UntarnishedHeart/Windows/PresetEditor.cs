@@ -1,7 +1,6 @@
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
-using UntarnishedHeart.Executor;
-using UntarnishedHeart.Managers;
+using UntarnishedHeart.Execution.Preset;
 
 namespace UntarnishedHeart.Windows;
 

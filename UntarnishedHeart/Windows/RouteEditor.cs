@@ -5,8 +5,8 @@ using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
-using UntarnishedHeart.Executor;
-using UntarnishedHeart.Managers;
+using UntarnishedHeart.Execution.Enums;
+using UntarnishedHeart.Execution.Route;
 using Achievement = Lumina.Excel.Sheets.Achievement;
 
 namespace UntarnishedHeart.Windows;

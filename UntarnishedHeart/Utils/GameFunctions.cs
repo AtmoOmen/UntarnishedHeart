@@ -8,7 +8,6 @@ using OmenTools.Interop.Windows.Helpers;
 using OmenTools.OmenService;
 using OmenTools.Threading;
 using OmenTools.Threading.TaskHelper;
-using UntarnishedHeart.Windows;
 using Task = System.Threading.Tasks.Task;
 
 namespace UntarnishedHeart.Utils;

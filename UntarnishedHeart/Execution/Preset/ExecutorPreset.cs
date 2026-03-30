@@ -7,23 +7,23 @@ using OmenTools.ImGuiOm.Widgets.Combos;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 using OmenTools.Threading.TaskHelper;
-using UntarnishedHeart.Utils;
+using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Windows;
 using Action = System.Action;
 
-namespace UntarnishedHeart.Executor;
+namespace UntarnishedHeart.Execution.Preset;
 
 public class ExecutorPreset : IEquatable<ExecutorPreset>
 {
-    public  string                   Name              { get; set; } = string.Empty;
-    public  string                   Remark            { get; set; } = string.Empty;
-    public  ushort                   Zone              { get; set; }
-    public  List<ExecutorPresetStep> Steps             { get; set; } = [];
-    public  bool                     AutoOpenTreasures { get; set; }
-    public  int                      DutyDelay         { get; set; } = 500;
-    
+    public string                   Name              { get; set; } = string.Empty;
+    public string                   Remark            { get; set; } = string.Empty;
+    public ushort                   Zone              { get; set; }
+    public List<ExecutorPresetStep> Steps             { get; set; } = [];
+    public bool                     AutoOpenTreasures { get; set; }
+    public int                      DutyDelay         { get; set; } = 500;
+
     public bool IsValid => Zone != 0 && Steps.Count > 0 && Main.ZonePlaceNames.ContainsKey(Zone);
-    
+
     private int                 currentStep = -1;
     private ExecutorPresetStep? stepToCopy;
 

@@ -1,5 +1,4 @@
 using System.Numerics;
-using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using OmenTools.Threading.TaskHelper;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
@@ -52,7 +51,7 @@ public static unsafe class AutoObjectInteract
         (
             () =>
             {
-                if (IsOnMount() || DService.Instance().Condition.IsOccupiedInEvent) return false;
+                if (DService.Instance().Condition.IsOnMount || DService.Instance().Condition.IsOccupiedInEvent) return false;
 
                 return nearestObj.Object.TargetInteract();
             },
@@ -62,7 +61,4 @@ public static unsafe class AutoObjectInteract
         if (nearestObj.Object.ObjectKind is ObjectKind.EventObj)
             TaskHelper.Enqueue(() => TargetSystem.Instance()->OpenObjectInteraction(gameObj), "OpenInteraction");
     }
-
-    private static bool IsOnMount()
-        => DService.Instance().Condition[ConditionFlag.Mounted] || DService.Instance().Condition[ConditionFlag.RidingPillion];
 }

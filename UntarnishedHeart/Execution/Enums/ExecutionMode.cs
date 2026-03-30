@@ -1,4 +1,4 @@
-namespace UntarnishedHeart.Executor;
+namespace UntarnishedHeart.Execution.Enums;
 
 /// <summary>
 ///     执行模式

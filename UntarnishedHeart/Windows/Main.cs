@@ -6,8 +6,9 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
-using UntarnishedHeart.Executor;
-using UntarnishedHeart.Managers;
+using UntarnishedHeart.Execution.Enums;
+using UntarnishedHeart.Execution.Preset;
+using UntarnishedHeart.Execution.Route;
 using UntarnishedHeart.Utils;
 using ContentsFinder = FFXIVClientStructs.FFXIV.Client.Game.UI.ContentsFinder;
 
@@ -30,7 +31,7 @@ public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.P
 
     private static int                SelectedPresetIndex;
     private static int                SelectedRouteIndex;
-    public static  Executor.Executor? PresetExecutor { get; private set; }
+    public static  Executor? PresetExecutor { get; private set; }
     public static  RouteExecutor?     RouteExecutor  { get; private set; }
 
     public void Dispose()
@@ -159,13 +160,13 @@ public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.P
         }
 
         if (ImGui.TabItemButton("预设"))
-            WindowManager.Get<PresetEditor>().IsOpen ^= true;
+            WindowManager.Instance().Get<PresetEditor>().IsOpen ^= true;
 
         if (ImGui.TabItemButton("路线"))
-            WindowManager.Get<RouteEditor>().IsOpen ^= true;
+            WindowManager.Instance().Get<RouteEditor>().IsOpen ^= true;
 
         if (ImGui.TabItemButton("调试"))
-            WindowManager.Get<Debug>().IsOpen ^= true;
+            WindowManager.Instance().Get<Debug>().IsOpen ^= true;
     }
 
     public override void OnClose() => Service.Config.Save();
