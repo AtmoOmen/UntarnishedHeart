@@ -3,16 +3,19 @@ using OmenTools.Interop.Game.Helpers;
 using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Execution.Route;
+using UntarnishedHeart.Execution.Route.Enums;
 
 namespace UntarnishedHeart.Internal;
 
 [Serializable]
 public class PluginConfig : IPluginConfiguration
 {
+    private const int CURRENT_CONFIG_VERSION = 1;
+
     public bool                 LeaderMode           { get; set; }
     public bool                 AutoRecommendGear    { get; set; }
     public int                  RunTimes             { get; set; } = -1;
-    public List<ExecutorPreset> Presets              { get; set; } = [];
+    public List<Preset>         Presets              { get; set; } = [];
     public ContentsFinderOption ContentsFinderOption { get; set; } = ContentsFinderHelper.DefaultOption;
     public ContentEntryType     ContentEntryType     { get; set; } = ContentEntryType.Normal;
 
@@ -20,7 +23,7 @@ public class PluginConfig : IPluginConfiguration
     public List<Route>   Routes               { get; set; } = [];
     public ExecutionMode CurrentExecutionMode { get; set; } = ExecutionMode.Simple;
     public int           SelectedRouteIndex   { get; set; } = -1;
-    public int           Version              { get; set; } = 0;
+    public int           Version              { get; set; }
 
     private static PluginConfig? InstanceInternal;
 
@@ -29,6 +32,7 @@ public class PluginConfig : IPluginConfiguration
         if (InstanceInternal != null) return InstanceInternal;
 
         Reload();
+        InstanceInternal.MigrateIfNeeded();
         return InstanceInternal;
     }
 
@@ -39,9 +43,9 @@ public class PluginConfig : IPluginConfiguration
                            {
                                Presets =
                                [
-                                   ExecutorPreset.ExamplePreset0,
-                                   ExecutorPreset.ExamplePreset1,
-                                   ExecutorPreset.ExamplePreset2
+                                   Preset.ExamplePreset0,
+                                   Preset.ExamplePreset1,
+                                   Preset.ExamplePreset2
                                ]
                            };
         InstanceInternal.Save();
@@ -50,8 +54,26 @@ public class PluginConfig : IPluginConfiguration
     internal void Save() =>
         DService.Instance().PI.SavePluginConfig(this);
 
-    public void Init()
-    {
+    internal PresetExecutorRunOptions CreatePresetRunOptions() =>
+        new(RunTimes, LeaderMode, AutoRecommendGear, ContentEntryType, ContentsFinderOption);
 
+    private void MigrateIfNeeded()
+    {
+        if (Version >= CURRENT_CONFIG_VERSION) return;
+
+        if (Version < 1)
+        {
+            foreach (var dutyOptions in Routes.SelectMany(route => route.Steps)
+                                              .Where(step => step.StepType == RouteStepType.SwitchPreset)
+                                              .Select(step => step.DutyOptions))
+            {
+                dutyOptions.LeaderMode        = LeaderMode;
+                dutyOptions.AutoRecommendGear = AutoRecommendGear;
+                dutyOptions.RunTimes          = RunTimes;
+            }
+        }
+
+        Version = CURRENT_CONFIG_VERSION;
+        Save();
     }
 }

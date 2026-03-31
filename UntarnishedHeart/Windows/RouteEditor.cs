@@ -7,6 +7,10 @@ using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.Route;
+using UntarnishedHeart.Execution.Route.Enums;
+using UntarnishedHeart.Internal;
+using UntarnishedHeart.Windows.Components;
+using UntarnishedHeart.Windows.Helpers;
 using Achievement = Lumina.Excel.Sheets.Achievement;
 
 namespace UntarnishedHeart.Windows;
@@ -36,9 +40,9 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
         ImGui.Separator();
 
         // 主体内容 - Tab布局
-        if (Service.Config.Routes.Count > 0)
+        if (PluginConfig.Instance().Routes.Count > 0)
         {
-            var selectedRoute = Service.Config.Routes[SelectedRouteIndex];
+            var selectedRoute = PluginConfig.Instance().Routes[SelectedRouteIndex];
             DrawTabContent(selectedRoute);
         }
         else
@@ -47,80 +51,49 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
 
     private static void DrawControlBar()
     {
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("选择路线:");
+        CollectionToolbar.DrawSelector
+        (
+            "选择路线:",
+            "###RouteSelectCombo",
+            PluginConfig.Instance().Routes,
+            ref SelectedRouteIndex,
+            route => route.Name,
+            route => PluginConfig.Instance().Routes.Remove(route),
+            "暂无路线"
+        );
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
 
-        if (SelectedRouteIndex > Service.Config.Routes.Count - 1)
-            SelectedRouteIndex = 0;
-
-        if (Service.Config.Routes.Count == 0)
-            ImGui.Text("暂无路线");
-        else
-        {
-            var selectedRoute = Service.Config.Routes[SelectedRouteIndex];
-
-            using (var combo = ImRaii.Combo("###RouteSelectCombo", $"{selectedRoute.Name}", ImGuiComboFlags.HeightLarge))
+        CollectionToolbar.DrawActionButtons
+        (
+            "SaveRoutes",
+            PluginConfig.Instance().Save,
+            "AddNewRoute",
+            () =>
             {
-                if (combo)
-                {
-                    for (var i = 0; i < Service.Config.Routes.Count; i++)
-                    {
-                        var route = Service.Config.Routes[i];
-                        if (ImGui.Selectable($"{route.Name}###{route}-{i}"))
-                            SelectedRouteIndex = i;
-
-                        using var popup = ImRaii.ContextPopupItem($"{route}-{i}ContextPopup");
-
-                        if (popup)
-                        {
-                            using (ImRaii.Disabled(Service.Config.Routes.Count == 1))
-                            {
-                                if (ImGui.MenuItem($"删除##{route}-{i}"))
-                                    Service.Config.Routes.Remove(route);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        ImGui.SameLine();
-        if (ImGuiOm.ButtonIcon("SaveRoutes", FontAwesomeIcon.Save, "保存路线", true))
-            Service.Config.Save();
-
-        ImGui.SameLine();
-
-        if (ImGuiOm.ButtonIcon("AddNewRoute", FontAwesomeIcon.FileCirclePlus, "添加路线", true))
-        {
-            Service.Config.Routes.Add(new() { Name = $"新路线 {Service.Config.Routes.Count + 1}" });
-            SelectedRouteIndex = Service.Config.Routes.Count - 1;
-        }
-
-        ImGui.SameLine();
-
-        if (ImGuiOm.ButtonIcon("ImportNewRoute", FontAwesomeIcon.FileImport, "导入路线", true))
-        {
-            var route = ImportRouteFromClipboard();
-
-            if (route != null)
+                PluginConfig.Instance().Routes.Add(new() { Name = $"新路线 {PluginConfig.Instance().Routes.Count + 1}" });
+                SelectedRouteIndex = PluginConfig.Instance().Routes.Count - 1;
+            },
+            "ImportNewRoute",
+            () =>
             {
-                Service.Config.Routes.Add(route);
-                Service.Config.Save();
+                var route = ImportRouteFromClipboard();
+                if (route == null) return;
 
-                SelectedRouteIndex = Service.Config.Routes.Count - 1;
-            }
-        }
+                PluginConfig.Instance().Routes.Add(route);
+                SelectedRouteIndex = PluginConfig.Instance().Routes.Count - 1;
+                PluginConfig.Instance().Save();
+            },
+            "ExportRoute",
+            () =>
+            {
+                SelectedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(SelectedRouteIndex, PluginConfig.Instance().Routes.Count);
+                if (SelectedRouteIndex < 0) return;
 
-        ImGui.SameLine();
-
-        if (ImGuiOm.ButtonIcon("ExportRoute", FontAwesomeIcon.FileExport, "导出路线", true) && Service.Config.Routes.Count > 0)
-        {
-            var selectedRouteExported = Service.Config.Routes[SelectedRouteIndex];
-            ExportRouteToClipboard(selectedRouteExported);
-        }
+                ExportRouteToClipboard(PluginConfig.Instance().Routes[SelectedRouteIndex]);
+            },
+            PluginConfig.Instance().Routes.Count > 0
+        );
     }
 
     private void DrawTabContent(Route route)
@@ -262,49 +235,60 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
 
         if (popup)
         {
+            var contextOperation = StepOperationType.Pass;
+
             if (ImGui.MenuItem("复制"))
                 CopiedStep = RouteStep.Copy(step);
 
-            using (ImRaii.Disabled(CopiedStep == null))
+            if (CopiedStep != null)
             {
-                if (ImGui.MenuItem("粘贴") && CopiedStep != null)
+                using (ImRaii.Group())
                 {
-                    route.Steps.Insert(index + 1, RouteStep.Copy(CopiedStep));
-                    selectedStepIndex = index + 1; // 选中新粘贴的步骤
+                    if (ImGui.MenuItem("粘贴至本步"))
+                        contextOperation = StepOperationType.Paste;
+
+                    if (ImGui.MenuItem("向上插入粘贴"))
+                        contextOperation = StepOperationType.PasteUp;
+
+                    if (ImGui.MenuItem("向下插入粘贴"))
+                        contextOperation = StepOperationType.PasteDown;
                 }
             }
 
             if (ImGui.MenuItem("删除"))
-            {
-                route.Steps.RemoveAt(index);
-                // 调整选中索引
-                if (selectedStepIndex >= route.Steps.Count)
-                    selectedStepIndex = route.Steps.Count - 1;
-                if (selectedStepIndex < 0 && route.Steps.Count > 0)
-                    selectedStepIndex = 0;
-                ImGui.PopID();
-                return;
-            }
+                contextOperation = StepOperationType.Delete;
 
             ImGui.Separator();
 
-            if (ImGui.MenuItem("上移") && index > 0)
-            {
-                (route.Steps[index], route.Steps[index - 1]) = (route.Steps[index - 1], route.Steps[index]);
-                if (selectedStepIndex == index)
-                    selectedStepIndex = index - 1;
-                else if (selectedStepIndex == index - 1)
-                    selectedStepIndex = index;
-            }
+            if (index > 0 && ImGui.MenuItem("上移"))
+                contextOperation = StepOperationType.MoveUp;
 
-            if (ImGui.MenuItem("下移") && index < route.Steps.Count - 1)
-            {
-                (route.Steps[index], route.Steps[index + 1]) = (route.Steps[index + 1], route.Steps[index]);
-                if (selectedStepIndex == index)
-                    selectedStepIndex = index + 1;
-                else if (selectedStepIndex == index + 1)
-                    selectedStepIndex = index;
-            }
+            if (index < route.Steps.Count - 1 && ImGui.MenuItem("下移"))
+                contextOperation = StepOperationType.MoveDown;
+
+            ImGui.Separator();
+
+            if (ImGui.MenuItem("向上插入新步骤"))
+                contextOperation = StepOperationType.InsertUp;
+
+            if (ImGui.MenuItem("向下插入新步骤"))
+                contextOperation = StepOperationType.InsertDown;
+
+            ImGui.Separator();
+
+            if (ImGui.MenuItem("复制并插入本步骤"))
+                contextOperation = StepOperationType.PasteCurrent;
+
+            selectedStepIndex = CollectionOperationHelper.Apply
+            (
+                route.Steps,
+                index,
+                contextOperation,
+                selectedStepIndex,
+                () => new RouteStep { Name = $"步骤 {route.Steps.Count}" },
+                CopiedStep == null ? null : () => RouteStep.Copy(CopiedStep),
+                () => RouteStep.Copy(step)
+            );
         }
 
         ImGui.PopID();
@@ -386,7 +370,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
 
         if (ImGui.BeginCombo("###TargetPreset", step.PresetName))
         {
-            foreach (var preset in Service.Config.Presets)
+            foreach (var preset in PluginConfig.Instance().Presets)
             {
                 if (ImGui.Selectable(preset.Name, step.PresetName == preset.Name))
                     step.PresetName = preset.Name;
@@ -466,7 +450,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
 
                 if (ImGui.BeginCombo("###ConditionType", step.ConditionType.GetDescription()))
                 {
-                    foreach (var conditionType in Enum.GetValues<ConditionType>())
+                    foreach (var conditionType in Enum.GetValues<RouteConditionType>())
                     {
                         var conditionName = conditionType.GetDescription();
                         if (ImGui.Selectable(conditionName, step.ConditionType == conditionType))
@@ -477,12 +461,12 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
                 }
 
                 // 额外ID（成就ID或物品ID）
-                if (step.ConditionType is ConditionType.AchievementCount or ConditionType.ItemCount)
+                if (step.ConditionType is RouteConditionType.AchievementCount or RouteConditionType.ItemCount)
                 {
                     ImGui.TableNextRow();
                     ImGui.TableSetColumnIndex(0);
                     ImGui.AlignTextToFramePadding();
-                    ImGui.Text(step.ConditionType == ConditionType.AchievementCount ? "成就 ID:" : "物品 ID:");
+                    ImGui.Text(step.ConditionType == RouteConditionType.AchievementCount ? "成就 ID:" : "物品 ID:");
 
                     ImGui.TableSetColumnIndex(1);
                     ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
@@ -494,13 +478,13 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
                     {
                         switch (step.ConditionType)
                         {
-                            case ConditionType.AchievementCount when LuminaGetter.TryGetRow((uint)extraID, out Achievement achievementRow):
+                            case RouteConditionType.AchievementCount when LuminaGetter.TryGetRow((uint)extraID, out Achievement achievementRow):
                                 ImGui.SameLine();
                                 ImGui.TextUnformatted($"{achievementRow.Name}");
                                 ImGuiOm.TooltipHover($"{achievementRow.Description}");
                                 break;
 
-                            case ConditionType.ItemCount when LuminaGetter.TryGetRow((uint)extraID, out Item itemRow):
+                            case RouteConditionType.ItemCount when LuminaGetter.TryGetRow((uint)extraID, out Item itemRow):
                                 ImGui.SameLine();
                                 ImGui.TextUnformatted($"{itemRow.Name}");
                                 ImGuiOm.TooltipHover($"{itemRow.Description}");
@@ -600,87 +584,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
     private static void DrawDutyOptions(DutyOptions dutyOptions)
     {
         using var group = ImRaii.Group();
-
-        using (ImRaii.Group())
-        {
-            var option = dutyOptions.ContentsFinderOption;
-
-            var unrestrictedParty = option.UnrestrictedParty;
-
-            if (ImGui.Checkbox("解除限制", ref unrestrictedParty))
-            {
-                option.UnrestrictedParty         = unrestrictedParty;
-                dutyOptions.ContentsFinderOption = option;
-            }
-
-            ImGui.SameLine();
-            var levelSync = option.LevelSync;
-
-            if (ImGui.Checkbox("等级同步", ref levelSync))
-            {
-                option.LevelSync                 = levelSync;
-                dutyOptions.ContentsFinderOption = option;
-            }
-
-            ImGui.SameLine();
-            var minimalIL = option.MinimalIL;
-
-            if (ImGui.Checkbox("最低品级", ref minimalIL))
-            {
-                option.MinimalIL                 = minimalIL;
-                dutyOptions.ContentsFinderOption = option;
-            }
-
-            ImGui.SameLine();
-            var silenceEcho = option.SilenceEcho;
-
-            if (ImGui.Checkbox("超越之力无效化", ref silenceEcho))
-            {
-                option.SilenceEcho               = silenceEcho;
-                dutyOptions.ContentsFinderOption = option;
-            }
-
-            ImGui.SameLine();
-            var supply = option.Supply;
-
-            if (ImGui.Checkbox("中途加入", ref supply))
-            {
-                option.Supply                    = supply;
-                dutyOptions.ContentsFinderOption = option;
-            }
-
-            var lootRule = option.LootRules;
-            var isFirst  = true;
-
-            foreach (var (loot, loc) in Main.LootRuleLoc)
-            {
-                if (!isFirst)
-                    ImGui.SameLine();
-                isFirst = false;
-
-                if (ImGui.RadioButton($"{loc}##{loot}", loot == lootRule))
-                {
-                    option.LootRules                 = loot;
-                    dutyOptions.ContentsFinderOption = option;
-                }
-            }
-        }
-
-        ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
-
-        using (var combo = ImRaii.Combo("副本入口###ContentEntryCombo", dutyOptions.ContentEntryType.GetDescription()))
-        {
-            if (combo)
-            {
-                foreach (var entryType in Enum.GetValues<ContentEntryType>())
-                {
-                    if (ImGui.Selectable(entryType.GetDescription(), entryType == dutyOptions.ContentEntryType))
-                        dutyOptions.ContentEntryType = entryType;
-                }
-            }
-        }
-
-        ImGuiOm.TooltipHover("单人进入多变迷宫:\n\t勾选解除限制, 入口选择一般副本");
+        DutyOptionsEditor.Draw(dutyOptions);
     }
 
     private static Route? ImportRouteFromClipboard()

@@ -1,11 +1,11 @@
 using System.ComponentModel;
 
-namespace UntarnishedHeart.Execution.Enums;
+namespace UntarnishedHeart.Execution.Route.Enums;
 
 /// <summary>
-///     条件判断类型
+///     路线条件判断类型
 /// </summary>
-public enum ConditionType
+public enum RouteConditionType
 {
     [Description("玩家等级")]
     PlayerLevel,

@@ -4,106 +4,36 @@ using OmenTools.Dalamud;
 using OmenTools.OmenService;
 using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.Preset;
+using UntarnishedHeart.Execution.Route.Enums;
+using UntarnishedHeart.Internal;
 
 namespace UntarnishedHeart.Execution.Route;
 
 /// <summary>
-///     路线执行状态
-/// </summary>
-public enum RouteExecutorState
-{
-    /// <summary>
-    ///     未开始
-    /// </summary>
-    NotStarted,
-
-    /// <summary>
-    ///     运行中
-    /// </summary>
-    Running,
-
-    /// <summary>
-    ///     等待执行器完成
-    /// </summary>
-    WaitingForExecutor,
-
-    /// <summary>
-    ///     已完成
-    /// </summary>
-    Completed,
-
-    /// <summary>
-    ///     已停止
-    /// </summary>
-    Stopped,
-
-    /// <summary>
-    ///     出错
-    /// </summary>
-    Error
-}
-
-/// <summary>
 ///     路线执行器
 /// </summary>
-public class RouteExecutor : IDisposable
+public class RouteExecutor
+(
+    Route route
+) : IDisposable
 {
-    /// <summary>
-    ///     取消令牌源
-    /// </summary>
     private CancellationTokenSource? cancelToken;
+    private Task?                    executionTask;
 
-    /// <summary>
-    ///     主执行任务
-    /// </summary>
-    private Task? executionTask;
+    public List<RouteStep> Steps { get; set; } = route.Steps;
 
-    /// <summary>
-    ///     构造函数
-    /// </summary>
-    /// <param name="route">要执行的路线</param>
-    public RouteExecutor(Route route) =>
-        Steps = route.Steps;
-
-    /// <summary>
-    ///     路线步骤列表
-    /// </summary>
-    public List<RouteStep> Steps { get; set; }
-
-    /// <summary>
-    ///     当前步骤索引
-    /// </summary>
     public int CurrentStepIndex { get; private set; }
 
-    /// <summary>
-    ///     当前执行的预设执行器
-    /// </summary>
-    public Executor? CurrentExecutor { get; private set; }
+    public PresetExecutor? CurrentExecutor { get; private set; }
 
-    /// <summary>
-    ///     当前执行状态
-    /// </summary>
     public RouteExecutorState State { get; private set; } = RouteExecutorState.NotStarted;
 
-    /// <summary>
-    ///     路线是否正在运行
-    /// </summary>
-    public bool IsRunning => State == RouteExecutorState.Running || State == RouteExecutorState.WaitingForExecutor;
+    public bool IsRunning => State is RouteExecutorState.Running or RouteExecutorState.WaitingForExecutor;
 
-    /// <summary>
-    ///     路线是否已完成
-    /// </summary>
     public bool IsFinished => State == RouteExecutorState.Completed;
 
-    /// <summary>
-    ///     是否已释放
-    /// </summary>
     public bool IsDisposed { get; private set; }
 
-
-    /// <summary>
-    ///     当前运行消息
-    /// </summary>
     public string RunningMessage
     {
         get
@@ -117,7 +47,7 @@ public class RouteExecutor : IDisposable
 
             if (CurrentExecutor != null)
             {
-                var executorMessage = CurrentExecutor.RunningMessage;
+                var executorMessage = CurrentExecutor.Progress.RunningMessage;
                 if (!string.IsNullOrEmpty(executorMessage))
                     stepInfo += $" - {executorMessage}";
             }
@@ -126,25 +56,14 @@ public class RouteExecutor : IDisposable
         }
     }
 
-    /// <summary>
-    ///     本轮已完成副本次数
-    /// </summary>
     private int CompletedDutyCount { get; set; }
 
-    /// <summary>
-    ///     释放资源
-    /// </summary>
     public void Dispose()
     {
         if (IsDisposed) return;
 
         Stop();
-        DisposeCurrentExecutor();
 
-        cancelToken?.Dispose();
-        cancelToken = null;
-
-        // 等待执行任务完成（如果正在运行）
         try
         {
             executionTask?.Wait(TimeSpan.FromSeconds(5));
@@ -154,14 +73,15 @@ public class RouteExecutor : IDisposable
             // 忽略取消异常
         }
 
+        cancelToken?.Dispose();
+        cancelToken   = null;
         executionTask = null;
+
+        DisposeCurrentExecutor();
 
         IsDisposed = true;
     }
 
-    /// <summary>
-    ///     开始执行路线
-    /// </summary>
     public async Task StartAsync()
     {
         if (IsRunning || Steps.Count == 0) return;
@@ -170,6 +90,7 @@ public class RouteExecutor : IDisposable
         CurrentStepIndex   = 0;
         CompletedDutyCount = 0;
 
+        cancelToken?.Dispose();
         cancelToken = new CancellationTokenSource();
 
         try
@@ -188,15 +109,9 @@ public class RouteExecutor : IDisposable
         }
     }
 
-    /// <summary>
-    ///     开始执行路线（同步版本，用于向后兼容）
-    /// </summary>
     public void Start() =>
-        _ = Task.Run(async () => await StartAsync());
+        _ = Task.Run(StartAsync);
 
-    /// <summary>
-    ///     停止执行路线
-    /// </summary>
     public void Stop()
     {
         if (State is RouteExecutorState.NotStarted or RouteExecutorState.Completed or RouteExecutorState.Stopped)
@@ -206,12 +121,8 @@ public class RouteExecutor : IDisposable
         State = RouteExecutorState.Stopped;
 
         DisposeCurrentExecutor();
-
     }
 
-    /// <summary>
-    ///     异步执行整个路线
-    /// </summary>
     private async Task ExecuteRouteAsync(CancellationToken cancellationToken)
     {
         while (CurrentStepIndex < Steps.Count && !cancellationToken.IsCancellationRequested)
@@ -229,9 +140,6 @@ public class RouteExecutor : IDisposable
         }
     }
 
-    /// <summary>
-    ///     异步执行当前步骤
-    /// </summary>
     private async Task ExecuteCurrentStepAsync(CancellationToken cancellationToken)
     {
         if (CurrentStepIndex >= Steps.Count)
@@ -266,11 +174,6 @@ public class RouteExecutor : IDisposable
         }
     }
 
-    /// <summary>
-    ///     异步执行切换预设步骤
-    /// </summary>
-    /// <param name="step">路线步骤</param>
-    /// <param name="cancellationToken">取消令牌</param>
     private async Task ExecuteSwitchPresetStepAsync(RouteStep step, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(step.PresetName))
@@ -280,55 +183,64 @@ public class RouteExecutor : IDisposable
             return;
         }
 
-        var currentPreset = CurrentExecutor?.ExecutorPreset?.Name ?? string.Empty;
-
-        // 查找预设
-        var preset = Service.Config.Presets.FirstOrDefault(p => p.Name == step.PresetName);
+        var currentPresetName = CurrentExecutor?.ExecutorPreset?.Name ?? string.Empty;
+        var preset            = PluginConfig.Instance().Presets.FirstOrDefault(p => p.Name == step.PresetName);
 
         if (preset is not { IsValid: true })
         {
             DisposeCurrentExecutor();
-
             NotifyHelper.Instance().Chat($"无法找到有效预设: {step.PresetName}");
             MoveToNextStep();
             return;
         }
 
-        if (step.Name != currentPreset)
+        if (!string.Equals(step.PresetName, currentPresetName, StringComparison.Ordinal))
         {
             DLog.Debug("预设发生变化, 重置副本计数");
             CompletedDutyCount = 0;
         }
 
-        // 释放当前执行器
         DisposeCurrentExecutor();
 
         NotifyHelper.Instance().Chat($"开始执行预设: {preset.Name}");
 
-        // 创建执行器（构造函数会自动开始执行）
-        CurrentExecutor = new Executor(preset, 1, step.DutyOptions);
+        CurrentExecutor = new PresetExecutor(preset, step.DutyOptions.ToRunOptions());
+        CurrentExecutor.Start();
 
-        // 设置状态为等待执行器完成
         State = RouteExecutorState.WaitingForExecutor;
 
-        // 等待执行器完成
-        await WaitForExecutorCompletionAsync(cancellationToken);
-        await Task.WaitForConditionAsync(() => UIModule.IsScreenReady() && GameState.ContentFinderCondition == 0);
-        await Task.Delay(1000, cancellationToken);
+        var result = await CurrentExecutor.Completion.WaitAsync(cancellationToken);
 
-        // 预设执行完成后，根据AfterPresetAction执行相应动作
-        if (State != RouteExecutorState.Error && State != RouteExecutorState.Stopped)
+        switch (result.EndReason)
         {
-            State = RouteExecutorState.Running;
-            var jumpIndex = step.AfterPresetAction == RouteStepActionType.JumpToStep ? step.AfterPresetJumpIndex : 0;
-            ExecuteAction(step.AfterPresetAction, jumpIndex);
+            case ExecutorEndReason.Error:
+                State = RouteExecutorState.Error;
+                NotifyHelper.Instance().Chat($"预设执行出错: {result.ErrorMessage}");
+                return;
+            case ExecutorEndReason.Stopped:
+                State = RouteExecutorState.Stopped;
+                return;
+            case ExecutorEndReason.InvalidPreset:
+                NotifyHelper.Instance().Chat($"预设无效，跳过此步骤: {step.PresetName}");
+                State = RouteExecutorState.Running;
+                MoveToNextStep();
+                return;
         }
+
+        var condition = DService.Instance().Condition;
+        while ((condition.IsBoundByDuty  ||
+                condition.IsBetweenAreas ||
+                !UIModule.IsScreenReady()) &&
+               !cancellationToken.IsCancellationRequested)
+            await Task.Delay(100, cancellationToken);
+
+        CompletedDutyCount += (int)result.CompletedRounds;
+        State              =  RouteExecutorState.Running;
+
+        var jumpIndex = step.AfterPresetAction == RouteStepActionType.JumpToStep ? step.AfterPresetJumpIndex : 0;
+        ExecuteAction(step.AfterPresetAction, jumpIndex);
     }
 
-    /// <summary>
-    ///     执行条件判断步骤
-    /// </summary>
-    /// <param name="step">路线步骤</param>
     private void ExecuteConditionCheckStep(RouteStep step)
     {
         NotifyHelper.Instance().Chat($"检查条件: {step.ConditionType.GetDescription()}");
@@ -342,29 +254,17 @@ public class RouteExecutor : IDisposable
         ExecuteAction(actionType, jumpIndex);
     }
 
-    /// <summary>
-    ///     检查条件是否满足
-    /// </summary>
-    /// <param name="step">路线步骤</param>
-    /// <returns>条件是否满足</returns>
     private bool CheckCondition(RouteStep step) => EvaluateCondition(step);
 
-    /// <summary>
-    ///     执行指定的动作
-    /// </summary>
-    /// <param name="actionType">动作类型</param>
-    /// <param name="jumpIndex">跳转索引</param>
     private void ExecuteAction(RouteStepActionType actionType, int jumpIndex)
     {
         switch (actionType)
         {
             case RouteStepActionType.RepeatCurrentStep:
-                // 重复当前步骤，不改变CurrentStepIndex
                 NotifyHelper.Instance().Chat("重复当前步骤");
                 break;
 
             case RouteStepActionType.JumpToStep:
-                // 跳转到指定步骤
                 if (jumpIndex >= 0 && jumpIndex < Steps.Count)
                 {
                     CurrentStepIndex = jumpIndex;
@@ -376,13 +276,11 @@ public class RouteExecutor : IDisposable
                 break;
 
             case RouteStepActionType.EndRoute:
-                // 结束路线执行
                 NotifyHelper.Instance().Chat("结束路线执行");
                 Stop();
                 break;
 
             case RouteStepActionType.GoToPreviousStep:
-                // 回到上一步
                 if (CurrentStepIndex > 0)
                 {
                     CurrentStepIndex--;
@@ -394,7 +292,6 @@ public class RouteExecutor : IDisposable
                 break;
 
             case RouteStepActionType.GoToNextStep:
-                // 顺延下一步
                 if (CurrentStepIndex < Steps.Count - 1)
                 {
                     CurrentStepIndex++;
@@ -410,9 +307,6 @@ public class RouteExecutor : IDisposable
         }
     }
 
-    /// <summary>
-    ///     评估条件
-    /// </summary>
     private bool EvaluateCondition(RouteStep step)
     {
         var actualValue   = GetConditionValue(step.ConditionType, step.ExtraID);
@@ -430,64 +324,22 @@ public class RouteExecutor : IDisposable
         };
     }
 
-    /// <summary>
-    ///     获取条件值
-    /// </summary>
-    private unsafe int GetConditionValue(ConditionType conditionType, int extraID) =>
+    private unsafe int GetConditionValue(RouteConditionType conditionType, int extraID) =>
         conditionType switch
         {
-            ConditionType.PlayerLevel                => LocalPlayerState.CurrentLevel,
-            ConditionType.OptimalPartyRecommendation => PlayerState.Instance()->PlayerCommendations,
-            ConditionType.CompletedDutyCount         => CompletedDutyCount,
-            ConditionType.AchievementCount => (int)(AchievementManager.Instance().TryGetAchievement((uint)extraID, out var achievementInfo)
-                                                        ? achievementInfo.Current
-                                                        : 0),
-            ConditionType.ItemCount => (int)LocalPlayerState.GetItemCount((uint)extraID),
-            _                       => 0
+            RouteConditionType.PlayerLevel                => LocalPlayerState.CurrentLevel,
+            RouteConditionType.OptimalPartyRecommendation => PlayerState.Instance()->PlayerCommendations,
+            RouteConditionType.CompletedDutyCount         => CompletedDutyCount,
+            RouteConditionType.AchievementCount => (int)(AchievementManager.Instance().TryGetAchievement((uint)extraID, out var achievementInfo)
+                                                             ? achievementInfo.Current
+                                                             : 0),
+            RouteConditionType.ItemCount => (int)LocalPlayerState.GetItemCount((uint)extraID),
+            _                            => 0
         };
 
-    /// <summary>
-    ///     等待执行器完成
-    /// </summary>
-    /// <param name="cancellationToken">取消令牌</param>
-    private async Task WaitForExecutorCompletionAsync(CancellationToken cancellationToken)
-    {
-        while (State == RouteExecutorState.WaitingForExecutor && !cancellationToken.IsCancellationRequested)
-        {
-            // 检查执行器是否完成
-            if (IsExecutorCompleted() && GameState.ContentFinderCondition == 0 && UIModule.IsScreenReady())
-            {
-                NotifyHelper.Instance().Chat("执行器已完成");
-                State = RouteExecutorState.Running;
-                CompletedDutyCount++;
-                break;
-            }
-
-            await Task.Delay(100, cancellationToken);
-        }
-    }
-
-    /// <summary>
-    ///     检查执行器是否完成
-    /// </summary>
-    /// <returns>执行器是否完成</returns>
-    private bool IsExecutorCompleted()
-    {
-        if (CurrentExecutor == null) return true;
-
-        // 检查执行器是否已完成
-        return CurrentExecutor.IsFinished || CurrentExecutor.CurrentRound == 1;
-    }
-
-    /// <summary>
-    ///     移动到下一步
-    /// </summary>
     private void MoveToNextStep() =>
         CurrentStepIndex++;
 
-    /// <summary>
-    ///     释放当前执行器
-    /// </summary>
     private void DisposeCurrentExecutor()
     {
         CurrentExecutor?.Dispose();

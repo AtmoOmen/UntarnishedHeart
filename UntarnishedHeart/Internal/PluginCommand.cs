@@ -1,5 +1,5 @@
-﻿using OmenTools.OmenService;
-using UntarnishedHeart.Utils;
+using OmenTools.OmenService;
+using UntarnishedHeart.Execution.Managers;
 using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Internal;
@@ -33,9 +33,14 @@ internal static class PluginCommand
             main.IsOpen ^= true;
     }
 
-    private static void OnAutoInteract(string command, string args) =>
-        AutoObjectInteract.TryInteractNearestObject();
+    private static void OnAutoInteract(string command, string args)
+    {
+        if (ExecutionManager.TryRequestNearestInteract())
+            return;
+
+        NotifyHelper.Instance().Chat("当前没有正在运行的执行器，无法执行最近交互");
+    }
 
     private static void OnEnqueueNewRound(string command, string args) =>
-        Main.PresetExecutor?.ManualEnqueueNewRound();
+        ExecutionManager.ManualEnqueueNewRound();
 }

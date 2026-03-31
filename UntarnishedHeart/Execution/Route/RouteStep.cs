@@ -1,6 +1,8 @@
 using Newtonsoft.Json;
 using OmenTools.Interop.Game.Helpers;
 using UntarnishedHeart.Execution.Enums;
+using UntarnishedHeart.Execution.Preset;
+using UntarnishedHeart.Execution.Route.Enums;
 
 namespace UntarnishedHeart.Execution.Route;
 
@@ -49,7 +51,7 @@ public class RouteStep : IEquatable<RouteStep>
     /// <summary>
     ///     条件类型（用于条件判断步骤）
     /// </summary>
-    public ConditionType ConditionType { get; set; } = ConditionType.PlayerLevel;
+    public RouteConditionType ConditionType { get; set; } = RouteConditionType.PlayerLevel;
 
     /// <summary>
     ///     比较类型（用于条件判断步骤）
@@ -210,6 +212,9 @@ public class DutyOptions : IEquatable<DutyOptions>
     ///     副本查找选项
     /// </summary>
     public ContentsFinderOption ContentsFinderOption { get; set; } = ContentsFinderHelper.DefaultOption.Clone();
+
+    internal PresetExecutorRunOptions ToRunOptions() =>
+        new(RunTimes, LeaderMode, AutoRecommendGear, ContentEntryType, ContentsFinderOption);
 
     public bool Equals(DutyOptions? other)
     {

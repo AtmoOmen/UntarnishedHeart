@@ -5,14 +5,22 @@ namespace UntarnishedHeart.Internal;
 
 internal static class PluginWindow
 {
+    private static DrawScopesHandle WindowStylesHandle;
+
     public static void Init()
     {
-        var manager = WindowManager.Instance();
+        var fontManager   = FontManager.Instance();
+        var windowManager = WindowManager.Instance();
 
-        manager.AddWindow<Main>();
-        manager.AddWindow<PresetEditor>();
-        manager.AddWindow<RouteEditor>();
-        manager.AddWindow<Debug>();
+        fontManager.Config.FontSize = 14;
+        fontManager.Config.Save(fontManager);
+
+        WindowStylesHandle = windowManager.RegDrawScopes(() => fontManager.UIFont.Push());
+
+        windowManager.AddWindow<Main>();
+        windowManager.AddWindow<PresetEditor>();
+        windowManager.AddWindow<RouteEditor>();
+        windowManager.AddWindow<Debug>();
 
         DService.Instance().UIBuilder.OpenMainUi += OnMainUI;
     }
@@ -25,6 +33,11 @@ internal static class PluginWindow
         manager.RemoveWindow<PresetEditor>();
         manager.RemoveWindow<RouteEditor>();
         manager.RemoveWindow<Debug>();
+
+        manager.UnregDrawScopes(WindowStylesHandle);
+        WindowStylesHandle = default;
+
+        DService.Instance().UIBuilder.OpenMainUi -= OnMainUI;
     }
 
     private static void OnMainUI()
