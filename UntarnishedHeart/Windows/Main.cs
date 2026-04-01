@@ -56,6 +56,27 @@ public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.P
 
         if (ImGui.TabItemButton("调试"))
             WindowManager.Instance().Get<Debug>().IsOpen ^= true;
+
+        using (var othersItem = ImRaii.TabItem("其他"))
+        {
+            if (othersItem)
+            {
+                ImGui.TextUnformatted("界面字号");
+
+                using (ImRaii.PushIndent())
+                {
+                    ImGui.SetNextItemWidth(150f * GlobalUIScale);
+                    if (ImGui.InputFloat("###InterfaceFontInput", ref FontManager.Instance().Config.FontSize, 0, 0, "%.1f"))
+                        FontManager.Instance().Config.FontSize = Math.Clamp(FontManager.Instance().Config.FontSize, 8, 48);
+
+                    if (ImGui.IsItemDeactivatedAfterEdit())
+                    {
+                        FontManager.Instance().Config.Save();
+                        _ = FontManager.Instance().RebuildUIFontsAsync();
+                    }
+                }
+            }
+        }
     }
 
     public override void OnClose() => PluginConfig.Instance().Save();
