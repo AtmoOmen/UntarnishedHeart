@@ -110,7 +110,7 @@ public class RouteExecutor
     }
 
     public void Start() =>
-        _ = Task.Run(StartAsync);
+        _ = DService.Instance().Framework.Run(StartAsync);
 
     public void Stop()
     {

@@ -247,8 +247,9 @@ public class PresetExecutor : IDisposable
         var workCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(executorCts.Token);
         currentWorkCancellationSource = workCancellationSource;
 
-        currentWorkTask = Task.Run
-        (async () =>
+        currentWorkTask = DService.Instance().Framework.Run
+        (
+            async () =>
             {
                 try
                 {
@@ -280,7 +281,8 @@ public class PresetExecutor : IDisposable
 
                     workCancellationSource.Dispose();
                 }
-            }
+            },
+            workCancellationSource.Token
         );
     }
 
@@ -784,7 +786,7 @@ public class PresetExecutor : IDisposable
         var movementCts = CancellationTokenSource.CreateLinkedTokenSource(parentToken);
         movementCancellationSource = movementCts;
 
-        movementTask = Task.Run
+        movementTask = DService.Instance().Framework.Run
         (
             async () =>
             {
@@ -794,6 +796,7 @@ public class PresetExecutor : IDisposable
                 }
                 catch (OperationCanceledException) when (movementCts.IsCancellationRequested)
                 {
+                    // ignored
                 }
                 catch (Exception ex)
                 {
