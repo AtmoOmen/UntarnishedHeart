@@ -12,9 +12,6 @@ internal static class PluginWindow
         var fontManager   = FontManager.Instance();
         var windowManager = WindowManager.Instance();
 
-        fontManager.Config.FontSize = 14;
-        fontManager.Config.Save(fontManager);
-
         WindowStylesHandle = windowManager.RegDrawScopes(() => fontManager.UIFont.Push());
 
         windowManager.AddWindow<Main>();
