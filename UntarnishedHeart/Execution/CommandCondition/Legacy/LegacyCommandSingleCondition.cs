@@ -29,7 +29,7 @@ internal sealed class LegacyCommandSingleCondition : CommandSingleCondition
     protected override void DrawBody()
     {
         DrawLabel("迁移状态", KnownColor.Gold.ToVector4());
-        ImGui.TextUnformatted("旧条件会在下次保存时自动写回新结构");
+        ImGui.TextUnformatted("旧版本配置, 请重启一次插件以自动转换为新配置");
     }
 
     protected override string Describe() =>
