@@ -1,5 +1,6 @@
 using Dalamud.Interface.Utility;
 using UntarnishedHeart.Execution.CommandCondition.Enums;
+using UntarnishedHeart.Execution.CommandCondition.Implementations;
 using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Windows.Helpers;
 
@@ -58,7 +59,7 @@ public class CommandCondition
         ImGui.NewLine();
 
         if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, "添加新条件", true))
-            Conditions.Add(new());
+            Conditions.Add(new HealthCommandCondition());
 
         ImGui.Spacing();
 
@@ -74,7 +75,8 @@ public class CommandCondition
                 continue;
             }
 
-            step.Draw(i);
+            step          = step.Draw(i);
+            Conditions[i] = step;
             DrawStepContextMenu(i, step);
         }
 
@@ -141,20 +143,24 @@ public class CommandCondition
                 Conditions,
                 i,
                 contextOperation,
-                createNew: () => new CommandSingleCondition(),
+                createNew: () => new HealthCommandCondition(),
                 createClipboardCopy: conditionToCopy == null ? null : () => CommandSingleCondition.Copy(conditionToCopy),
                 createCurrentCopy: () => CommandSingleCondition.Copy(step)
             );
         }
     }
 
-    public bool IsConditionsTrue() =>
-        RelationType switch
+    public bool IsConditionsTrue()
+    {
+        var context = CommandConditionContext.Create();
+
+        return RelationType switch
         {
-            CommandRelationType.And => Conditions.All(x => x.IsConditionTrue()),
-            CommandRelationType.Or  => Conditions.Any(x => x.IsConditionTrue()),
+            CommandRelationType.And => Conditions.All(x => x.Evaluate(context)),
+            CommandRelationType.Or  => Conditions.Any(x => x.Evaluate(context)),
             _                       => false
         };
+    }
 
     public static CommandCondition Copy(CommandCondition source)
     {

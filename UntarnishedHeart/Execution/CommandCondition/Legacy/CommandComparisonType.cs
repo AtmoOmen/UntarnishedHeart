@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace UntarnishedHeart.Execution.CommandCondition.Enums;
+namespace UntarnishedHeart.Execution.CommandCondition.Legacy;
 
 public enum CommandComparisonType
 {

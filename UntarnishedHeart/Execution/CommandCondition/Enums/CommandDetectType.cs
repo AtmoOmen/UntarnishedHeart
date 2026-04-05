@@ -4,15 +4,15 @@ namespace UntarnishedHeart.Execution.CommandCondition.Enums;
 
 public enum CommandDetectType
 {
-    [Description("生命值百分比 (大于/小于/等于/不等于)")]
+    [Description("体力")]
     Health,
 
-    [Description("状态效果 (拥有/不拥有)")]
+    [Description("状态效果")]
     Status,
 
-    [Description("技能冷却 [自身] (完成/未完成)")]
+    [Description("自身技能冷却")]
     ActionCooldown,
 
-    [Description("技能咏唱开始 [目标] (拥有)")]
+    [Description("目标正在咏唱技能")]
     ActionCastStart
 }

@@ -1,186 +1,139 @@
-﻿using Dalamud.Game.ClientState.Objects.Enums;
-using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using OmenTools.OmenService;
+using System.Numerics;
+using Newtonsoft.Json;
 using UntarnishedHeart.Execution.CommandCondition.Enums;
+using UntarnishedHeart.Execution.CommandCondition.Implementations;
+using UntarnishedHeart.Execution.CommandCondition.Legacy;
 
 namespace UntarnishedHeart.Execution.CommandCondition;
 
-public class CommandSingleCondition
+[JsonConverter(typeof(CommandSingleConditionJsonConverter))]
+public abstract class CommandSingleCondition
 {
-    public CommandDetectType     DetectType     { get; set; }
-    public CommandComparisonType ComparisonType { get; set; }
-    public CommandTargetType     TargetType     { get; set; }
-    public float                 Value          { get; set; }
+    protected const float EQUALITY_TOLERANCE = 0.01f;
 
-    public void Draw(int i)
+    public abstract CommandDetectType Kind { get; }
+
+    public CommandSingleCondition Draw(int index)
     {
-        using var id    = ImRaii.PushId($"CommandSingleCondition-{i}");
+        using var id    = ImRaii.PushId($"CommandSingleCondition-{index}");
         using var group = ImRaii.Group();
-
         using var table = ImRaii.Table("SingleConditionTable", 2);
-        if (!table) return;
+        if (!table)
+            return this;
 
         ImGui.TableSetupColumn("名称", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("六个中国汉字").X);
         ImGui.TableSetupColumn("内容", ImGuiTableColumnFlags.WidthStretch);
 
-        // 检测类型
-        ImGui.TableNextRow();
-        ImGui.TableNextColumn();
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "检测类型:");
-
-        ImGui.TableNextColumn();
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
-
-        using (var combo = ImRaii.Combo("###DetectTypeCombo", DetectType.GetDescription(), ImGuiComboFlags.HeightLargest))
-        {
-            if (combo)
-            {
-                foreach (var detectType in Enum.GetValues<CommandDetectType>())
-                {
-                    if (ImGui.Selectable($"{detectType.GetDescription()}", DetectType == detectType))
-                        DetectType = detectType;
-                    ImGuiOm.TooltipHover($"{detectType.GetDescription()}");
-                }
-            }
-        }
-
-        // 比较类型
-        ImGui.TableNextRow();
-        ImGui.TableNextColumn();
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "比较类型:");
-
-        ImGui.TableNextColumn();
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
-
-        using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
-        {
-            if (combo)
-            {
-                foreach (var comparisonType in Enum.GetValues<CommandComparisonType>())
-                {
-                    if (ImGui.Selectable($"{comparisonType.GetDescription()}", ComparisonType == comparisonType))
-                        ComparisonType = comparisonType;
-                    ImGuiOm.TooltipHover($"{comparisonType.GetDescription()}");
-                }
-            }
-        }
-
-        // 比较类型
-        ImGui.TableNextRow();
-        ImGui.TableNextColumn();
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "目标类型:");
-
-        ImGui.TableNextColumn();
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
-
-        using (var combo = ImRaii.Combo("###TargetTypeCombo", TargetType.GetDescription(), ImGuiComboFlags.HeightLargest))
-        {
-            if (combo)
-            {
-                foreach (var targetType in Enum.GetValues<CommandTargetType>())
-                {
-                    if (ImGui.Selectable($"{targetType.GetDescription()}", TargetType == targetType))
-                        TargetType = targetType;
-                    ImGuiOm.TooltipHover($"{targetType.GetDescription()}");
-                }
-            }
-        }
-
-        // 比较类型
-        ImGui.TableNextRow();
-        ImGui.TableNextColumn();
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "值:");
-
-        // 值
-        var value = Value;
-        ImGui.TableNextColumn();
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
-        if (ImGui.InputFloat("###ValueInput", ref value))
-            Value = value;
+        var current = DrawKindSelector();
+        current.DrawBody();
+        return current;
     }
 
-    public unsafe bool IsConditionTrue()
+    public abstract bool Evaluate(in CommandConditionContext context);
+
+    public abstract CommandSingleCondition DeepCopy();
+
+    public sealed override string ToString() => Describe();
+
+    protected abstract void DrawBody();
+
+    protected abstract string Describe();
+
+    protected static void DrawLabel(string text, Vector4 color)
     {
-        if (TargetType == CommandTargetType.Target && TargetSystem.Instance()->Target == null) return true;
-
-        switch (DetectType)
-        {
-            case CommandDetectType.Health:
-                var health = TargetType switch
-                {
-                    CommandTargetType.Target => TargetManager.Target is IBattleChara target ? (float)target.CurrentHp / target.MaxHp * 100 : -1,
-                    CommandTargetType.Self => DService.Instance().ObjectTable.LocalPlayer is IBattleChara target ? (float)target.CurrentHp / target.MaxHp * 100 : -1,
-                    _ => -1
-                };
-                if (health == -1) return false;
-
-                var healthValue = Value;
-                return ComparisonType switch
-                {
-                    CommandComparisonType.GreaterThan => health > healthValue,
-                    CommandComparisonType.LessThan    => health < healthValue,
-                    CommandComparisonType.EqualTo     => health == healthValue,
-                    CommandComparisonType.NotEqualTo  => health != healthValue,
-                    _                                 => false
-                };
-
-            case CommandDetectType.Status:
-                var statusID = (uint)Value;
-
-                bool? hasStatus = TargetType switch
-                {
-                    CommandTargetType.Target => TargetManager.Target is IBattleChara { ObjectKind: ObjectKind.BattleNpc or ObjectKind.Player } target
-                                                    ? target.ToBCStruct()->StatusManager.HasStatus(statusID)
-                                                    : null,
-                    CommandTargetType.Self => LocalPlayerState.HasStatus(statusID, out _),
-                    _                      => null
-                };
-                if (hasStatus == null) return false;
-
-                return ComparisonType switch
-                {
-                    CommandComparisonType.Has    => hasStatus.Value,
-                    CommandComparisonType.NotHas => !hasStatus.Value,
-                    _                            => false
-                };
-
-            case CommandDetectType.ActionCooldown:
-                var actionID      = (uint)Value;
-                var isOffCooldown = ActionManager.Instance()->IsActionOffCooldown(ActionType.Action, actionID);
-
-                return ComparisonType switch
-                {
-                    CommandComparisonType.Finished    => isOffCooldown,
-                    CommandComparisonType.NotFinished => !isOffCooldown,
-                    _                                 => false
-                };
-
-            case CommandDetectType.ActionCastStart:
-                if (TargetType != CommandTargetType.Target || ComparisonType != CommandComparisonType.Has) return false;
-                if (TargetManager.Target is not IBattleChara targetCast) return false;
-                if (!targetCast.IsCasting || targetCast.CastActionType != ActionType.Action) return false;
-
-                var castActionID = (uint)Value;
-                return targetCast.CastActionID == castActionID;
-
-            default:
-                return false;
-        }
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
+        ImGui.AlignTextToFramePadding();
+        ImGui.TextColored(color, $"{text}:");
+        ImGui.TableNextColumn();
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
     }
 
-    public override string ToString() => $"CommandSingleCondition_{DetectType}_{ComparisonType}_{TargetType}_{Value}";
+    protected static TEnum DrawEnumCombo<TEnum>(string id, TEnum current)
+        where TEnum : struct, Enum
+    {
+        using var combo = ImRaii.Combo(id, current.GetDescription(), ImGuiComboFlags.HeightLargest);
+        if (!combo)
+            return current;
 
-    public static CommandSingleCondition Copy(CommandSingleCondition source) =>
-        new()
+        foreach (var candidate in Enum.GetValues<TEnum>())
         {
-            DetectType     = source.DetectType,
-            ComparisonType = source.ComparisonType,
-            TargetType     = source.TargetType,
-            Value          = source.Value
+            if (ImGui.Selectable(candidate.GetDescription(), EqualityComparer<TEnum>.Default.Equals(current, candidate)))
+                current = candidate;
+
+            ImGuiOm.TooltipHover(candidate.GetDescription());
+        }
+
+        return current;
+    }
+
+    protected static CommandSingleCondition CreateDefault(CommandDetectType kind) =>
+        kind switch
+        {
+            CommandDetectType.Health          => new HealthCommandCondition(),
+            CommandDetectType.Status          => new StatusCommandCondition(),
+            CommandDetectType.ActionCooldown  => new ActionCooldownCommandCondition(),
+            CommandDetectType.ActionCastStart => new ActionCastStartCommandCondition(),
+            _                                 => new HealthCommandCondition()
+        };
+
+    internal static CommandSingleCondition MigrateLegacyV1ToV2
+    (
+        CommandDetectType     detectType,
+        CommandComparisonType comparisonType,
+        CommandTargetType     targetType,
+        float                 value
+    ) =>
+        detectType switch
+        {
+            CommandDetectType.Health => new HealthCommandCondition
+            {
+                TargetType = targetType,
+                ComparisonType = comparisonType switch
+                {
+                    CommandComparisonType.GreaterThan => NumericComparisonType.GreaterThan,
+                    CommandComparisonType.EqualTo     => NumericComparisonType.EqualTo,
+                    CommandComparisonType.NotEqualTo  => NumericComparisonType.NotEqualTo,
+                    _                                 => NumericComparisonType.LessThan
+                },
+                Threshold = value
+            },
+            CommandDetectType.Status => new StatusCommandCondition
+            {
+                TargetType     = targetType,
+                ComparisonType = comparisonType == CommandComparisonType.NotHas ? PresenceComparisonType.NotHas : PresenceComparisonType.Has,
+                StatusID       = (uint)Math.Max(0, value)
+            },
+            CommandDetectType.ActionCooldown => new ActionCooldownCommandCondition
+            {
+                ComparisonType = comparisonType == CommandComparisonType.NotFinished ? CooldownComparisonType.NotFinished : CooldownComparisonType.Finished,
+                ActionID       = (uint)Math.Max(0, value)
+            },
+            CommandDetectType.ActionCastStart => new ActionCastStartCommandCondition
+            {
+                ActionID = (uint)Math.Max(0, value)
+            },
+            _ => new HealthCommandCondition()
+        };
+
+    public static CommandSingleCondition Copy(CommandSingleCondition source) => source.DeepCopy();
+
+    private CommandSingleCondition DrawKindSelector()
+    {
+        DrawLabel("检测类型", KnownColor.LightSkyBlue.ToVector4());
+
+        var selectedKind = DrawEnumCombo("###DetectTypeCombo", Kind);
+        if (selectedKind == Kind)
+            return this;
+
+        return CreateDefault(selectedKind);
+    }
+
+    protected static IBattleChara? ResolveTarget(in CommandConditionContext context, CommandTargetType targetType) =>
+        targetType switch
+        {
+            CommandTargetType.Self   => context.LocalPlayer,
+            CommandTargetType.Target => context.Target,
+            _                        => null
         };
 }
