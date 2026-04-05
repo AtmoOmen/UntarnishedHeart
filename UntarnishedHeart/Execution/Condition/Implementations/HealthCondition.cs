@@ -1,4 +1,4 @@
-using UntarnishedHeart.Execution.Condition.Enums;
+﻿using UntarnishedHeart.Execution.Condition.Enums;
 
 namespace UntarnishedHeart.Execution.Condition;
 
@@ -23,11 +23,19 @@ public sealed class HealthCondition : Condition
         {
             NumericComparisonType.GreaterThan => healthPercent                        > Threshold,
             NumericComparisonType.LessThan    => healthPercent                        < Threshold,
-            NumericComparisonType.EqualTo     => MathF.Abs(healthPercent - Threshold) <= EQUALITY_TOLERANCE,
-            NumericComparisonType.NotEqualTo  => MathF.Abs(healthPercent - Threshold) > EQUALITY_TOLERANCE,
+            NumericComparisonType.EqualTo     => MathF.Abs(healthPercent - Threshold) <= EqualityTolerance,
+            NumericComparisonType.NotEqualTo  => MathF.Abs(healthPercent - Threshold) > EqualityTolerance,
             _                                 => false
         };
     }
+
+    protected override bool EqualsCore(Condition other) =>
+        other is HealthCondition condition                                    &&
+        ComparisonType                            == condition.ComparisonType &&
+        TargetType                                == condition.TargetType     &&
+        Math.Abs(Threshold - condition.Threshold) <= EqualityTolerance;
+
+    protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, (int)TargetType, Threshold);
 
     public override Condition DeepCopy() =>
         new HealthCondition
@@ -42,15 +50,11 @@ public sealed class HealthCondition : Condition
         DrawLabel("比较类型", KnownColor.LightSkyBlue.ToVector4());
         ComparisonType = DrawEnumCombo("###ComparisonTypeCombo", ComparisonType);
 
-        DrawLabel("目标类型", KnownColor.LightSkyBlue.ToVector4());
-        TargetType = DrawEnumCombo("###TargetTypeCombo", TargetType);
+        TargetType = DrawTargetType("###TargetTypeCombo", TargetType);
 
-        DrawLabel("值", KnownColor.LightSkyBlue.ToVector4());
+        DrawLabel("百分比", KnownColor.LightSkyBlue.ToVector4());
         var threshold = Threshold;
         if (ImGui.InputFloat("%###ValueInput", ref threshold))
             Threshold = threshold;
     }
-
-    protected override string Describe() =>
-        $"生命值百分比 {TargetType.GetDescription()} {ComparisonType.GetDescription()} {Threshold}";
 }

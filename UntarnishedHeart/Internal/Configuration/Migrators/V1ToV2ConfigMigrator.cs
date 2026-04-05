@@ -1,5 +1,3 @@
-using UntarnishedHeart.Internal;
-
 namespace UntarnishedHeart.Internal.Configuration.Migrators;
 
 internal sealed class V1ToV2ConfigMigrator : ConfigMigratorBase

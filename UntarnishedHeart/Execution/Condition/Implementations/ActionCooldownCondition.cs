@@ -1,7 +1,7 @@
-using FFXIVClientStructs.FFXIV.Client.Game;
-using OmenTools.Interop.Game.Lumina;
+﻿using OmenTools.OmenService;
 using UntarnishedHeart.Execution.Condition.Enums;
-using Action = Lumina.Excel.Sheets.Action;
+using UntarnishedHeart.Execution.Condition.Helpers;
+using UntarnishedHeart.Execution.Models;
 
 namespace UntarnishedHeart.Execution.Condition;
 
@@ -11,11 +11,11 @@ public sealed class ActionCooldownCondition : Condition
 
     public CooldownComparisonType ComparisonType { get; set; } = CooldownComparisonType.Finished;
 
-    public uint ActionID { get; set; }
+    public ActionReference Action { get; set; } = new();
 
-    public override unsafe bool Evaluate(in ConditionContext context)
+    public override bool Evaluate(in ConditionContext context)
     {
-        var isOffCooldown = ActionManager.Instance()->IsActionOffCooldown(ActionType.Action, ActionID);
+        var isOffCooldown = UseActionManager.Instance().IsActionOffCooldown(Action.ActionType, Action.ActionID);
         return ComparisonType switch
         {
             CooldownComparisonType.Finished    => isOffCooldown,
@@ -24,11 +24,18 @@ public sealed class ActionCooldownCondition : Condition
         };
     }
 
+    protected override bool EqualsCore(Condition other) =>
+        other is ActionCooldownCondition condition &&
+        ComparisonType == condition.ComparisonType &&
+        Action.Equals(condition.Action);
+
+    protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, Action);
+
     public override Condition DeepCopy() =>
         new ActionCooldownCondition
         {
             ComparisonType = ComparisonType,
-            ActionID       = ActionID
+            Action         = ActionReference.Copy(Action)
         };
 
     protected override void DrawBody()
@@ -36,21 +43,6 @@ public sealed class ActionCooldownCondition : Condition
         DrawLabel("比较类型", KnownColor.LightSkyBlue.ToVector4());
         ComparisonType = DrawEnumCombo("###ComparisonTypeCombo", ComparisonType);
 
-        DrawLabel("技能 ID", KnownColor.LightSkyBlue.ToVector4());
-        var actionID = (int)ActionID;
-        if (ImGui.InputInt("###ActionIdInput", ref actionID))
-            ActionID = (uint)Math.Max(0, actionID);
-        
-        if (LuminaGetter.TryGetRow((uint)actionID, out Action row))
-        {
-            ImGui.TableNextRow();
-            ImGui.TableNextColumn();
-            ImGui.TableNextColumn();
-            
-            ImGui.TextUnformatted($"({row.Name})");
-        }
+        ConditionDrawHelper.DrawActionReference(Action);
     }
-
-    protected override string Describe() =>
-        $"技能冷却 {ComparisonType.GetDescription()} {ActionID}";
 }

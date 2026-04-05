@@ -5,13 +5,14 @@ namespace UntarnishedHeart.Internal.Configuration;
 
 internal static class PluginConfigMigrator
 {
-    internal const int LatestVersion = 2;
+    internal const int LatestVersion = 3;
 
     private static readonly FrozenDictionary<int, ConfigMigratorBase> Migrators =
         new ConfigMigratorBase[]
         {
             new V0ToV1ConfigMigrator(),
-            new V1ToV2ConfigMigrator()
+            new V1ToV2ConfigMigrator(),
+            new V2ToV3ConfigMigrator()
         }.ToFrozenDictionary(migrator => migrator.FromVersion);
 
     internal static void Migrate(PluginConfig config)

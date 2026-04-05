@@ -7,12 +7,13 @@ namespace UntarnishedHeart.Execution.Condition.Configuration;
 
 internal sealed class ConditionJSONMigrator : VersionedJsonMigratorBase<Condition>
 {
-    internal const int CurrentJSONVersion = 2;
+    internal const int CurrentJSONVersion = 3;
 
     private static readonly FrozenDictionary<int, JsonObjectMigratorBase> MigratorsInternal =
         new JsonObjectMigratorBase[]
         {
-            new ConditionV1ToV2Migrator()
+            new ConditionV1ToV2Migrator(),
+            new ConditionV2ToV3Migrator()
         }.ToFrozenDictionary(migrator => migrator.FromVersion);
 
     internal static ConditionJSONMigrator Instance { get; } = new();
@@ -28,5 +29,5 @@ internal sealed class ConditionJSONMigrator : VersionedJsonMigratorBase<Conditio
     protected override int ResolveMissingVersion(JObject jsonObject) =>
         jsonObject["Kind"] is null
             ? LegacyVersion
-            : CurrentVersion;
+            : 2;
 }

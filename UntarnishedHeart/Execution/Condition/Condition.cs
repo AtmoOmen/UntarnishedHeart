@@ -1,16 +1,39 @@
 using System.Numerics;
 using Newtonsoft.Json;
+using UntarnishedHeart.Execution.Condition.Configuration.Migrators;
 using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Condition.Legacy;
+using UntarnishedHeart.Execution.Models;
+using UntarnishedHeart.Execution.Preset.Helpers;
 
 namespace UntarnishedHeart.Execution.Condition;
 
 [JsonConverter(typeof(ConditionJsonConverter))]
-public abstract class Condition
+public abstract class Condition : IEquatable<Condition>
 {
-    protected const float EQUALITY_TOLERANCE = 0.01f;
+    protected const float EqualityTolerance = 0.01f;
 
     public abstract ConditionDetectType Kind { get; }
+
+    public abstract bool Evaluate(in ConditionContext context);
+
+    public abstract Condition DeepCopy();
+
+    public bool Equals(Condition? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+
+        return Kind == other.Kind && EqualsCore(other);
+    }
+
+    protected abstract bool EqualsCore(Condition other);
+
+    public override bool Equals(object? obj) => Equals(obj as Condition);
+
+    public override int GetHashCode() => HashCode.Combine((int)Kind, GetCoreHashCode());
+
+    protected abstract int GetCoreHashCode();
 
     public Condition Draw(int index)
     {
@@ -28,17 +51,9 @@ public abstract class Condition
         return current;
     }
 
-    public abstract bool Evaluate(in ConditionContext context);
-
-    public abstract Condition DeepCopy();
-
-    public sealed override string ToString() => Describe();
-
     protected abstract void DrawBody();
 
-    protected abstract string Describe();
-
-    protected static void DrawLabel(string text, Vector4 color)
+    internal static void DrawLabel(string text, Vector4 color)
     {
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
@@ -48,7 +63,7 @@ public abstract class Condition
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
     }
 
-    protected static TEnum DrawEnumCombo<TEnum>(string id, TEnum current)
+    internal static TEnum DrawEnumCombo<TEnum>(string id, TEnum current)
         where TEnum : struct, Enum
     {
         using var combo = ImRaii.Combo(id, current.GetDescription(), ImGuiComboFlags.HeightLargest);
@@ -66,14 +81,39 @@ public abstract class Condition
         return current;
     }
 
+    protected static ConditionTargetType DrawTargetType(string id, ConditionTargetType current)
+    {
+        DrawLabel("目标类型", KnownColor.LightSkyBlue.ToVector4());
+        return DrawEnumCombo(id, current);
+    }
+
+    protected static IBattleChara? ResolveTarget(in ConditionContext context, ConditionTargetType targetType) =>
+        targetType switch
+        {
+            ConditionTargetType.Self   => context.LocalPlayer,
+            ConditionTargetType.Target => context.Target,
+            _                          => null
+        };
+
+    protected static IGameObject? ResolveSpecificTarget(TargetSelector selector) =>
+        PresetTargetResolver.Resolve(selector);
+
     protected static Condition CreateDefault(ConditionDetectType kind) =>
         kind switch
         {
-            ConditionDetectType.Health          => new HealthCondition(),
-            ConditionDetectType.Status          => new StatusCondition(),
-            ConditionDetectType.ActionCooldown  => new ActionCooldownCondition(),
-            ConditionDetectType.ActionCastStart => new ActionCastStartCondition(),
-            _                                 => new HealthCondition()
+            ConditionDetectType.GameCondition      => new GameConditionStateCondition(),
+            ConditionDetectType.Status             => new StatusCondition(),
+            ConditionDetectType.Health             => new HealthCondition(),
+            ConditionDetectType.ActionCast         => new ActionCastCondition(),
+            ConditionDetectType.ActionCooldown     => new ActionCooldownCondition(),
+            ConditionDetectType.ActionUsable       => new ActionUsableCondition(),
+            ConditionDetectType.PositionRange      => new PositionRangeCondition(),
+            ConditionDetectType.NearbyTarget       => new NearbyTargetCondition(),
+            ConditionDetectType.HasTarget          => new HasTargetCondition(),
+            ConditionDetectType.HasSpecificTarget  => new HasSpecificTargetCondition(),
+            ConditionDetectType.PartyAllDead       => new PartyAllDeadCondition(),
+            ConditionDetectType.TargetTargetIsSelf => new TargetTargetIsSelfCondition(),
+            _                                      => new HealthCondition()
         };
 
     internal static Condition MigrateLegacyV1ToV2
@@ -81,7 +121,7 @@ public abstract class Condition
         ConditionDetectType     detectType,
         ConditionComparisonType comparisonType,
         ConditionTargetType     targetType,
-        float                 value
+        float                   value
     ) =>
         detectType switch
         {
@@ -93,7 +133,7 @@ public abstract class Condition
                     ConditionComparisonType.GreaterThan => NumericComparisonType.GreaterThan,
                     ConditionComparisonType.EqualTo     => NumericComparisonType.EqualTo,
                     ConditionComparisonType.NotEqualTo  => NumericComparisonType.NotEqualTo,
-                    _                                 => NumericComparisonType.LessThan
+                    _                                   => NumericComparisonType.LessThan
                 },
                 Threshold = value
             },
@@ -106,33 +146,27 @@ public abstract class Condition
             ConditionDetectType.ActionCooldown => new ActionCooldownCondition
             {
                 ComparisonType = comparisonType == ConditionComparisonType.NotFinished ? CooldownComparisonType.NotFinished : CooldownComparisonType.Finished,
-                ActionID       = (uint)Math.Max(0, value)
+                Action         = new ActionReference { ActionID = (uint)Math.Max(0, value) }
             },
-            ConditionDetectType.ActionCastStart => new ActionCastStartCondition
+            ConditionDetectType.ActionCast or ConditionDetectType.ActionCastStart => new ActionCastCondition
             {
-                ActionID = (uint)Math.Max(0, value)
+                TargetType     = targetType,
+                ComparisonType = comparisonType == ConditionComparisonType.NotHas ? PresenceComparisonType.NotHas : PresenceComparisonType.Has,
+                Action         = new ActionReference { ActionID = (uint)Math.Max(0, value) }
             },
             _ => new HealthCondition()
         };
 
-    public static Condition Copy(Condition source) => source.DeepCopy();
-
     private Condition DrawKindSelector()
     {
-        DrawLabel("检测类型", KnownColor.LightSkyBlue.ToVector4());
+        DrawLabel("条件类型", KnownColor.LightSkyBlue.ToVector4());
 
-        var selectedKind = DrawEnumCombo("###DetectTypeCombo", Kind);
+        var selectedKind = DrawEnumCombo("###ConditionKindCombo", Kind);
         if (selectedKind == Kind)
             return this;
 
         return CreateDefault(selectedKind);
     }
 
-    protected static IBattleChara? ResolveTarget(in ConditionContext context, ConditionTargetType targetType) =>
-        targetType switch
-        {
-            ConditionTargetType.Self   => context.LocalPlayer,
-            ConditionTargetType.Target => context.Target,
-            _                        => null
-        };
+    public static Condition Copy(Condition source) => source.DeepCopy();
 }

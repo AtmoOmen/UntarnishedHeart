@@ -1,5 +1,3 @@
-using Dalamud.Interface.Utility;
-
 namespace UntarnishedHeart.Windows.Components;
 
 internal static class CollectionToolbar
@@ -11,13 +9,18 @@ internal static class CollectionToolbar
     }
 
     public static void DrawSelector<T>
-        (string label, string comboID, IList<T> items, ref int selectedIndex, Func<T, string> getName, Action<T>? onDelete = null, string emptyText = "暂无数据")
+    (
+        string          label,
+        string          comboID,
+        IList<T>        items,
+        ref int         selectedIndex,
+        Func<T, string> getName,
+        Action<T>?      onDelete  = null,
+        string          emptyText = "暂无数据"
+    )
     {
         ImGui.AlignTextToFramePadding();
         ImGui.Text(label);
-
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
 
         selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
 
@@ -29,41 +32,65 @@ internal static class CollectionToolbar
 
         var selectedItem = items[selectedIndex];
 
-        using var combo = ImRaii.Combo(comboID, getName(selectedItem), ImGuiComboFlags.HeightLarge);
-        if (!combo) return;
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(250f * GlobalUIScale);
 
-        for (var i = 0; i < items.Count; i++)
-        {
-            var item = items[i];
-            if (ImGui.Selectable($"{getName(item)}###{comboID}-{i}"))
-                selectedIndex = i;
-
-            if (onDelete == null)
-                continue;
-
-            using var popup = ImRaii.ContextPopupItem($"{comboID}-{i}ContextPopup");
-            if (!popup) continue;
-
-            using var disabled = ImRaii.Disabled(items.Count <= 1);
-
-            if (ImGui.MenuItem($"删除##{comboID}-{i}"))
+        using (var combo = ImRaii.Combo(comboID, getName(selectedItem), ImGuiComboFlags.HeightLarge))
+            if (combo)
             {
-                onDelete(item);
-                selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
-                return;
+            }
+
+        if (ImGui.IsItemClicked())
+            ImGui.OpenPopup(comboID);
+
+        using (var popup = ImRaii.PopupModal(comboID, ImGuiWindowFlags.AlwaysAutoResize))
+        {
+            if (popup)
+            {
+                for (var i = 0; i < items.Count; i++)
+                {
+                    var item = items[i];
+                    if (ImGui.Selectable($"{getName(item)}###{comboID}-{i}"))
+                        selectedIndex = i;
+
+                    if (onDelete == null)
+                        continue;
+
+                    using var context = ImRaii.ContextPopupItem($"{comboID}-{i}ContextPopup");
+                    if (!context) continue;
+
+                    using var disabled = ImRaii.Disabled(items.Count <= 1);
+
+                    if (ImGui.MenuItem($"删除##{comboID}-{i}"))
+                    {
+                        onDelete(item);
+                        selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
+                        return;
+                    }
+                }
             }
         }
     }
 
     public static void DrawActionButtons
-        (string saveID, Action onSave, string addID, Action onAdd, string importID, Action onImport, string exportID, Action onExport, bool canExport = true)
+    (
+        string saveID,
+        Action onSave,
+        string addID,
+        Action onAdd,
+        string importID,
+        Action onImport,
+        string exportID,
+        Action onExport,
+        bool   canExport = true
+    )
     {
         if (ImGuiOm.ButtonIcon(saveID, FontAwesomeIcon.Save, "保存", true))
             onSave();
 
         ImGui.SameLine();
 
-        if (ImGuiOm.ButtonIcon(addID, FontAwesomeIcon.FileCirclePlus, "添加", true))
+        if (ImGuiOm.ButtonIcon(addID, FontAwesomeIcon.FileCirclePlus, "新增", true))
             onAdd();
 
         ImGui.SameLine();

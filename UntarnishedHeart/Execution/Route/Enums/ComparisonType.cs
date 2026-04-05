@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace UntarnishedHeart.Execution.Enums;
+namespace UntarnishedHeart.Execution.Route.Enums;
 
 /// <summary>
 ///     比较类型

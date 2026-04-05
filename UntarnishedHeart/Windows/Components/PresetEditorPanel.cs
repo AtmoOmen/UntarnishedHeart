@@ -45,10 +45,8 @@ internal static class PresetEditorPanel
 
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
-
         ImGui.AlignTextToFramePadding();
         ImGui.Text("名称:");
-
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(-1f);
         var name = preset.Name;
@@ -60,7 +58,7 @@ internal static class PresetEditorPanel
         ImGui.AlignTextToFramePadding();
         ImGui.Text("副本区域:");
         ImGui.TableSetColumnIndex(1);
-        ImGui.SetNextItemWidth(350f * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(350f * GlobalUIScale);
 
         if (state.ContentCombo.DrawRadio())
             preset.Zone = (ushort)state.ContentCombo.SelectedItem.TerritoryType.RowId;
@@ -85,11 +83,10 @@ internal static class PresetEditorPanel
         ImGui.AlignTextToFramePadding();
         ImGui.Text("退出延迟:");
         ImGui.TableSetColumnIndex(1);
-        var delay = preset.DutyDelay;
-        ImGui.SetNextItemWidth(350f * ImGuiHelpers.GlobalScale);
-        if (ImGui.InputInt("(ms)###PresetLeaveDutyDelayInput", ref delay))
-            preset.DutyDelay = Math.Max(0, delay);
-        ImGuiOm.TooltipHover("完成副本后, 在退出副本前需要等待的时间");
+        var dutyDelay = preset.DutyDelay;
+        ImGui.SetNextItemWidth(350f * GlobalUIScale);
+        if (ImGui.InputInt("(ms)###PresetLeaveDutyDelayInput", ref dutyDelay))
+            preset.DutyDelay = Math.Max(0, dutyDelay);
 
         ImGui.TableNextRow();
         ImGui.TableSetColumnIndex(0);
@@ -99,7 +96,6 @@ internal static class PresetEditorPanel
         var autoOpenTreasure = preset.AutoOpenTreasures;
         if (ImGui.Checkbox("副本结束时, 自动开启宝箱", ref autoOpenTreasure))
             preset.AutoOpenTreasures = autoOpenTreasure;
-        ImGuiOm.HelpMarker("请确保本副本的确有宝箱, 否则流程将卡死", 20f, FontAwesomeIcon.InfoCircle, true);
 
         ImGui.TableNextRow();
         ImGui.TableSetColumnIndex(0);
@@ -107,7 +103,7 @@ internal static class PresetEditorPanel
         ImGui.Text("备注:");
         ImGui.TableSetColumnIndex(1);
         var remark = preset.Remark;
-        if (ImGui.InputTextMultiline("###RemarkInput", ref remark, 2056, new(-1f)))
+        if (ImGui.InputTextMultiline("###RemarkInput", ref remark, 4096, new(-1f, 120f * GlobalUIScale)))
             preset.Remark = remark;
     }
 
@@ -118,14 +114,13 @@ internal static class PresetEditorPanel
         using var table = ImRaii.Table("PresetStepsTable", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV);
         if (!table) return;
 
-        ImGui.TableSetupColumn("StepsList",   ImGuiTableColumnFlags.WidthFixed, 300f * ImGuiHelpers.GlobalScale);
+        ImGui.TableSetupColumn("StepsList",   ImGuiTableColumnFlags.WidthFixed, 320f * GlobalUIScale);
         ImGui.TableSetupColumn("StepDetails", ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableNextRow();
 
         ImGui.TableSetColumnIndex(0);
         if (ImGuiOm.ButtonSelectable("添加步骤"))
-            preset.Steps.Add(new());
-        ImGuiOm.TooltipHover("每一步骤内的各判断, 都遵循界面绘制顺序, 从上到下、从左到右依次判断执行");
+            preset.Steps.Add(new PresetStep { Name = $"步骤 {preset.Steps.Count}" });
 
         using (var child = ImRaii.Child("StepsSelectChild", ImGui.GetContentRegionAvail(), true))
         {
@@ -133,8 +128,9 @@ internal static class PresetEditorPanel
             {
                 for (var i = 0; i < preset.Steps.Count; i++)
                 {
-                    var step     = preset.Steps[i];
-                    var stepName = $"{i}. {step.Note}" + (step.Delay > 0 ? $" ({(float)step.Delay / 1000:F2}s)" : string.Empty);
+                    var step        = preset.Steps[i];
+                    var actionCount = step.EnterActions.Count + step.BodyActions.Count + step.ExitActions.Count;
+                    var stepName    = $"{i}. {step.Name} ({actionCount} 个动作)";
 
                     if (ImGui.Selectable(stepName, i == state.CurrentStep, ImGuiSelectableFlags.AllowDoubleClick))
                         state.CurrentStep = i;
@@ -200,7 +196,7 @@ internal static class PresetEditorPanel
         using var context = ImRaii.ContextPopupItem($"StepContentMenu_{index}");
         if (!context) return;
 
-        ImGui.Text($"第 {index} 步: {step.Note}");
+        ImGui.Text($"第 {index} 步: {step.Name}");
         ImGui.Separator();
 
         if (ImGui.MenuItem("复制"))
@@ -208,19 +204,14 @@ internal static class PresetEditorPanel
 
         if (state.StepToCopy != null)
         {
-            using (ImRaii.Group())
-            {
-                if (ImGui.MenuItem("粘贴至本步"))
-                    contextOperation = StepOperationType.Paste;
+            if (ImGui.MenuItem("粘贴至本步"))
+                contextOperation = StepOperationType.Paste;
 
-                if (ImGui.MenuItem("向上插入粘贴"))
-                    contextOperation = StepOperationType.PasteUp;
+            if (ImGui.MenuItem("向上插入粘贴"))
+                contextOperation = StepOperationType.PasteUp;
 
-                if (ImGui.MenuItem("向下插入粘贴"))
-                    contextOperation = StepOperationType.PasteDown;
-            }
-
-            ImGuiOm.TooltipHover($"已复制步骤: {state.StepToCopy.Note}");
+            if (ImGui.MenuItem("向下插入粘贴"))
+                contextOperation = StepOperationType.PasteDown;
         }
 
         if (ImGui.MenuItem("删除"))
@@ -251,7 +242,7 @@ internal static class PresetEditorPanel
             index,
             contextOperation,
             state.CurrentStep,
-            () => new PresetStep(),
+            () => new PresetStep { Name = $"步骤 {preset.Steps.Count}" },
             state.StepToCopy == null ? null : () => PresetStep.Copy(state.StepToCopy),
             () => PresetStep.Copy(step)
         );

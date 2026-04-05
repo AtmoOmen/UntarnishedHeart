@@ -28,7 +28,7 @@ internal abstract class VersionedJsonMigratorBase<T>
             if (!Migrators.TryGetValue(version, out var migrator))
                 throw new InvalidOperationException($"不支持的 {DisplayName} 版本: {version}");
 
-            current = migrator.Migrate(current);
+            current                      = migrator.Migrate(current);
             current[VersionPropertyName] = migrator.ToVersion;
             version                      = migrator.ToVersion;
         }
@@ -45,9 +45,9 @@ internal abstract class VersionedJsonMigratorBase<T>
 
         var version = token.Type switch
         {
-            JTokenType.Integer => token.Value<int>(),
+            JTokenType.Integer                                                        => token.Value<int>(),
             JTokenType.String when int.TryParse(token.Value<string>(), out var value) => value,
-            _ => throw new InvalidOperationException($"{DisplayName} 的版本字段无效")
+            _                                                                         => throw new InvalidOperationException($"{DisplayName} 的版本字段无效")
         };
 
         if (version < LegacyVersion)

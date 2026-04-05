@@ -32,6 +32,12 @@ internal sealed class LegacyCondition : Condition
         ImGui.TextUnformatted("旧版本配置, 请重启一次插件以自动转换为新配置");
     }
 
-    protected override string Describe() =>
-        $"旧条件 {DetectType.GetDescription()} / {ComparisonType.GetDescription()} / {TargetType.GetDescription()} / {Value}";
+    protected override bool EqualsCore(Condition other) =>
+        other is LegacyCondition condition                            &&
+        DetectType                        == condition.DetectType     &&
+        ComparisonType                    == condition.ComparisonType &&
+        TargetType                        == condition.TargetType     &&
+        Math.Abs(Value - condition.Value) <= EqualityTolerance;
+
+    protected override int GetCoreHashCode() => HashCode.Combine((int)DetectType, (int)ComparisonType, (int)TargetType, Value);
 }

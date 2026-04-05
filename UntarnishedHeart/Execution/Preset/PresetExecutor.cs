@@ -15,8 +15,12 @@ using OmenTools.Interop.Game.Lumina;
 using OmenTools.Interop.Windows.Helpers;
 using OmenTools.OmenService;
 using OmenTools.Threading;
+using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Enums;
+using UntarnishedHeart.Execution.ExecuteAction.Implementations;
+using UntarnishedHeart.Execution.Preset.Enums;
+using UntarnishedHeart.Execution.Preset.Helpers;
 
 namespace UntarnishedHeart.Execution.Preset;
 
@@ -154,6 +158,38 @@ public class PresetExecutor : IDisposable
         return true;
     }
 
+    private enum ActionFlowKind
+    {
+        Continue,
+        JumpToStep,
+        RestartCurrentStep,
+        JumpToAction,
+        RestartCurrentAction,
+        LeaveAndEndPreset,
+        LeaveAndRestartPreset
+    }
+
+    private readonly record struct ActionFlowResult
+    (
+        ActionFlowKind Kind,
+        int            Index = -1
+    )
+    {
+        public static ActionFlowResult Continue() => new(ActionFlowKind.Continue);
+
+        public static ActionFlowResult JumpToStep(int stepIndex) => new(ActionFlowKind.JumpToStep, stepIndex);
+
+        public static ActionFlowResult RestartStep() => new(ActionFlowKind.RestartCurrentStep);
+
+        public static ActionFlowResult JumpToAction(int actionIndex) => new(ActionFlowKind.JumpToAction, actionIndex);
+
+        public static ActionFlowResult RestartAction() => new(ActionFlowKind.RestartCurrentAction);
+
+        public static ActionFlowResult LeaveAndEndPreset() => new(ActionFlowKind.LeaveAndEndPreset);
+
+        public static ActionFlowResult LeaveAndRestartPreset() => new(ActionFlowKind.LeaveAndRestartPreset);
+    }
+
     private async Task RunManualNearestInteractAsync()
     {
         if (!await manualInteractGate.WaitAsync(0))
@@ -208,7 +244,6 @@ public class PresetExecutor : IDisposable
     private static unsafe void OnAddonDraw(AddonEvent type, AddonArgs args)
     {
         if (!Throttler.Shared.Throttle("自动确认进入副本节流")) return;
-
         if (args.Addon == nint.Zero) return;
         args.Addon.ToStruct()->Callback(8);
     }
@@ -293,21 +328,289 @@ public class PresetExecutor : IDisposable
         if (runOptions.AutoRecommendGear)
             await EquipRecommendedGearAsync(cancellationToken);
 
-        for (var stepIndex = 0; stepIndex < ExecutorPreset!.Steps.Count;)
+        var stepIndex = 0;
+
+        while (stepIndex < ExecutorPreset!.Steps.Count)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var step = ExecutorPreset.Steps[stepIndex];
+            var step       = ExecutorPreset.Steps[stepIndex];
+            var stepResult = await ExecuteStepAsync(step, stepIndex, cancellationToken);
 
-            await ExecuteStepAsync(step, cancellationToken);
-
-            if (step.JumpToIndex >= 0 && step.JumpToIndex < ExecutorPreset.Steps.Count)
-                stepIndex = step.JumpToIndex;
-            else
-                stepIndex++;
+            switch (stepResult.Kind)
+            {
+                case ActionFlowKind.Continue:
+                    stepIndex++;
+                    break;
+                case ActionFlowKind.JumpToStep:
+                    stepIndex = stepResult.Index;
+                    break;
+                case ActionFlowKind.RestartCurrentStep:
+                    break;
+                case ActionFlowKind.LeaveAndEndPreset:
+                    Finish
+                    (
+                        new PresetExecutorResult
+                        {
+                            EndReason       = ExecutorEndReason.Completed,
+                            CompletedRounds = CurrentRound
+                        },
+                        false
+                    );
+                    return;
+                case ActionFlowKind.LeaveAndRestartPreset:
+                    return;
+                default:
+                    throw new InvalidOperationException($"不支持的步骤跳转结果: {stepResult.Kind}");
+            }
         }
 
         SetRunningMessage("等待副本完成");
+    }
+
+    private async Task<ActionFlowResult> ExecuteStepAsync(PresetStep step, int stepIndex, CancellationToken cancellationToken)
+    {
+        foreach (var phase in Enum.GetValues<PresetStepPhase>())
+        {
+            var actions     = GetActions(step, phase);
+            var phaseResult = await ExecutePhaseAsync(stepIndex, step, phase, actions, cancellationToken);
+            if (phaseResult.Kind != ActionFlowKind.Continue)
+                return phaseResult;
+        }
+
+        return ActionFlowResult.Continue();
+    }
+
+    private async Task<ActionFlowResult> ExecutePhaseAsync
+    (
+        int                               stepIndex,
+        PresetStep                        step,
+        PresetStepPhase                   phase,
+        List<ExecuteAction.ExecuteAction> actions,
+        CancellationToken                 cancellationToken
+    )
+    {
+        for (var actionIndex = 0; actionIndex < actions.Count;)
+        {
+            var action = actions[actionIndex];
+            var result = await ExecuteActionAsync(stepIndex, step, phase, actionIndex, action, actions.Count, cancellationToken);
+
+            switch (result.Kind)
+            {
+                case ActionFlowKind.Continue:
+                    actionIndex++;
+                    break;
+                case ActionFlowKind.JumpToAction:
+                    actionIndex = result.Index;
+                    break;
+                case ActionFlowKind.RestartCurrentAction:
+                    break;
+                case ActionFlowKind.JumpToStep:
+                case ActionFlowKind.RestartCurrentStep:
+                case ActionFlowKind.LeaveAndEndPreset:
+                case ActionFlowKind.LeaveAndRestartPreset:
+                    return result;
+                default:
+                    throw new InvalidOperationException($"不支持的动作跳转结果: {result.Kind}");
+            }
+        }
+
+        return ActionFlowResult.Continue();
+    }
+
+    private async Task<ActionFlowResult> ExecuteActionAsync
+    (
+        int                         stepIndex,
+        PresetStep                  step,
+        PresetStepPhase             phase,
+        int                         actionIndex,
+        ExecuteAction.ExecuteAction action,
+        int                         currentPhaseActionCount,
+        CancellationToken           cancellationToken
+    )
+    {
+        var conditionCollection = action.Condition ?? new ConditionCollection();
+        var executedCount       = 0;
+
+        switch (conditionCollection.ExecuteType)
+        {
+            case ConditionExecuteType.Wait:
+                await WaitUntilAsync
+                (
+                    conditionCollection.Evaluate,
+                    BuildActionMessage(stepIndex, step, phase, actionIndex, "等待条件满足"),
+                    cancellationToken
+                );
+                return await ExecuteActionCoreAsync(stepIndex, step, phase, actionIndex, action, currentPhaseActionCount, cancellationToken);
+
+            case ConditionExecuteType.Skip:
+                if (!conditionCollection.Evaluate())
+                    return ActionFlowResult.Continue();
+
+                return await ExecuteActionCoreAsync(stepIndex, step, phase, actionIndex, action, currentPhaseActionCount, cancellationToken);
+
+            case ConditionExecuteType.Repeat:
+                while (ShouldRepeat(conditionCollection, executedCount))
+                {
+                    var result = await ExecuteActionCoreAsync(stepIndex, step, phase, actionIndex, action, currentPhaseActionCount, cancellationToken);
+                    executedCount++;
+                    if (result.Kind != ActionFlowKind.Continue)
+                        return result;
+
+                    if (ShouldRepeat(conditionCollection, executedCount) && conditionCollection.IntervalMs > 0)
+                        await DelayAsync(conditionCollection.IntervalMs, BuildActionMessage(stepIndex, step, phase, actionIndex, "等待重复间隔"), cancellationToken);
+                }
+
+                return ActionFlowResult.Continue();
+
+            case ConditionExecuteType.Sustain:
+                while (ShouldSustain(conditionCollection, executedCount))
+                {
+                    var result = await ExecuteActionCoreAsync(stepIndex, step, phase, actionIndex, action, currentPhaseActionCount, cancellationToken);
+                    executedCount++;
+                    if (result.Kind != ActionFlowKind.Continue)
+                        return result;
+
+                    if (ShouldSustain(conditionCollection, executedCount) && conditionCollection.IntervalMs > 0)
+                        await DelayAsync(conditionCollection.IntervalMs, BuildActionMessage(stepIndex, step, phase, actionIndex, "等待持续间隔"), cancellationToken);
+                }
+
+                return ActionFlowResult.Continue();
+
+            default:
+                throw new InvalidOperationException($"不支持的条件执行类型: {conditionCollection.ExecuteType}");
+        }
+    }
+
+    private async Task<ActionFlowResult> ExecuteActionCoreAsync
+    (
+        int                         stepIndex,
+        PresetStep                  step,
+        PresetStepPhase             phase,
+        int                         actionIndex,
+        ExecuteAction.ExecuteAction action,
+        int                         currentPhaseActionCount,
+        CancellationToken           cancellationToken
+    )
+    {
+        var actionLabel = BuildActionMessage(stepIndex, step, phase, actionIndex, action.Kind.GetDescription());
+
+        switch (action)
+        {
+            case WaitMillisecondsAction waitMilliseconds:
+                if (waitMilliseconds.Milliseconds > 0)
+                    await DelayAsync(waitMilliseconds.Milliseconds, actionLabel, cancellationToken);
+                return ActionFlowResult.Continue();
+
+            case JumpToStepAction jumpToStep:
+                ValidateStepIndex(jumpToStep.StepIndex);
+                SetRunningMessage(actionLabel);
+                return ActionFlowResult.JumpToStep(jumpToStep.StepIndex);
+
+            case RestartCurrentStepAction:
+                SetRunningMessage(actionLabel);
+                return ActionFlowResult.RestartStep();
+
+            case JumpToActionAction jumpToAction:
+                ValidateActionIndex(jumpToAction.ActionIndex, currentPhaseActionCount);
+                SetRunningMessage(actionLabel);
+                return ActionFlowResult.JumpToAction(jumpToAction.ActionIndex);
+
+            case RestartCurrentActionAction:
+                SetRunningMessage(actionLabel);
+                return ActionFlowResult.RestartAction();
+
+            case LeaveDutyAndEndAction:
+                SetRunningMessage(actionLabel);
+                LeaveDuty();
+                return ActionFlowResult.LeaveAndEndPreset();
+
+            case LeaveDutyAndRestartAction:
+                await LeaveDutyAndAdvanceRoundAsync(actionLabel, cancellationToken);
+                return ActionFlowResult.LeaveAndRestartPreset();
+
+            case TextCommandAction textCommand:
+                await RunCommandsAsync(textCommand.Commands, actionLabel, cancellationToken);
+                return ActionFlowResult.Continue();
+
+            case SelectTargetAction selectTarget:
+                SetRunningMessage(actionLabel);
+                PresetTargetResolver.SelectTarget(PresetTargetResolver.Resolve(selectTarget.Selector));
+                return ActionFlowResult.Continue();
+
+            case InteractTargetAction interactTarget:
+            {
+                SetRunningMessage(actionLabel);
+                var gameObject = PresetTargetResolver.Resolve(interactTarget.Selector);
+                if (gameObject == null)
+                    return ActionFlowResult.Continue();
+
+                gameObject.TargetInteract();
+                if (interactTarget.OpenObjectInteraction)
+                    PresetTargetResolver.OpenObjectInteraction(gameObject);
+
+                return ActionFlowResult.Continue();
+            }
+
+            case InteractNearestObjectAction:
+                await ExecuteNearestInteractAsync(actionLabel, cancellationToken);
+                return ActionFlowResult.Continue();
+
+            case UseActionExecuteAction useAction:
+            {
+                SetRunningMessage(actionLabel);
+                var targetID = PresetTargetResolver.Resolve(useAction.TargetSelector)?.GameObjectID ?? 0xE000_0000UL;
+
+                if (useAction.UseLocation)
+                    UseActionManager.Instance().UseActionLocation(useAction.Action.ActionType, useAction.Action.ActionID, targetID, useAction.Location);
+                else
+                    UseActionManager.Instance().UseAction(useAction.Action.ActionType, useAction.Action.ActionID, targetID);
+
+                return ActionFlowResult.Continue();
+            }
+
+            case MoveToPositionAction moveToPosition:
+                await ExecuteMovementActionAsync(moveToPosition, actionLabel, cancellationToken);
+                return ActionFlowResult.Continue();
+
+            default:
+                throw new InvalidOperationException($"不支持的执行动作类型: {action.Kind}");
+        }
+    }
+
+    private async Task ExecuteMovementActionAsync(MoveToPositionAction action, string actionLabel, CancellationToken cancellationToken)
+    {
+        if (action.Position == default)
+            return;
+
+        switch (action.MoveType)
+        {
+            case MoveType.寻路:
+                SetRunningMessage(actionLabel);
+                StartPathfindMovement(action.Position, cancellationToken);
+                break;
+            case MoveType.vnavmesh:
+                SetRunningMessage(actionLabel);
+                StartVnavmeshMovement(action.Position, cancellationToken);
+                break;
+            case MoveType.无:
+            case MoveType.传送:
+            default:
+                SetRunningMessage(actionLabel);
+                Teleport(action.Position);
+                break;
+        }
+
+        if (!action.WaitForArrival)
+            return;
+
+        await WaitUntilAsync
+        (
+            () => DService.Instance().ObjectTable.LocalPlayer is { } localPlayer &&
+                  Vector2.DistanceSquared(localPlayer.Position.ToVector2(), action.Position.ToVector2()) <= 4f,
+            $"{actionLabel} - 等待接近目标位置",
+            cancellationToken
+        );
     }
 
     private async Task HandleDutyCompletedAsync(CancellationToken cancellationToken)
@@ -321,219 +624,25 @@ public class PresetExecutor : IDisposable
         await LeaveDutyAndAdvanceRoundAsync("副本完成, 离开副本, 进入下一局", cancellationToken);
     }
 
-    private async Task ExecuteStepAsync(PresetStep step, CancellationToken cancellationToken)
+    private async Task RunCommandsAsync(string commands, string actionLabel, CancellationToken cancellationToken)
     {
-        await WaitStepPreconditionsAsync(step, cancellationToken);
-        await ExecuteStepMovementAsync(step, cancellationToken);
-
-        if (step.InteractWithNearestObject)
-            await ExecuteNearestInteractAsync(step.Note, cancellationToken);
-        else
-            await ExecuteSpecificTargetActionsAsync(step, cancellationToken);
-
-        await ExecuteTextCommandsAsync(step, cancellationToken);
-
-        if (step.Delay > 0)
-            await DelayAsync((int)step.Delay, $"等待 {step.Delay} ms: {step.Note}", cancellationToken);
-    }
-
-    private async Task WaitStepPreconditionsAsync(PresetStep step, CancellationToken cancellationToken)
-    {
-        await WaitUntilAsync
-        (
-            () =>
-            {
-                if (!step.StopWhenAnyAlive || DService.Instance().PartyList.Length < 2) return true;
-                if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
-
-                foreach (var member in DService.Instance().PartyList)
-                {
-                    if (member.EntityId  == localPlayer.EntityID) continue;
-                    if (member.CurrentHP != 0) return false;
-                }
-
-                return true;
-            },
-            $"检查队友存活状态: {step.Note}",
-            cancellationToken
-        );
-
-        await WaitUntilAsync
-        (
-            () => !step.StopInCombat || !DService.Instance().Condition[ConditionFlag.InCombat],
-            $"检查进战状态: {step.Note}",
-            cancellationToken
-        );
-
-        await WaitUntilAsync
-        (
-            () => !step.StopWhenBusy || !DService.Instance().Condition.IsOccupiedInEvent && UIModule.IsScreenReady(),
-            $"检查忙碌状态: {step.Note}",
-            cancellationToken
-        );
-    }
-
-    private async Task ExecuteStepMovementAsync(PresetStep step, CancellationToken cancellationToken)
-    {
-        if (step.Position == default)
+        if (string.IsNullOrWhiteSpace(commands))
             return;
 
-        var finalMoveType = step.MoveType == MoveType.无 ? MoveType.传送 : step.MoveType;
-
-        switch (finalMoveType)
-        {
-            case MoveType.寻路:
-                StartPathfindMovement(step.Position, cancellationToken);
-                break;
-            case MoveType.vnavmesh:
-                StartVnavmeshMovement(step.Position, cancellationToken);
-                break;
-            case MoveType.传送:
-            case MoveType.无:
-            default:
-                Teleport(step.Position);
-                break;
-        }
-
-        if (!step.WaitForGetClose)
-            return;
-
-        await WaitUntilAsync
-        (
-            () => DService.Instance().ObjectTable.LocalPlayer is { } localPlayer &&
-                  Vector2.DistanceSquared(localPlayer.Position.ToVector2(), step.Position.ToVector2()) <= 4f,
-            $"等待完全接近目标位置: {step.Note}",
-            cancellationToken
-        );
-    }
-
-    private async Task ExecuteSpecificTargetActionsAsync(PresetStep step, CancellationToken cancellationToken)
-    {
-        if (step.DataID == 0)
-            return;
-
-        if (step.WaitForTargetSpawn)
-        {
-            await WaitUntilAsync
-            (
-                () =>
-                {
-                    if (!Throttler.Shared.Throttle("等待目标生成节流")) return false;
-                    return step.FindObject() != null;
-                },
-                $"等待目标生成: {step.Note}",
-                cancellationToken
-            );
-        }
-
-        if (step.WaitForTarget)
-        {
-            await WaitUntilAsync
-            (
-                () =>
-                {
-                    if (!Throttler.Shared.Throttle("选中目标节流")) return false;
-                    step.TargetObject();
-                    return TargetManager.Target != null;
-                },
-                $"选中目标: {step.Note}",
-                cancellationToken
-            );
-        }
-
-        if (!step.InteractWithTarget)
-            return;
-
-        await WaitUntilAsync
-        (
-            () =>
-            {
-                if (step.InteractNeedTargetAnything && TargetManager.Target is null)
-                    return true;
-
-                if (step.FindObject() is not { } validObject)
-                    return true;
-
-                return validObject.TargetInteract();
-            },
-            $"交互预设目标: {step.Note}",
-            cancellationToken
-        );
-
-        await DelayAsync(200, $"等待交互开始: {step.Note}", cancellationToken);
-        await WaitUntilAsync
-        (
-            () => !DService.Instance().Condition.IsOccupiedInEvent && UIModule.IsScreenReady(),
-            $"等待目标交互完成: {step.Note}",
-            cancellationToken
-        );
-    }
-
-    private async Task ExecuteTextCommandsAsync(PresetStep step, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(step.Commands))
-            return;
-
-        if (step.Condition.Conditions.Count == 0)
-        {
-            await RunCommandsAsync(step.Commands, step.Note, cancellationToken);
-            return;
-        }
-
-        await WaitUntilAsync
-        (
-            () => DService.Instance().ObjectTable.LocalPlayer != null,
-            $"执行文本指令时本地玩家不能为空: {step.Note}",
-            cancellationToken
-        );
-
-        switch (step.Condition.ExecuteType)
-        {
-            case ConditionExecuteType.Pass:
-                if (step.Condition.IsConditionsTrue())
-                    await RunCommandsAsync(step.Commands, step.Note, cancellationToken);
-                break;
-
-            case ConditionExecuteType.Wait:
-                await WaitUntilAsync
-                (
-                    step.Condition.IsConditionsTrue,
-                    $"等待文本指令条件变成真: {step.Note}",
-                    cancellationToken
-                );
-                await RunCommandsAsync(step.Commands, step.Note, cancellationToken);
-                break;
-
-            case ConditionExecuteType.Repeat:
-                while (!step.Condition.IsConditionsTrue())
-                {
-                    await RunCommandsAsync(step.Commands, step.Note, cancellationToken);
-
-                    if (step.Condition.TimeValue > 0)
-                        await DelayAsync((int)step.Condition.TimeValue, $"文本指令重复间隔: {step.Note}", cancellationToken);
-                }
-
-                await RunCommandsAsync(step.Commands, step.Note, cancellationToken);
-                break;
-        }
-    }
-
-    private async Task RunCommandsAsync(string commands, string stepNote, CancellationToken cancellationToken)
-    {
         foreach (var command in commands.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             if (command.StartsWith("/wait", StringComparison.OrdinalIgnoreCase))
             {
                 var split = command.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-                if (split.Length == 2 && uint.TryParse(split[1], out var waitTime))
+                if (split.Length == 2 && int.TryParse(split[1], out var waitTime))
                 {
-                    await DelayAsync((int)waitTime, $"特殊文本指令 {command}: {stepNote}", cancellationToken);
+                    await DelayAsync(waitTime, $"{actionLabel} - 特殊文本等待", cancellationToken);
                     continue;
                 }
             }
 
-            SetRunningMessage($"使用文本指令: {stepNote} {command}");
+            SetRunningMessage($"{actionLabel} - {command}");
             ChatManager.Instance().SendCommand(command);
             await Task.Delay(100, cancellationToken);
         }
@@ -541,7 +650,7 @@ public class PresetExecutor : IDisposable
 
     private async Task ExecuteNearestInteractAsync(string sourceName, CancellationToken cancellationToken)
     {
-        var target = PresetStep.FindNearestInteractableObject();
+        var target = PresetTargetResolver.FindNearestInteractableObject();
 
         if (target == null)
         {
@@ -559,13 +668,12 @@ public class PresetExecutor : IDisposable
             cancellationToken
         );
 
-        PresetStep.OpenObjectInteraction(target);
+        PresetTargetResolver.OpenObjectInteraction(target);
     }
 
     private async Task WaitUntilAsync(Func<bool> predicate, string message, CancellationToken cancellationToken, int intervalMs = 100)
     {
         SetRunningMessage(message);
-
         while (!predicate())
             await Task.Delay(intervalMs, cancellationToken);
     }
@@ -616,8 +724,7 @@ public class PresetExecutor : IDisposable
             await RegisterDutyAsync(cancellationToken);
     }
 
-    private bool HasReachedMaxRound() =>
-        MaxRound != -1 && CurrentRound >= MaxRound;
+    private bool HasReachedMaxRound() => MaxRound != -1 && CurrentRound >= MaxRound;
 
     private async Task RegisterDutyAsync(CancellationToken cancellationToken)
     {
@@ -670,10 +777,8 @@ public class PresetExecutor : IDisposable
                 case ContentEntryType.Normal:
                     ContentsFinderHelper.RequestDutyNormal(zone.ContentFinderCondition.RowId, runOptions.ContentsFinderOption);
                     break;
-
                 case ContentEntryType.Support:
-                    var supportRow = LuminaGetter.Get<DawnContent>()
-                                                 .FirstOrDefault(x => x.Content.RowId == zone.ContentFinderCondition.RowId);
+                    var supportRow = LuminaGetter.Get<DawnContent>().FirstOrDefault(x => x.Content.RowId == zone.ContentFinderCondition.RowId);
 
                     if (supportRow.RowId == 0)
                     {
@@ -796,7 +901,6 @@ public class PresetExecutor : IDisposable
                 }
                 catch (OperationCanceledException) when (movementCts.IsCancellationRequested)
                 {
-                    // ignored
                 }
                 catch (Exception ex)
                 {
@@ -874,8 +978,7 @@ public class PresetExecutor : IDisposable
     private static void LeaveDuty() =>
         ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.LeaveDuty, DService.Instance().Condition[ConditionFlag.InCombat] ? 1U : 0);
 
-    private void SetRunningMessage(string message) =>
-        RunningMessage = message;
+    private void SetRunningMessage(string message) => RunningMessage = message;
 
     private void AbortPrevious()
     {
@@ -912,4 +1015,50 @@ public class PresetExecutor : IDisposable
         UnregisterListeners();
         completionSource.TrySetResult(result);
     }
+
+    private static List<ExecuteAction.ExecuteAction> GetActions(PresetStep step, PresetStepPhase phase) =>
+        phase switch
+        {
+            PresetStepPhase.Enter => step.EnterActions,
+            PresetStepPhase.Body  => step.BodyActions,
+            PresetStepPhase.Exit  => step.ExitActions,
+            _                     => throw new InvalidOperationException($"不支持的阶段: {phase}")
+        };
+
+    private static bool ShouldRepeat(ConditionCollection conditionCollection, int executedCount)
+    {
+        if (conditionCollection.MaxExecuteCount > 0 && executedCount >= conditionCollection.MaxExecuteCount)
+            return false;
+
+        if (executedCount < conditionCollection.MinExecuteCount)
+            return true;
+
+        return !conditionCollection.Evaluate();
+    }
+
+    private static bool ShouldSustain(ConditionCollection conditionCollection, int executedCount)
+    {
+        if (conditionCollection.MaxExecuteCount > 0 && executedCount >= conditionCollection.MaxExecuteCount)
+            return false;
+
+        if (executedCount < conditionCollection.MinExecuteCount)
+            return true;
+
+        return conditionCollection.Evaluate();
+    }
+
+    private void ValidateStepIndex(int stepIndex)
+    {
+        if (ExecutorPreset == null || stepIndex < 0 || stepIndex >= ExecutorPreset.Steps.Count)
+            throw new InvalidOperationException($"无效的步骤索引: {stepIndex}");
+    }
+
+    private static void ValidateActionIndex(int actionIndex, int actionCount)
+    {
+        if (actionIndex < 0 || actionIndex >= actionCount)
+            throw new InvalidOperationException($"无效的执行动作索引: {actionIndex}");
+    }
+
+    private static string BuildActionMessage(int stepIndex, PresetStep step, PresetStepPhase phase, int actionIndex, string suffix) =>
+        $"步骤 {stepIndex} [{phase.GetDescription()} #{actionIndex}] {step.Name}: {suffix}";
 }

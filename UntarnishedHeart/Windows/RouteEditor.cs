@@ -152,7 +152,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
         using var table = ImRaii.Table("StepsTable", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV);
         if (!table) return;
 
-        ImGui.TableSetupColumn("StepsList",   ImGuiTableColumnFlags.WidthFixed, 300f * ImGuiHelpers.GlobalScale);
+        ImGui.TableSetupColumn("StepsList",   ImGuiTableColumnFlags.WidthFixed, 300f * GlobalUIScale);
         ImGui.TableSetupColumn("StepDetails", ImGuiTableColumnFlags.WidthStretch);
 
         ImGui.TableNextRow();
@@ -366,7 +366,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
         ImGui.Text("目标预设:");
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(200f * GlobalUIScale);
 
         if (ImGui.BeginCombo("###TargetPreset", step.PresetName))
         {
@@ -398,7 +398,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
             ImGui.Text("执行动作:");
 
             ImGui.SameLine();
-            ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+            ImGui.SetNextItemWidth(150f * GlobalUIScale);
 
             if (ImGui.BeginCombo("###AfterPresetAction", step.AfterPresetAction.GetDescription()))
             {
@@ -419,7 +419,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
                 ImGui.Text("目标步骤:");
 
                 ImGui.SameLine();
-                ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+                ImGui.SetNextItemWidth(150f * GlobalUIScale);
                 var tempJumpIndex = step.AfterPresetJumpIndex;
                 if (ImGui.InputInt("###AfterPresetJumpIndex", ref tempJumpIndex))
                     step.AfterPresetJumpIndex = tempJumpIndex;
@@ -436,7 +436,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
         {
             if (table)
             {
-                ImGui.TableSetupColumn("Label",   ImGuiTableColumnFlags.WidthFixed, 100f * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn("Label",   ImGuiTableColumnFlags.WidthFixed, 100f * GlobalUIScale);
                 ImGui.TableSetupColumn("Control", ImGuiTableColumnFlags.WidthStretch);
 
                 // 条件类型
@@ -469,7 +469,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
                     ImGui.Text(step.ConditionType == RouteConditionType.AchievementCount ? "成就 ID:" : "物品 ID:");
 
                     ImGui.TableSetColumnIndex(1);
-                    ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+                    ImGui.SetNextItemWidth(200f * GlobalUIScale);
                     var extraID = step.ExtraID;
                     if (ImGui.InputInt("###ExtraId", ref extraID))
                         step.ExtraID = extraID;
@@ -500,7 +500,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
                 ImGui.Text("比较条件:");
 
                 ImGui.TableSetColumnIndex(1);
-                ImGui.SetNextItemWidth(100f * ImGuiHelpers.GlobalScale);
+                ImGui.SetNextItemWidth(100f * GlobalUIScale);
 
                 if (ImGui.BeginCombo("###ComparisonType", step.ComparisonType.GetDescription()))
                 {
@@ -515,7 +515,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
                 }
 
                 ImGui.SameLine();
-                ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+                ImGui.SetNextItemWidth(150f * GlobalUIScale);
                 var conditionValue = step.ConditionValue;
                 if (ImGui.InputInt("###ConditionValue", ref conditionValue))
                     step.ConditionValue = conditionValue;
@@ -553,7 +553,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
         ImGui.Text("执行动作:");
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(150f * GlobalUIScale);
 
         if (ImGui.BeginCombo($"###ActionType{prefix}", actionType.GetDescription()))
         {
@@ -574,7 +574,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
             ImGui.Text("目标步骤:");
 
             ImGui.SameLine();
-            ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+            ImGui.SetNextItemWidth(150f * GlobalUIScale);
             var tempJumpIndex = jumpIndex;
             if (ImGui.InputInt($"###JumpIndex{prefix}", ref tempJumpIndex))
                 jumpIndex = tempJumpIndex;

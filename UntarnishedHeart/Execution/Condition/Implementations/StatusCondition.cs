@@ -1,7 +1,5 @@
-using Dalamud.Game.ClientState.Objects.Enums;
-using Lumina.Excel.Sheets;
+﻿using Lumina.Excel.Sheets;
 using OmenTools.Interop.Game.Lumina;
-using OmenTools.OmenService;
 using UntarnishedHeart.Execution.Condition.Enums;
 
 namespace UntarnishedHeart.Execution.Condition;
@@ -16,22 +14,20 @@ public sealed class StatusCondition : Condition
 
     public uint StatusID { get; set; }
 
-    public override unsafe bool Evaluate(in ConditionContext context)
+    public override bool Evaluate(in ConditionContext context)
     {
-        var hasStatus = TargetType switch
-        {
-            ConditionTargetType.Self => LocalPlayerState.HasStatus(StatusID, out _),
-            ConditionTargetType.Target => context.Target is { ObjectKind: ObjectKind.BattleNpc or ObjectKind.Player } target && target.ToBCStruct()->StatusManager.HasStatus(StatusID),
-            _ => false
-        };
-
-        return ComparisonType switch
-        {
-            PresenceComparisonType.Has    => hasStatus,
-            PresenceComparisonType.NotHas => !hasStatus,
-            _                             => false
-        };
+        var target    = ResolveTarget(context, TargetType);
+        var hasStatus = target?.StatusList.HasStatus(StatusID) == true;
+        return ComparisonType == PresenceComparisonType.Has ? hasStatus : !hasStatus;
     }
+
+    protected override bool EqualsCore(Condition other) =>
+        other is StatusCondition condition         &&
+        ComparisonType == condition.ComparisonType &&
+        TargetType     == condition.TargetType     &&
+        StatusID       == condition.StatusID;
+
+    protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, (int)TargetType, StatusID);
 
     public override Condition DeepCopy() =>
         new StatusCondition
@@ -46,24 +42,19 @@ public sealed class StatusCondition : Condition
         DrawLabel("比较类型", KnownColor.LightSkyBlue.ToVector4());
         ComparisonType = DrawEnumCombo("###ComparisonTypeCombo", ComparisonType);
 
-        DrawLabel("目标类型", KnownColor.LightSkyBlue.ToVector4());
-        TargetType = DrawEnumCombo("###TargetTypeCombo", TargetType);
+        TargetType = DrawTargetType("###TargetTypeCombo", TargetType);
 
         DrawLabel("状态 ID", KnownColor.LightSkyBlue.ToVector4());
-        var statusID = (int)StatusID;
-        if (ImGui.InputInt("###StatusIdInput", ref statusID))
-            StatusID = (uint)Math.Max(0, statusID);
-        
-        if (LuminaGetter.TryGetRow((uint)statusID, out Status row))
+        var statusID = StatusID;
+        if (ImGui.InputUInt("###StatusIdInput", ref statusID))
+            StatusID = statusID;
+
+        if (LuminaGetter.TryGetRow(StatusID, out Status row))
         {
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
             ImGui.TableNextColumn();
-            
             ImGui.TextUnformatted($"({row.Name})");
         }
     }
-
-    protected override string Describe() =>
-        $"状态效果 {TargetType.GetDescription()} {ComparisonType.GetDescription()} {StatusID}";
 }

@@ -1,4 +1,6 @@
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Condition.Legacy;
 using UntarnishedHeart.Internal.Configuration.Json;
 
@@ -14,12 +16,12 @@ internal sealed class ConditionV1ToV2Migrator : JsonObjectMigratorBase
     {
         var migrated = Condition.MigrateLegacyV1ToV2
         (
-            ConditionJsonConverter.ReadEnum(jsonObject["DetectType"],     Enums.ConditionDetectType.Health),
+            ConditionJsonConverter.ReadEnum(jsonObject["DetectType"],     ConditionDetectType.Health),
             ConditionJsonConverter.ReadEnum(jsonObject["ComparisonType"], ConditionComparisonType.LessThan),
-            ConditionJsonConverter.ReadEnum(jsonObject["TargetType"],     Enums.ConditionTargetType.Target),
+            ConditionJsonConverter.ReadEnum(jsonObject["TargetType"],     ConditionTargetType.Target),
             ConditionJsonConverter.ReadFloat(jsonObject["Value"])
         );
 
-        return ConditionJsonConverter.SerializeToJObject(migrated);
+        return ConditionJsonConverter.SerializeToJObject(migrated, JsonSerializer.CreateDefault());
     }
 }

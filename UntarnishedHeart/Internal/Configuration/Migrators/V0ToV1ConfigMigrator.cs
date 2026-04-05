@@ -1,5 +1,4 @@
 using UntarnishedHeart.Execution.Route.Enums;
-using UntarnishedHeart.Internal;
 
 namespace UntarnishedHeart.Internal.Configuration.Migrators;
 
@@ -12,8 +11,8 @@ internal sealed class V0ToV1ConfigMigrator : ConfigMigratorBase
     public override void Migrate(PluginConfig config)
     {
         foreach (var dutyOptions in config.Routes.SelectMany(route => route.Steps)
-                                                 .Where(step => step.StepType == RouteStepType.SwitchPreset)
-                                                 .Select(step => step.DutyOptions))
+                                          .Where(step => step.StepType == RouteStepType.SwitchPreset)
+                                          .Select(step => step.DutyOptions))
         {
             dutyOptions.LeaderMode        = config.LeaderMode;
             dutyOptions.AutoRecommendGear = config.AutoRecommendGear;

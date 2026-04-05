@@ -4,15 +4,42 @@ namespace UntarnishedHeart.Execution.Condition.Enums;
 
 public enum ConditionDetectType
 {
-    [Description("体力")]
-    Health,
+    [Description("游戏状态")]
+    GameCondition,
 
     [Description("状态效果")]
     Status,
 
+    [Description("体力")]
+    Health,
+
+    [Description("正在咏唱技能")]
+    ActionCast,
+
+    [Description("正在咏唱技能")]
+    ActionCastStart = ActionCast,
+
     [Description("自身技能冷却")]
     ActionCooldown,
 
-    [Description("目标正在咏唱技能")]
-    ActionCastStart
+    [Description("技能是否可用")]
+    ActionUsable,
+
+    [Description("坐标范围")]
+    PositionRange,
+
+    [Description("周围存在特定目标")]
+    NearbyTarget,
+
+    [Description("自身是否有目标")]
+    HasTarget,
+
+    [Description("自身是否有特定目标")]
+    HasSpecificTarget,
+
+    [Description("当前是否队友均处于无法战斗状态")]
+    PartyAllDead,
+
+    [Description("当前目标的目标是否为自身")]
+    TargetTargetIsSelf
 }

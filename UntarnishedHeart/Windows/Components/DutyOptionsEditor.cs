@@ -20,7 +20,7 @@ internal static class DutyOptionsEditor
         var changed = false;
 
         var runTimes = dutyOptions.RunTimes;
-        ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(200f * GlobalUIScale);
 
         if (ImGui.InputInt("运行次数###DutyOptionsRunTimes", ref runTimes))
         {
@@ -85,7 +85,7 @@ internal static class DutyOptionsEditor
                 dutyOptions.ContentsFinderOption = option;
         }
 
-        ImGui.SetNextItemWidth(200f * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(200f * GlobalUIScale);
 
         using (var combo = ImRaii.Combo("副本入口###DutyOptionsContentEntryCombo", dutyOptions.ContentEntryType.GetDescription()))
         {
