@@ -1,6 +1,6 @@
 using UntarnishedHeart.Execution.CommandCondition.Enums;
 
-namespace UntarnishedHeart.Execution.CommandCondition.Implementations;
+namespace UntarnishedHeart.Execution.CommandCondition;
 
 public sealed class HealthCommandCondition : CommandSingleCondition
 {

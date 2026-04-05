@@ -3,7 +3,7 @@ using OmenTools.Interop.Game.Lumina;
 using UntarnishedHeart.Execution.CommandCondition.Enums;
 using Action = Lumina.Excel.Sheets.Action;
 
-namespace UntarnishedHeart.Execution.CommandCondition.Implementations;
+namespace UntarnishedHeart.Execution.CommandCondition;
 
 public sealed class ActionCooldownCommandCondition : CommandSingleCondition
 {
