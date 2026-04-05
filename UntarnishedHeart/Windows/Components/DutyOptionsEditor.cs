@@ -20,8 +20,7 @@ internal static class DutyOptionsEditor
         var changed = false;
 
         var runTimes = dutyOptions.RunTimes;
-        ImGui.SetNextItemWidth(200f * GlobalUIScale);
-
+        ImGui.SetNextItemWidth(250f * GlobalUIScale);
         if (ImGui.InputInt("运行次数###DutyOptionsRunTimes", ref runTimes))
         {
             dutyOptions.RunTimes = runTimes;
@@ -31,7 +30,6 @@ internal static class DutyOptionsEditor
         ImGuiOm.TooltipHover("输入 -1 表示无限运行");
 
         var leaderMode = dutyOptions.LeaderMode;
-
         if (ImGui.Checkbox("队长模式###DutyOptionsLeaderMode", ref leaderMode))
         {
             dutyOptions.LeaderMode = leaderMode;

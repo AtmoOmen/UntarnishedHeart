@@ -97,7 +97,8 @@ public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.P
 
     private static void DrawExecutionModeSelector()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "执行模式:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "执行模式");
+        
         using var indent = ImRaii.PushIndent();
 
         var currentMode = PluginConfig.Instance().CurrentExecutionMode;
@@ -123,24 +124,22 @@ public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.P
 
     private static void DrawSimpleModeConfig()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "运行设置:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "运行设置");
 
         using var indent = ImRaii.PushIndent();
         using var group  = ImRaii.Group();
 
         CollectionToolbar.DrawSelector
         (
-            "选择预设:",
-            "###MainPresetSelectCombo",
+            string.Empty,
+            "预设##MainPresetSelectCombo",
             PluginConfig.Instance().Presets,
             ref SelectedPresetIndex,
             preset => preset.Name,
             preset => PluginConfig.Instance().Presets.Remove(preset),
             "暂无预设"
         );
-
-        ImGui.NewLine();
-
+        
         var dutyOptions = DutyOptionsEditor.CreateFromConfig();
         if (!DutyOptionsEditor.Draw(dutyOptions))
             return;
@@ -228,10 +227,10 @@ public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.P
 
         ExecutionControlPanel.DrawControls
         (
-            "开始路线",
+            "开始",
             StartRouteExecution,
             CanStartRouteExecution(),
-            "停止路线",
+            "停止",
             StopRouteExecution
         );
     }

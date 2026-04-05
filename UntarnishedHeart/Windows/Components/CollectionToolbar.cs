@@ -19,8 +19,11 @@ internal static class CollectionToolbar
         string          emptyText = "暂无数据"
     )
     {
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text(label);
+        if (!string.IsNullOrEmpty(label))
+        {
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text(label);
+        }
 
         selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
 
@@ -32,9 +35,9 @@ internal static class CollectionToolbar
 
         var selectedItem = items[selectedIndex];
 
-        ImGui.SameLine();
+        if (!string.IsNullOrEmpty(label))
+            ImGui.SameLine();
         ImGui.SetNextItemWidth(250f * GlobalUIScale);
-
         using (var combo = ImRaii.Combo(comboID, getName(selectedItem), ImGuiComboFlags.HeightLarge))
             if (combo)
             {
