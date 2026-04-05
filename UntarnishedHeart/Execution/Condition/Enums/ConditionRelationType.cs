@@ -1,8 +1,8 @@
 using System.ComponentModel;
 
-namespace UntarnishedHeart.Execution.CommandCondition.Enums;
+namespace UntarnishedHeart.Execution.Condition.Enums;
 
-public enum CommandRelationType
+public enum ConditionRelationType
 {
     [Description("和 (全部条件均需满足)")]
     And,

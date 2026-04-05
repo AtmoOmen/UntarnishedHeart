@@ -15,7 +15,7 @@ using OmenTools.Interop.Game.Lumina;
 using OmenTools.Interop.Windows.Helpers;
 using OmenTools.OmenService;
 using OmenTools.Threading;
-using UntarnishedHeart.Execution.CommandCondition.Enums;
+using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Enums;
 
 namespace UntarnishedHeart.Execution.Preset;
@@ -474,7 +474,7 @@ public class PresetExecutor : IDisposable
         if (string.IsNullOrWhiteSpace(step.Commands))
             return;
 
-        if (step.CommandCondition.Conditions.Count == 0)
+        if (step.Condition.Conditions.Count == 0)
         {
             await RunCommandsAsync(step.Commands, step.Note, cancellationToken);
             return;
@@ -487,30 +487,30 @@ public class PresetExecutor : IDisposable
             cancellationToken
         );
 
-        switch (step.CommandCondition.ExecuteType)
+        switch (step.Condition.ExecuteType)
         {
-            case CommandExecuteType.Pass:
-                if (step.CommandCondition.IsConditionsTrue())
+            case ConditionExecuteType.Pass:
+                if (step.Condition.IsConditionsTrue())
                     await RunCommandsAsync(step.Commands, step.Note, cancellationToken);
                 break;
 
-            case CommandExecuteType.Wait:
+            case ConditionExecuteType.Wait:
                 await WaitUntilAsync
                 (
-                    step.CommandCondition.IsConditionsTrue,
+                    step.Condition.IsConditionsTrue,
                     $"等待文本指令条件变成真: {step.Note}",
                     cancellationToken
                 );
                 await RunCommandsAsync(step.Commands, step.Note, cancellationToken);
                 break;
 
-            case CommandExecuteType.Repeat:
-                while (!step.CommandCondition.IsConditionsTrue())
+            case ConditionExecuteType.Repeat:
+                while (!step.Condition.IsConditionsTrue())
                 {
                     await RunCommandsAsync(step.Commands, step.Note, cancellationToken);
 
-                    if (step.CommandCondition.TimeValue > 0)
-                        await DelayAsync((int)step.CommandCondition.TimeValue, $"文本指令重复间隔: {step.Note}", cancellationToken);
+                    if (step.Condition.TimeValue > 0)
+                        await DelayAsync((int)step.Condition.TimeValue, $"文本指令重复间隔: {step.Note}", cancellationToken);
                 }
 
                 await RunCommandsAsync(step.Commands, step.Note, cancellationToken);

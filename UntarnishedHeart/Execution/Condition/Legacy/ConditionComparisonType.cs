@@ -1,8 +1,8 @@
 using System.ComponentModel;
 
-namespace UntarnishedHeart.Execution.CommandCondition.Legacy;
+namespace UntarnishedHeart.Execution.Condition.Legacy;
 
-public enum CommandComparisonType
+public enum ConditionComparisonType
 {
     [Description("大于")]
     GreaterThan,

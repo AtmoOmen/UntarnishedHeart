@@ -1,24 +1,24 @@
-﻿using UntarnishedHeart.Execution.CommandCondition.Enums;
+using UntarnishedHeart.Execution.Condition.Enums;
 
-namespace UntarnishedHeart.Execution.CommandCondition.Legacy;
+namespace UntarnishedHeart.Execution.Condition.Legacy;
 
-internal sealed class LegacyCommandSingleCondition : CommandSingleCondition
+internal sealed class LegacyCondition : Condition
 {
-    public override CommandDetectType Kind => DetectType;
+    public override ConditionDetectType Kind => DetectType;
 
-    public required CommandDetectType DetectType { get; init; }
+    public required ConditionDetectType DetectType { get; init; }
 
-    public required CommandComparisonType ComparisonType { get; init; }
+    public required ConditionComparisonType ComparisonType { get; init; }
 
-    public required CommandTargetType TargetType { get; init; }
+    public required ConditionTargetType TargetType { get; init; }
 
     public required float Value { get; init; }
 
-    public override bool Evaluate(in CommandConditionContext context) =>
+    public override bool Evaluate(in ConditionContext context) =>
         MigrateLegacyV1ToV2(DetectType, ComparisonType, TargetType, Value).Evaluate(context);
 
-    public override CommandSingleCondition DeepCopy() =>
-        new LegacyCommandSingleCondition
+    public override Condition DeepCopy() =>
+        new LegacyCondition
         {
             DetectType     = DetectType,
             ComparisonType = ComparisonType,

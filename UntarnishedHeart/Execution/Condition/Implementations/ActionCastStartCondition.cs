@@ -1,22 +1,22 @@
 using FFXIVClientStructs.FFXIV.Client.Game;
 using OmenTools.Interop.Game.Lumina;
-using UntarnishedHeart.Execution.CommandCondition.Enums;
+using UntarnishedHeart.Execution.Condition.Enums;
 using Action = Lumina.Excel.Sheets.Action;
 
-namespace UntarnishedHeart.Execution.CommandCondition;
+namespace UntarnishedHeart.Execution.Condition;
 
-public sealed class ActionCastStartCommandCondition : CommandSingleCondition
+public sealed class ActionCastStartCondition : Condition
 {
-    public override CommandDetectType Kind => CommandDetectType.ActionCastStart;
+    public override ConditionDetectType Kind => ConditionDetectType.ActionCastStart;
 
     public uint ActionID { get; set; }
 
-    public override bool Evaluate(in CommandConditionContext context) =>
+    public override bool Evaluate(in ConditionContext context) =>
         context.Target is { IsCasting: true, CastActionType: ActionType.Action } target &&
         target.CastActionID == ActionID;
 
-    public override CommandSingleCondition DeepCopy() =>
-        new ActionCastStartCommandCondition
+    public override Condition DeepCopy() =>
+        new ActionCastStartCondition
         {
             ActionID = ActionID
         };

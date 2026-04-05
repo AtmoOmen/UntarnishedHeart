@@ -1,23 +1,23 @@
 using System.Collections.Frozen;
 using Newtonsoft.Json.Linq;
-using UntarnishedHeart.Execution.CommandCondition.Configuration.Migrators;
+using UntarnishedHeart.Execution.Condition.Configuration.Migrators;
 using UntarnishedHeart.Internal.Configuration.Json;
 
-namespace UntarnishedHeart.Execution.CommandCondition.Configuration;
+namespace UntarnishedHeart.Execution.Condition.Configuration;
 
-internal sealed class CommandSingleConditionJSONMigrator : VersionedJsonMigratorBase<CommandSingleCondition>
+internal sealed class ConditionJSONMigrator : VersionedJsonMigratorBase<Condition>
 {
     internal const int CurrentJSONVersion = 2;
 
     private static readonly FrozenDictionary<int, JsonObjectMigratorBase> MigratorsInternal =
         new JsonObjectMigratorBase[]
         {
-            new CommandSingleConditionV1ToV2Migrator()
+            new ConditionV1ToV2Migrator()
         }.ToFrozenDictionary(migrator => migrator.FromVersion);
 
-    internal static CommandSingleConditionJSONMigrator Instance { get; } = new();
+    internal static ConditionJSONMigrator Instance { get; } = new();
 
-    protected override string DisplayName => "命令条件";
+    protected override string DisplayName => "条件";
 
     protected override int CurrentVersion => CurrentJSONVersion;
 

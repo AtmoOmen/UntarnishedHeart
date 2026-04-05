@@ -1,19 +1,19 @@
 using FFXIVClientStructs.FFXIV.Client.Game;
 using OmenTools.Interop.Game.Lumina;
-using UntarnishedHeart.Execution.CommandCondition.Enums;
+using UntarnishedHeart.Execution.Condition.Enums;
 using Action = Lumina.Excel.Sheets.Action;
 
-namespace UntarnishedHeart.Execution.CommandCondition;
+namespace UntarnishedHeart.Execution.Condition;
 
-public sealed class ActionCooldownCommandCondition : CommandSingleCondition
+public sealed class ActionCooldownCondition : Condition
 {
-    public override CommandDetectType Kind => CommandDetectType.ActionCooldown;
+    public override ConditionDetectType Kind => ConditionDetectType.ActionCooldown;
 
     public CooldownComparisonType ComparisonType { get; set; } = CooldownComparisonType.Finished;
 
     public uint ActionID { get; set; }
 
-    public override unsafe bool Evaluate(in CommandConditionContext context)
+    public override unsafe bool Evaluate(in ConditionContext context)
     {
         var isOffCooldown = ActionManager.Instance()->IsActionOffCooldown(ActionType.Action, ActionID);
         return ComparisonType switch
@@ -24,8 +24,8 @@ public sealed class ActionCooldownCommandCondition : CommandSingleCondition
         };
     }
 
-    public override CommandSingleCondition DeepCopy() =>
-        new ActionCooldownCommandCondition
+    public override Condition DeepCopy() =>
+        new ActionCooldownCondition
         {
             ComparisonType = ComparisonType,
             ActionID       = ActionID

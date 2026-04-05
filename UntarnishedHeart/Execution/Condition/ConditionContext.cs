@@ -1,14 +1,14 @@
 using OmenTools.OmenService;
 
-namespace UntarnishedHeart.Execution.CommandCondition;
+namespace UntarnishedHeart.Execution.Condition;
 
-public readonly record struct CommandConditionContext
+public readonly record struct ConditionContext
 (
     IBattleChara? LocalPlayer,
     IBattleChara? Target
 )
 {
-    public static CommandConditionContext Create() =>
+    public static ConditionContext Create() =>
         new
         (
             DService.Instance().ObjectTable.LocalPlayer,

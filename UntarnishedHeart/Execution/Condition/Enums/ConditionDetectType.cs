@@ -1,8 +1,8 @@
 using System.ComponentModel;
 
-namespace UntarnishedHeart.Execution.CommandCondition.Enums;
+namespace UntarnishedHeart.Execution.Condition.Enums;
 
-public enum CommandDetectType
+public enum ConditionDetectType
 {
     [Description("体力")]
     Health,

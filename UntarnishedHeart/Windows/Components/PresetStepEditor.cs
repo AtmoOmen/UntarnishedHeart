@@ -276,7 +276,7 @@ internal static class PresetStepEditor
             step.Commands = stepCommands;
         ImGuiOm.TooltipHover("支持以下特殊指令:\n/wait <时间(ms)> - 等待指定毫秒的时间 (如: /wait 2000 - 等待 2 秒)");
 
-        step.CommandCondition.Draw();
+        step.Condition.Draw();
     }
 
     private static void DrawPostWaitTab(PresetStep step)

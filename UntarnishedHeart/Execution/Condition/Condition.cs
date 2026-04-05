@@ -1,20 +1,20 @@
 using System.Numerics;
 using Newtonsoft.Json;
-using UntarnishedHeart.Execution.CommandCondition.Enums;
-using UntarnishedHeart.Execution.CommandCondition.Legacy;
+using UntarnishedHeart.Execution.Condition.Enums;
+using UntarnishedHeart.Execution.Condition.Legacy;
 
-namespace UntarnishedHeart.Execution.CommandCondition;
+namespace UntarnishedHeart.Execution.Condition;
 
-[JsonConverter(typeof(CommandSingleConditionJsonConverter))]
-public abstract class CommandSingleCondition
+[JsonConverter(typeof(ConditionJsonConverter))]
+public abstract class Condition
 {
     protected const float EQUALITY_TOLERANCE = 0.01f;
 
-    public abstract CommandDetectType Kind { get; }
+    public abstract ConditionDetectType Kind { get; }
 
-    public CommandSingleCondition Draw(int index)
+    public Condition Draw(int index)
     {
-        using var id    = ImRaii.PushId($"CommandSingleCondition-{index}");
+        using var id    = ImRaii.PushId($"Condition-{index}");
         using var group = ImRaii.Group();
         using var table = ImRaii.Table("SingleConditionTable", 2);
         if (!table)
@@ -28,9 +28,9 @@ public abstract class CommandSingleCondition
         return current;
     }
 
-    public abstract bool Evaluate(in CommandConditionContext context);
+    public abstract bool Evaluate(in ConditionContext context);
 
-    public abstract CommandSingleCondition DeepCopy();
+    public abstract Condition DeepCopy();
 
     public sealed override string ToString() => Describe();
 
@@ -66,58 +66,58 @@ public abstract class CommandSingleCondition
         return current;
     }
 
-    protected static CommandSingleCondition CreateDefault(CommandDetectType kind) =>
+    protected static Condition CreateDefault(ConditionDetectType kind) =>
         kind switch
         {
-            CommandDetectType.Health          => new HealthCommandCondition(),
-            CommandDetectType.Status          => new StatusCommandCondition(),
-            CommandDetectType.ActionCooldown  => new ActionCooldownCommandCondition(),
-            CommandDetectType.ActionCastStart => new ActionCastStartCommandCondition(),
-            _                                 => new HealthCommandCondition()
+            ConditionDetectType.Health          => new HealthCondition(),
+            ConditionDetectType.Status          => new StatusCondition(),
+            ConditionDetectType.ActionCooldown  => new ActionCooldownCondition(),
+            ConditionDetectType.ActionCastStart => new ActionCastStartCondition(),
+            _                                 => new HealthCondition()
         };
 
-    internal static CommandSingleCondition MigrateLegacyV1ToV2
+    internal static Condition MigrateLegacyV1ToV2
     (
-        CommandDetectType     detectType,
-        CommandComparisonType comparisonType,
-        CommandTargetType     targetType,
+        ConditionDetectType     detectType,
+        ConditionComparisonType comparisonType,
+        ConditionTargetType     targetType,
         float                 value
     ) =>
         detectType switch
         {
-            CommandDetectType.Health => new HealthCommandCondition
+            ConditionDetectType.Health => new HealthCondition
             {
                 TargetType = targetType,
                 ComparisonType = comparisonType switch
                 {
-                    CommandComparisonType.GreaterThan => NumericComparisonType.GreaterThan,
-                    CommandComparisonType.EqualTo     => NumericComparisonType.EqualTo,
-                    CommandComparisonType.NotEqualTo  => NumericComparisonType.NotEqualTo,
+                    ConditionComparisonType.GreaterThan => NumericComparisonType.GreaterThan,
+                    ConditionComparisonType.EqualTo     => NumericComparisonType.EqualTo,
+                    ConditionComparisonType.NotEqualTo  => NumericComparisonType.NotEqualTo,
                     _                                 => NumericComparisonType.LessThan
                 },
                 Threshold = value
             },
-            CommandDetectType.Status => new StatusCommandCondition
+            ConditionDetectType.Status => new StatusCondition
             {
                 TargetType     = targetType,
-                ComparisonType = comparisonType == CommandComparisonType.NotHas ? PresenceComparisonType.NotHas : PresenceComparisonType.Has,
+                ComparisonType = comparisonType == ConditionComparisonType.NotHas ? PresenceComparisonType.NotHas : PresenceComparisonType.Has,
                 StatusID       = (uint)Math.Max(0, value)
             },
-            CommandDetectType.ActionCooldown => new ActionCooldownCommandCondition
+            ConditionDetectType.ActionCooldown => new ActionCooldownCondition
             {
-                ComparisonType = comparisonType == CommandComparisonType.NotFinished ? CooldownComparisonType.NotFinished : CooldownComparisonType.Finished,
+                ComparisonType = comparisonType == ConditionComparisonType.NotFinished ? CooldownComparisonType.NotFinished : CooldownComparisonType.Finished,
                 ActionID       = (uint)Math.Max(0, value)
             },
-            CommandDetectType.ActionCastStart => new ActionCastStartCommandCondition
+            ConditionDetectType.ActionCastStart => new ActionCastStartCondition
             {
                 ActionID = (uint)Math.Max(0, value)
             },
-            _ => new HealthCommandCondition()
+            _ => new HealthCondition()
         };
 
-    public static CommandSingleCondition Copy(CommandSingleCondition source) => source.DeepCopy();
+    public static Condition Copy(Condition source) => source.DeepCopy();
 
-    private CommandSingleCondition DrawKindSelector()
+    private Condition DrawKindSelector()
     {
         DrawLabel("检测类型", KnownColor.LightSkyBlue.ToVector4());
 
@@ -128,11 +128,11 @@ public abstract class CommandSingleCondition
         return CreateDefault(selectedKind);
     }
 
-    protected static IBattleChara? ResolveTarget(in CommandConditionContext context, CommandTargetType targetType) =>
+    protected static IBattleChara? ResolveTarget(in ConditionContext context, ConditionTargetType targetType) =>
         targetType switch
         {
-            CommandTargetType.Self   => context.LocalPlayer,
-            CommandTargetType.Target => context.Target,
+            ConditionTargetType.Self   => context.LocalPlayer,
+            ConditionTargetType.Target => context.Target,
             _                        => null
         };
 }

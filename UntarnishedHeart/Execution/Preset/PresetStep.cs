@@ -1,10 +1,13 @@
 using System.Numerics;
 using Dalamud.Game.ClientState.Objects.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using Newtonsoft.Json;
+using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.Enums;
 
 namespace UntarnishedHeart.Execution.Preset;
 
+[JsonConverter(typeof(PresetStepJsonConverter))]
 public class PresetStep : IEquatable<PresetStep>
 {
     private static readonly HashSet<ObjectKind> NearestInteractableKinds =
@@ -47,10 +50,10 @@ public class PresetStep : IEquatable<PresetStep>
     public bool                              InteractWithTarget         { get; set; }
     public bool                              InteractNeedTargetAnything { get; set; } = true;
     public bool                              InteractWithNearestObject  { get; set; }
-    public string                            Commands                   { get; set; } = string.Empty;
-    public CommandCondition.CommandCondition CommandCondition           { get; set; } = new();
-    public uint                              Delay                      { get; set; } = 5000;
-    public int                               JumpToIndex                { get; set; } = -1;
+    public string              Commands     { get; set; } = string.Empty;
+    public ConditionCollection Condition    { get; set; } = new();
+    public uint                Delay        { get; set; } = 5000;
+    public int                 JumpToIndex  { get; set; } = -1;
 
     public bool Equals(PresetStep? other)
     {
@@ -147,7 +150,7 @@ public class PresetStep : IEquatable<PresetStep>
             InteractNeedTargetAnything = source.InteractNeedTargetAnything,
             InteractWithNearestObject  = source.InteractWithNearestObject,
             Commands                   = source.Commands,
-            CommandCondition           = Execution.CommandCondition.CommandCondition.Copy(source.CommandCondition),
+            Condition                  = ConditionCollection.Copy(source.Condition),
             Delay                      = source.Delay,
             JumpToIndex                = source.JumpToIndex
         };

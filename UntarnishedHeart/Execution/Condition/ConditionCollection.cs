@@ -1,18 +1,18 @@
 using Dalamud.Interface.Utility;
-using UntarnishedHeart.Execution.CommandCondition.Enums;
+using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Windows.Helpers;
 
-namespace UntarnishedHeart.Execution.CommandCondition;
+namespace UntarnishedHeart.Execution.Condition;
 
-public class CommandCondition
+public class ConditionCollection
 {
-    public List<CommandSingleCondition> Conditions   { get; set; } = [];
-    public CommandRelationType          RelationType { get; set; } = CommandRelationType.And;
-    public CommandExecuteType           ExecuteType  { get; set; } = CommandExecuteType.Wait;
+    public List<Condition> Conditions   { get; set; } = [];
+    public ConditionRelationType          RelationType { get; set; } = ConditionRelationType.And;
+    public ConditionExecuteType           ExecuteType  { get; set; } = ConditionExecuteType.Wait;
     public float                        TimeValue    { get; set; }
 
-    private CommandSingleCondition? conditionToCopy;
+    private Condition? conditionToCopy;
 
     public void Draw()
     {
@@ -22,7 +22,7 @@ public class CommandCondition
         {
             if (combo)
             {
-                foreach (var executeType in Enum.GetValues<CommandExecuteType>())
+                foreach (var executeType in Enum.GetValues<ConditionExecuteType>())
                 {
                     if (ImGui.Selectable($"{executeType.GetDescription()}", ExecuteType == executeType))
                         ExecuteType = executeType;
@@ -31,7 +31,7 @@ public class CommandCondition
             }
         }
 
-        if (ExecuteType == CommandExecuteType.Repeat)
+        if (ExecuteType == ConditionExecuteType.Repeat)
         {
             var timeValue = TimeValue;
             ImGui.SetNextItemWidth(300f * ImGuiHelpers.GlobalScale);
@@ -46,7 +46,7 @@ public class CommandCondition
         {
             if (combo)
             {
-                foreach (var relationType in Enum.GetValues<CommandRelationType>())
+                foreach (var relationType in Enum.GetValues<ConditionRelationType>())
                 {
                     if (ImGui.Selectable($"{relationType.GetDescription()}", RelationType == relationType))
                         RelationType = relationType;
@@ -58,7 +58,7 @@ public class CommandCondition
         ImGui.NewLine();
 
         if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, "添加新条件", true))
-            Conditions.Add(new HealthCommandCondition());
+            Conditions.Add(new HealthCondition());
 
         ImGui.Spacing();
 
@@ -81,7 +81,7 @@ public class CommandCondition
 
         return;
 
-        void DrawStepContextMenu(int i, CommandSingleCondition step)
+        void DrawStepContextMenu(int i, Condition step)
         {
             var contextOperation = StepOperationType.Pass;
 
@@ -92,7 +92,7 @@ public class CommandCondition
             if (!context) return;
 
             if (ImGui.MenuItem("复制"))
-                conditionToCopy = CommandSingleCondition.Copy(step);
+                conditionToCopy = Condition.Copy(step);
 
             if (conditionToCopy != null)
             {
@@ -142,31 +142,31 @@ public class CommandCondition
                 Conditions,
                 i,
                 contextOperation,
-                createNew: () => new HealthCommandCondition(),
-                createClipboardCopy: conditionToCopy == null ? null : () => CommandSingleCondition.Copy(conditionToCopy),
-                createCurrentCopy: () => CommandSingleCondition.Copy(step)
+                createNew: () => new HealthCondition(),
+                createClipboardCopy: conditionToCopy == null ? null : () => Condition.Copy(conditionToCopy),
+                createCurrentCopy: () => Condition.Copy(step)
             );
         }
     }
 
     public bool IsConditionsTrue()
     {
-        var context = CommandConditionContext.Create();
+        var context = ConditionContext.Create();
 
         return RelationType switch
         {
-            CommandRelationType.And => Conditions.All(x => x.Evaluate(context)),
-            CommandRelationType.Or  => Conditions.Any(x => x.Evaluate(context)),
+            ConditionRelationType.And => Conditions.All(x => x.Evaluate(context)),
+            ConditionRelationType.Or  => Conditions.Any(x => x.Evaluate(context)),
             _                       => false
         };
     }
 
-    public static CommandCondition Copy(CommandCondition source)
+    public static ConditionCollection Copy(ConditionCollection source)
     {
-        var conditions = new List<CommandSingleCondition>();
-        source.Conditions.ForEach(x => conditions.Add(CommandSingleCondition.Copy(x)));
+        var conditions = new List<Condition>();
+        source.Conditions.ForEach(x => conditions.Add(Condition.Copy(x)));
 
-        return new CommandCondition
+        return new ConditionCollection
         {
             Conditions   = conditions.ToList(),
             RelationType = source.RelationType,

@@ -2,26 +2,26 @@ using Dalamud.Game.ClientState.Objects.Enums;
 using Lumina.Excel.Sheets;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
-using UntarnishedHeart.Execution.CommandCondition.Enums;
+using UntarnishedHeart.Execution.Condition.Enums;
 
-namespace UntarnishedHeart.Execution.CommandCondition;
+namespace UntarnishedHeart.Execution.Condition;
 
-public sealed class StatusCommandCondition : CommandSingleCondition
+public sealed class StatusCondition : Condition
 {
-    public override CommandDetectType Kind => CommandDetectType.Status;
+    public override ConditionDetectType Kind => ConditionDetectType.Status;
 
     public PresenceComparisonType ComparisonType { get; set; } = PresenceComparisonType.Has;
 
-    public CommandTargetType TargetType { get; set; } = CommandTargetType.Target;
+    public ConditionTargetType TargetType { get; set; } = ConditionTargetType.Target;
 
     public uint StatusID { get; set; }
 
-    public override unsafe bool Evaluate(in CommandConditionContext context)
+    public override unsafe bool Evaluate(in ConditionContext context)
     {
         var hasStatus = TargetType switch
         {
-            CommandTargetType.Self => LocalPlayerState.HasStatus(StatusID, out _),
-            CommandTargetType.Target => context.Target is { ObjectKind: ObjectKind.BattleNpc or ObjectKind.Player } target && target.ToBCStruct()->StatusManager.HasStatus(StatusID),
+            ConditionTargetType.Self => LocalPlayerState.HasStatus(StatusID, out _),
+            ConditionTargetType.Target => context.Target is { ObjectKind: ObjectKind.BattleNpc or ObjectKind.Player } target && target.ToBCStruct()->StatusManager.HasStatus(StatusID),
             _ => false
         };
 
@@ -33,8 +33,8 @@ public sealed class StatusCommandCondition : CommandSingleCondition
         };
     }
 
-    public override CommandSingleCondition DeepCopy() =>
-        new StatusCommandCondition
+    public override Condition DeepCopy() =>
+        new StatusCondition
         {
             ComparisonType = ComparisonType,
             TargetType     = TargetType,

@@ -1,8 +1,8 @@
 using System.ComponentModel;
 
-namespace UntarnishedHeart.Execution.CommandCondition.Enums;
+namespace UntarnishedHeart.Execution.Condition.Enums;
 
-public enum CommandExecuteType
+public enum ConditionExecuteType
 {
     [Description("等待 (不满足条件时, 等待满足, 再继续)")]
     Wait,

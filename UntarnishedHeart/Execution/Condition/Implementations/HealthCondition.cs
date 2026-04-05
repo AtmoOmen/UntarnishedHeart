@@ -1,18 +1,18 @@
-using UntarnishedHeart.Execution.CommandCondition.Enums;
+using UntarnishedHeart.Execution.Condition.Enums;
 
-namespace UntarnishedHeart.Execution.CommandCondition;
+namespace UntarnishedHeart.Execution.Condition;
 
-public sealed class HealthCommandCondition : CommandSingleCondition
+public sealed class HealthCondition : Condition
 {
-    public override CommandDetectType Kind => CommandDetectType.Health;
+    public override ConditionDetectType Kind => ConditionDetectType.Health;
 
     public NumericComparisonType ComparisonType { get; set; } = NumericComparisonType.LessThan;
 
-    public CommandTargetType TargetType { get; set; } = CommandTargetType.Target;
+    public ConditionTargetType TargetType { get; set; } = ConditionTargetType.Target;
 
     public float Threshold { get; set; }
 
-    public override bool Evaluate(in CommandConditionContext context)
+    public override bool Evaluate(in ConditionContext context)
     {
         var target = ResolveTarget(context, TargetType);
         if (target is null || target.MaxHp <= 0)
@@ -29,8 +29,8 @@ public sealed class HealthCommandCondition : CommandSingleCondition
         };
     }
 
-    public override CommandSingleCondition DeepCopy() =>
-        new HealthCommandCondition
+    public override Condition DeepCopy() =>
+        new HealthCondition
         {
             ComparisonType = ComparisonType,
             TargetType     = TargetType,

@@ -1,14 +1,14 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using UntarnishedHeart.Execution.CommandCondition.Configuration;
-using UntarnishedHeart.Execution.CommandCondition.Enums;
-using UntarnishedHeart.Execution.CommandCondition.Legacy;
+using UntarnishedHeart.Execution.Condition.Configuration;
+using UntarnishedHeart.Execution.Condition.Enums;
+using UntarnishedHeart.Execution.Condition.Legacy;
 
-namespace UntarnishedHeart.Execution.CommandCondition;
+namespace UntarnishedHeart.Execution.Condition;
 
-public sealed class CommandSingleConditionJsonConverter : JsonConverter<CommandSingleCondition>
+public sealed class ConditionJsonConverter : JsonConverter<Condition>
 {
-    public override void WriteJson(JsonWriter writer, CommandSingleCondition? value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, Condition? value, JsonSerializer serializer)
     {
         if (value is null)
         {
@@ -16,17 +16,17 @@ public sealed class CommandSingleConditionJsonConverter : JsonConverter<CommandS
             return;
         }
 
-        if (value is LegacyCommandSingleCondition legacy)
-            value = CommandSingleCondition.MigrateLegacyV1ToV2(legacy.DetectType, legacy.ComparisonType, legacy.TargetType, legacy.Value);
+        if (value is LegacyCondition legacy)
+            value = Condition.MigrateLegacyV1ToV2(legacy.DetectType, legacy.ComparisonType, legacy.TargetType, legacy.Value);
 
         SerializeToJObject(value).WriteTo(writer);
     }
 
-    public override CommandSingleCondition? ReadJson
+    public override Condition? ReadJson
     (
         JsonReader              reader,
         Type                    objectType,
-        CommandSingleCondition? existingValue,
+        Condition? existingValue,
         bool                    hasExistingValue,
         JsonSerializer          serializer
     )
@@ -38,41 +38,41 @@ public sealed class CommandSingleConditionJsonConverter : JsonConverter<CommandS
         if (token.Type != JTokenType.Object)
             return null;
 
-        var obj = CommandSingleConditionJSONMigrator.Instance.MigrateToLatest((JObject)token);
+        var obj = ConditionJSONMigrator.Instance.MigrateToLatest((JObject)token);
         return DeserializeCurrent(obj);
     }
 
-    internal static JObject SerializeToJObject(CommandSingleCondition value)
+    internal static JObject SerializeToJObject(Condition value)
     {
-        if (value is LegacyCommandSingleCondition legacy)
-            value = CommandSingleCondition.MigrateLegacyV1ToV2(legacy.DetectType, legacy.ComparisonType, legacy.TargetType, legacy.Value);
+        if (value is LegacyCondition legacy)
+            value = Condition.MigrateLegacyV1ToV2(legacy.DetectType, legacy.ComparisonType, legacy.TargetType, legacy.Value);
 
         var obj = new JObject
         {
-            ["Version"] = CommandSingleConditionJSONMigrator.CurrentJSONVersion,
+            ["Version"] = ConditionJSONMigrator.CurrentJSONVersion,
             ["Kind"]    = value.Kind.ToString()
         };
 
         switch (value)
         {
-            case HealthCommandCondition health:
+            case HealthCondition health:
                 obj["ComparisonType"] = health.ComparisonType.ToString();
                 obj["TargetType"]     = health.TargetType.ToString();
                 obj["Threshold"]      = health.Threshold;
                 break;
 
-            case StatusCommandCondition status:
+            case StatusCondition status:
                 obj["ComparisonType"] = status.ComparisonType.ToString();
                 obj["TargetType"]     = status.TargetType.ToString();
                 obj["StatusID"]       = status.StatusID;
                 break;
 
-            case ActionCooldownCommandCondition cooldown:
+            case ActionCooldownCondition cooldown:
                 obj["ComparisonType"] = cooldown.ComparisonType.ToString();
                 obj["ActionID"]       = cooldown.ActionID;
                 break;
 
-            case ActionCastStartCommandCondition castStart:
+            case ActionCastStartCondition castStart:
                 obj["ActionID"] = castStart.ActionID;
                 break;
         }
@@ -80,34 +80,34 @@ public sealed class CommandSingleConditionJsonConverter : JsonConverter<CommandS
         return obj;
     }
 
-    internal static CommandSingleCondition DeserializeCurrent(JObject obj)
+    internal static Condition DeserializeCurrent(JObject obj)
     {
-        var kind = ReadEnum(obj["Kind"], CommandDetectType.Health);
+        var kind = ReadEnum(obj["Kind"], ConditionDetectType.Health);
 
         return kind switch
         {
-            CommandDetectType.Health => new HealthCommandCondition
+            ConditionDetectType.Health => new HealthCondition
             {
                 ComparisonType = ReadEnum(obj["ComparisonType"], NumericComparisonType.LessThan),
-                TargetType     = ReadEnum(obj["TargetType"],     CommandTargetType.Target),
+                TargetType     = ReadEnum(obj["TargetType"],     ConditionTargetType.Target),
                 Threshold      = ReadFloat(obj["Threshold"])
             },
-            CommandDetectType.Status => new StatusCommandCondition
+            ConditionDetectType.Status => new StatusCondition
             {
                 ComparisonType = ReadEnum(obj["ComparisonType"], PresenceComparisonType.Has),
-                TargetType     = ReadEnum(obj["TargetType"],     CommandTargetType.Target),
+                TargetType     = ReadEnum(obj["TargetType"],     ConditionTargetType.Target),
                 StatusID       = ReadUInt(obj["StatusID"] ?? obj["StatusId"])
             },
-            CommandDetectType.ActionCooldown => new ActionCooldownCommandCondition
+            ConditionDetectType.ActionCooldown => new ActionCooldownCondition
             {
                 ComparisonType = ReadEnum(obj["ComparisonType"], CooldownComparisonType.Finished),
                 ActionID       = ReadUInt(obj["ActionID"] ?? obj["ActionId"])
             },
-            CommandDetectType.ActionCastStart => new ActionCastStartCommandCondition
+            ConditionDetectType.ActionCastStart => new ActionCastStartCondition
             {
                 ActionID = ReadUInt(obj["ActionID"] ?? obj["ActionId"])
             },
-            _ => new HealthCommandCondition()
+            _ => new HealthCondition()
         };
     }
 
@@ -132,9 +132,20 @@ public sealed class CommandSingleConditionJsonConverter : JsonConverter<CommandS
 
         if (token.Type == JTokenType.Integer)
         {
-            var raw = token.Value<int>();
-            if (Enum.IsDefined(typeof(TEnum), raw))
-                return (TEnum)Enum.ToObject(typeof(TEnum), raw);
+            try
+            {
+                var raw            = token.Value<long>();
+                var enumType       = typeof(TEnum);
+                var underlyingType = Enum.GetUnderlyingType(enumType);
+                var converted      = Convert.ChangeType(raw, underlyingType);
+
+                if (Enum.IsDefined(enumType, converted))
+                    return (TEnum)Enum.ToObject(enumType, converted);
+            }
+            catch (Exception)
+            {
+                return fallback;
+            }
         }
 
         if (token.Type == JTokenType.String && Enum.TryParse<TEnum>(token.Value<string>(), true, out var value))

@@ -1,8 +1,8 @@
 using System.ComponentModel;
 
-namespace UntarnishedHeart.Execution.CommandCondition.Enums;
+namespace UntarnishedHeart.Execution.Condition.Enums;
 
-public enum CommandTargetType
+public enum ConditionTargetType
 {
     [Description("自身")]
     Self,
