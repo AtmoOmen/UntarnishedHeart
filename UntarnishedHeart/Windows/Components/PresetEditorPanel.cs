@@ -4,6 +4,7 @@ using Lumina.Excel.Sheets;
 using OmenTools.ImGuiOm.Widgets.Combos;
 using OmenTools.Interop.Game.Lumina;
 using UntarnishedHeart.Execution.Enums;
+using UntarnishedHeart.Execution.ExecuteAction;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Windows.Helpers;
 
@@ -181,7 +182,7 @@ internal static class PresetEditorPanel
 
         var currentStep      = preset.Steps[state.CurrentStep];
         var currentStepIndex = state.CurrentStep;
-        PresetStepEditor.Draw(currentStep, ref currentStepIndex, preset.Steps);
+        PresetStepEditor.Draw(currentStep, ref currentStepIndex, preset.Steps, state);
         state.CurrentStep = currentStepIndex;
     }
 
@@ -265,10 +266,11 @@ internal static class PresetEditorPanel
         return Math.Clamp(currentStep, 0, count - 1);
     }
 
-    private sealed class PresetEditorState
+    internal sealed class PresetEditorState
     {
         public int                CurrentStep  { get; set; } = -1;
         public PresetStep?        StepToCopy   { get; set; }
+        public ExecuteActionBase? ActionToCopy { get; set; }
         public ContentSelectCombo ContentCombo { get; }
 
         public PresetEditorState(Preset preset)

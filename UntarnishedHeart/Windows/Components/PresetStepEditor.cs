@@ -15,7 +15,7 @@ internal static class PresetStepEditor
 {
     private static readonly ConditionalWeakTable<PresetStep, EditorState> EditorStates = [];
 
-    public static void Draw(PresetStep step, ref int i, List<PresetStep> steps)
+    public static void Draw(PresetStep step, ref int i, List<PresetStep> steps, PresetEditorPanel.PresetEditorState sharedState)
     {
         var state = EditorStates.GetValue(step, static _ => new EditorState());
 
@@ -49,15 +49,15 @@ internal static class PresetStepEditor
         if (!tabBar) return;
 
         var enterSelectedIndex = state.EnterSelectedIndex;
-        DrawPhaseTab("进入阶段", "一般用来存储是否要进入该步骤的动作与判断", step.EnterActions, PresetStepPhase.Enter, ref enterSelectedIndex, state);
+        DrawPhaseTab("进入阶段", "一般用来存储是否要进入该步骤的动作与判断", step.EnterActions, PresetStepPhase.Enter, ref enterSelectedIndex, state, sharedState);
         state.EnterSelectedIndex = enterSelectedIndex;
 
         var bodySelectedIndex = state.BodySelectedIndex;
-        DrawPhaseTab("进行阶段", "一般用来存储该步骤的实际逻辑", step.BodyActions, PresetStepPhase.Body, ref bodySelectedIndex, state);
+        DrawPhaseTab("进行阶段", "一般用来存储该步骤的实际逻辑", step.BodyActions, PresetStepPhase.Body, ref bodySelectedIndex, state, sharedState);
         state.BodySelectedIndex = bodySelectedIndex;
 
         var exitSelectedIndex = state.ExitSelectedIndex;
-        DrawPhaseTab("离开阶段", "一般用来存储是否要离开该步骤的动作与判断", step.ExitActions, PresetStepPhase.Exit, ref exitSelectedIndex, state);
+        DrawPhaseTab("离开阶段", "一般用来存储是否要离开该步骤的动作与判断", step.ExitActions, PresetStepPhase.Exit, ref exitSelectedIndex, state, sharedState);
         state.ExitSelectedIndex = exitSelectedIndex;
 
         DrawReorderButtons(ref i, steps);
@@ -65,12 +65,13 @@ internal static class PresetStepEditor
 
     private static unsafe void DrawPhaseTab
     (
-        string                  title,
-        string                  decription,
-        List<ExecuteActionBase> actions,
-        PresetStepPhase         phase,
-        ref int                 selectedIndex,
-        EditorState             state
+        string                              title,
+        string                              decription,
+        List<ExecuteActionBase>             actions,
+        PresetStepPhase                     phase,
+        ref int                             selectedIndex,
+        EditorState                         state,
+        PresetEditorPanel.PresetEditorState sharedState
     )
     {
         using var tab = ImRaii.TabItem(title);
@@ -139,7 +140,7 @@ internal static class PresetStepEditor
                         ImGui.EndDragDropTarget();
                     }
 
-                    DrawActionContextMenu(actions, state, ref selectedIndex, actionIndex, action, phase);
+                    DrawActionContextMenu(actions, sharedState, ref selectedIndex, actionIndex, action, phase);
                 }
             }
         }
@@ -160,20 +161,19 @@ internal static class PresetStepEditor
 
     private sealed class EditorState
     {
-        public int                EnterSelectedIndex { get; set; } = -1;
-        public int                BodySelectedIndex  { get; set; } = -1;
-        public int                ExitSelectedIndex  { get; set; } = -1;
-        public ExecuteActionBase? ActionToCopy       { get; set; }
+        public int EnterSelectedIndex { get; set; } = -1;
+        public int BodySelectedIndex  { get; set; } = -1;
+        public int ExitSelectedIndex  { get; set; } = -1;
     }
 
     private static void DrawActionContextMenu
     (
-        List<ExecuteActionBase> actions,
-        EditorState             state,
-        ref int                 selectedIndex,
-        int                     actionIndex,
-        ExecuteActionBase       action,
-        PresetStepPhase         phase
+        List<ExecuteActionBase>             actions,
+        PresetEditorPanel.PresetEditorState sharedState,
+        ref int                             selectedIndex,
+        int                                 actionIndex,
+        ExecuteActionBase                   action,
+        PresetStepPhase                     phase
     )
     {
         var contextOperation = StepOperationType.Pass;
@@ -188,9 +188,9 @@ internal static class PresetStepEditor
         ImGui.Separator();
 
         if (ImGui.MenuItem("复制"))
-            state.ActionToCopy = ExecuteActionBase.Copy(action);
+            sharedState.ActionToCopy = ExecuteActionBase.Copy(action);
 
-        if (state.ActionToCopy != null)
+        if (sharedState.ActionToCopy != null)
         {
             if (ImGui.MenuItem("粘贴至本条"))
                 contextOperation = StepOperationType.Paste;
@@ -231,7 +231,7 @@ internal static class PresetStepEditor
             contextOperation,
             selectedIndex,
             () => CreateDefaultAction(ExecuteActionKind.WaitMilliseconds),
-            state.ActionToCopy == null ? null : () => ExecuteActionBase.Copy(state.ActionToCopy),
+            sharedState.ActionToCopy == null ? null : () => ExecuteActionBase.Copy(sharedState.ActionToCopy),
             () => ExecuteActionBase.Copy(action)
         );
     }
@@ -245,7 +245,7 @@ internal static class PresetStepEditor
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
-        
+
         var current = DrawActionTypeSelector(action);
 
         ImGui.Spacing();
