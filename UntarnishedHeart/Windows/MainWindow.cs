@@ -122,7 +122,6 @@ public class MainWindow : Window
         PersistSelectedPresetIndex(selectedPresetIndex);
 
         ImGui.SameLine();
-
         if (ImGui.Button("编辑##EditPreset", new(72f * GlobalUIScale, 0f)))
             WindowManager.Instance().Get<PresetEditor>().IsOpen = true;
 

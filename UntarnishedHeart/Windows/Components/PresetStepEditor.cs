@@ -33,7 +33,7 @@ internal static class PresetStepEditor
             step.Name = stepName;
 
         var stepRemark = step.Remark;
-        ImGuiOm.CompLabelLeft("备注:", -1f, () => ImGui.InputTextMultiline("###StepRemarkInput", ref stepRemark, 2048, new(-1f, 90f * GlobalUIScale)));
+        ImGuiOm.CompLabelLeft("备注:", -1f, () => ImGui.InputText("###StepRemarkInput", ref stepRemark, 2048));
         if (ImGui.IsItemDeactivatedAfterEdit())
             step.Remark = stepRemark;
 

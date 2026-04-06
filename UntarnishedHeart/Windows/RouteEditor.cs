@@ -362,54 +362,42 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
     private static void DrawSwitchPresetConfig(RouteStep step)
     {
         // 预设选择
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("目标预设:");
-
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(200f * GlobalUIScale);
-
-        if (ImGui.BeginCombo("###TargetPreset", step.PresetName))
+        ImGui.SetNextItemWidth(250f * GlobalUIScale);
+        using (var combo = ImRaii.Combo("预设###TargetPreset", step.PresetName))
         {
-            foreach (var preset in PluginConfig.Instance().Presets)
+            if (combo)
             {
-                if (ImGui.Selectable(preset.Name, step.PresetName == preset.Name))
-                    step.PresetName = preset.Name;
+                foreach (var preset in PluginConfig.Instance().Presets)
+                {
+                    if (ImGui.Selectable(preset.Name, step.PresetName == preset.Name))
+                        step.PresetName = preset.Name;
+                }
             }
-
-            ImGui.EndCombo();
         }
 
-        ImGui.Spacing();
-
         // 副本选项配置
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "副本选项:");
-        using (ImRaii.PushIndent())
-            DrawDutyOptions(step.DutyOptions);
+        DrawDutyOptions(step.DutyOptions);
 
         ImGui.NewLine();
 
         // 预设执行结束后的动作配置
         ImGui.AlignTextToFramePadding();
-        ImGui.Text("预设执行结束后:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "预设执行结束后");
 
         using (ImRaii.PushIndent())
         {
-            ImGui.AlignTextToFramePadding();
-            ImGui.Text("执行动作:");
-
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(150f * GlobalUIScale);
-
-            if (ImGui.BeginCombo("###AfterPresetAction", step.AfterPresetAction.GetDescription()))
+            ImGui.SetNextItemWidth(250f * GlobalUIScale);
+            using (var combo = ImRaii.Combo("执行动作###AfterPresetAction", step.AfterPresetAction.GetDescription()))
             {
-                foreach (var action in Enum.GetValues<RouteStepActionType>())
+                if (combo)
                 {
-                    var actionName = action.GetDescription();
-                    if (ImGui.Selectable(actionName, step.AfterPresetAction == action))
-                        step.AfterPresetAction = action;
+                    foreach (var action in Enum.GetValues<RouteStepActionType>())
+                    {
+                        var actionName = action.GetDescription();
+                        if (ImGui.Selectable(actionName, step.AfterPresetAction == action))
+                            step.AfterPresetAction = action;
+                    }
                 }
-
-                ImGui.EndCombo();
             }
 
             // 如果是跳转动作，显示跳转索引输入
@@ -425,9 +413,6 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
                     step.AfterPresetJumpIndex = tempJumpIndex;
             }
         }
-
-        // 提示文本
-        ImGui.TextColored(KnownColor.Yellow.Vector(), "提示: 每个预设均仅会执行一次, 有固定次数需要请结合条件判断步骤");
     }
 
     private static void DrawConditionCheckConfig(RouteStep step)
