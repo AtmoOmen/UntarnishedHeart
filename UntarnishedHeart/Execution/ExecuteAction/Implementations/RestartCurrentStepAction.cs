@@ -15,8 +15,5 @@ public sealed class RestartCurrentStepAction : ExecuteActionBase
     protected override int GetCoreHashCode() => 0;
 
     public override ExecuteActionBase DeepCopy() =>
-        new RestartCurrentStepAction
-        {
-            Condition = ConditionCollection.Copy(Condition)
-        };
+        CopyBasePropertiesTo(new RestartCurrentStepAction());
 }

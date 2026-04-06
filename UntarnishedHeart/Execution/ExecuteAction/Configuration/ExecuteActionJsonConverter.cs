@@ -50,6 +50,8 @@ public sealed class ExecuteActionJsonConverter : JsonConverter<ExecuteActionBase
         {
             ["Version"]   = ExecuteActionJSONMigrator.CurrentJSONVersion,
             ["Kind"]      = value.Kind.ToString(),
+            ["Name"]      = value.Name,
+            ["Remark"]    = value.Remark,
             ["Condition"] = JToken.FromObject(value.Condition, serializer)
         };
 
@@ -93,75 +95,111 @@ public sealed class ExecuteActionJsonConverter : JsonConverter<ExecuteActionBase
     {
         var kind      = PresetStepJsonConverter.ReadEnum(obj["Kind"], ExecuteActionKind.WaitMilliseconds);
         var condition = PresetStepJsonConverter.ReadObject(obj["Condition"], serializer, new ConditionCollection());
+        var name      = PresetStepJsonConverter.ReadString(obj["Name"], kind.GetDescription());
+        var remark    = PresetStepJsonConverter.ReadString(obj["Remark"]);
 
         return kind switch
         {
-            ExecuteActionKind.WaitMilliseconds => new WaitMillisecondsAction
-            {
-                Milliseconds = PresetStepJsonConverter.ReadInt(obj["Milliseconds"]),
-                Condition    = condition
-            },
-            ExecuteActionKind.JumpToStep => new JumpToStepAction
-            {
-                StepIndex = PresetStepJsonConverter.ReadInt(obj["StepIndex"], -1),
-                Condition = condition
-            },
-            ExecuteActionKind.RestartCurrentStep => new RestartCurrentStepAction
-            {
-                Condition = condition
-            },
-            ExecuteActionKind.JumpToAction => new JumpToActionAction
-            {
-                ActionIndex = PresetStepJsonConverter.ReadInt(obj["ActionIndex"], -1),
-                Condition   = condition
-            },
-            ExecuteActionKind.RestartCurrentAction => new RestartCurrentActionAction
-            {
-                Condition = condition
-            },
-            ExecuteActionKind.LeaveDutyAndEndPreset => new LeaveDutyAndEndAction
-            {
-                Condition = condition
-            },
-            ExecuteActionKind.LeaveDutyAndRestartPreset => new LeaveDutyAndRestartAction
-            {
-                Condition = condition
-            },
-            ExecuteActionKind.TextCommand => new TextCommandAction
-            {
-                Commands  = PresetStepJsonConverter.ReadString(obj["Commands"]),
-                Condition = condition
-            },
-            ExecuteActionKind.SelectTarget => new SelectTargetAction
-            {
-                Selector  = PresetStepJsonConverter.ReadObject(obj["Selector"], serializer, new TargetSelector()),
-                Condition = condition
-            },
-            ExecuteActionKind.InteractTarget => new InteractTargetAction
-            {
-                Selector              = PresetStepJsonConverter.ReadObject(obj["Selector"], serializer, new TargetSelector()),
-                OpenObjectInteraction = PresetStepJsonConverter.ReadBool(obj["OpenObjectInteraction"]),
-                Condition             = condition
-            },
-            ExecuteActionKind.InteractNearestObject => new InteractNearestObjectAction
-            {
-                Condition = condition
-            },
-            ExecuteActionKind.UseAction => new UseActionExecuteAction
-            {
-                Action         = PresetStepJsonConverter.ReadObject(obj["Action"],         serializer, new ActionReference()),
-                TargetSelector = PresetStepJsonConverter.ReadObject(obj["TargetSelector"], serializer, new TargetSelector()),
-                Location       = PresetStepJsonConverter.ReadObject(obj["Location"],       serializer, default(Vector3)),
-                UseLocation    = PresetStepJsonConverter.ReadBool(obj["UseLocation"]),
-                Condition      = condition
-            },
-            ExecuteActionKind.MoveToPosition => new MoveToPositionAction
-            {
-                Position  = PresetStepJsonConverter.ReadObject(obj["Position"], serializer, default(Vector3)),
-                MoveType  = PresetStepJsonConverter.ReadEnum(obj["MoveType"], MoveType.传送),
-                Condition = condition
-            },
-            _ => new WaitMillisecondsAction { Condition = condition }
+            ExecuteActionKind.WaitMilliseconds => PopulateCommonFields
+            (
+                new WaitMillisecondsAction
+                {
+                    Milliseconds = PresetStepJsonConverter.ReadInt(obj["Milliseconds"])
+                },
+                name,
+                remark,
+                condition
+            ),
+            ExecuteActionKind.JumpToStep => PopulateCommonFields
+            (
+                new JumpToStepAction
+                {
+                    StepIndex = PresetStepJsonConverter.ReadInt(obj["StepIndex"], -1)
+                },
+                name,
+                remark,
+                condition
+            ),
+            ExecuteActionKind.RestartCurrentStep => PopulateCommonFields(new RestartCurrentStepAction(), name, remark, condition),
+            ExecuteActionKind.JumpToAction => PopulateCommonFields
+            (
+                new JumpToActionAction
+                {
+                    ActionIndex = PresetStepJsonConverter.ReadInt(obj["ActionIndex"], -1)
+                },
+                name,
+                remark,
+                condition
+            ),
+            ExecuteActionKind.RestartCurrentAction => PopulateCommonFields(new RestartCurrentActionAction(), name, remark, condition),
+            ExecuteActionKind.LeaveDutyAndEndPreset => PopulateCommonFields(new LeaveDutyAndEndAction(), name, remark, condition),
+            ExecuteActionKind.LeaveDutyAndRestartPreset => PopulateCommonFields(new LeaveDutyAndRestartAction(), name, remark, condition),
+            ExecuteActionKind.TextCommand => PopulateCommonFields
+            (
+                new TextCommandAction
+                {
+                    Commands = PresetStepJsonConverter.ReadString(obj["Commands"])
+                },
+                name,
+                remark,
+                condition
+            ),
+            ExecuteActionKind.SelectTarget => PopulateCommonFields
+            (
+                new SelectTargetAction
+                {
+                    Selector = PresetStepJsonConverter.ReadObject(obj["Selector"], serializer, new TargetSelector())
+                },
+                name,
+                remark,
+                condition
+            ),
+            ExecuteActionKind.InteractTarget => PopulateCommonFields
+            (
+                new InteractTargetAction
+                {
+                    Selector              = PresetStepJsonConverter.ReadObject(obj["Selector"], serializer, new TargetSelector()),
+                    OpenObjectInteraction = PresetStepJsonConverter.ReadBool(obj["OpenObjectInteraction"])
+                },
+                name,
+                remark,
+                condition
+            ),
+            ExecuteActionKind.InteractNearestObject => PopulateCommonFields(new InteractNearestObjectAction(), name, remark, condition),
+            ExecuteActionKind.UseAction => PopulateCommonFields
+            (
+                new UseActionExecuteAction
+                {
+                    Action         = PresetStepJsonConverter.ReadObject(obj["Action"],         serializer, new ActionReference()),
+                    TargetSelector = PresetStepJsonConverter.ReadObject(obj["TargetSelector"], serializer, new TargetSelector()),
+                    Location       = PresetStepJsonConverter.ReadObject(obj["Location"],       serializer, default(Vector3)),
+                    UseLocation    = PresetStepJsonConverter.ReadBool(obj["UseLocation"])
+                },
+                name,
+                remark,
+                condition
+            ),
+            ExecuteActionKind.MoveToPosition => PopulateCommonFields
+            (
+                new MoveToPositionAction
+                {
+                    Position = PresetStepJsonConverter.ReadObject(obj["Position"], serializer, default(Vector3)),
+                    MoveType = PresetStepJsonConverter.ReadEnum(obj["MoveType"], MoveType.传送)
+                },
+                name,
+                remark,
+                condition
+            ),
+            _ => PopulateCommonFields(new WaitMillisecondsAction(), name, remark, condition)
         };
+    }
+
+    private static T PopulateCommonFields<T>(T action, string name, string remark, ConditionCollection condition)
+        where T : ExecuteActionBase
+    {
+        action.Name      = name;
+        action.Remark    = remark;
+        action.Condition = condition;
+        return action;
     }
 }

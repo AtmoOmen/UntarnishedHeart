@@ -51,12 +51,14 @@ public sealed class UseActionExecuteAction : ExecuteActionBase
     protected override int GetCoreHashCode() => HashCode.Combine(Action, TargetSelector, Location, UseLocation);
 
     public override ExecuteActionBase DeepCopy() =>
-        new UseActionExecuteAction
-        {
-            Action         = ActionReference.Copy(Action),
-            TargetSelector = TargetSelector.Copy(TargetSelector),
-            Location       = Location,
-            UseLocation    = UseLocation,
-            Condition      = ConditionCollection.Copy(Condition)
-        };
+        CopyBasePropertiesTo
+        (
+            new UseActionExecuteAction
+            {
+                Action         = ActionReference.Copy(Action),
+                TargetSelector = TargetSelector.Copy(TargetSelector),
+                Location       = Location,
+                UseLocation    = UseLocation
+            }
+        );
 }

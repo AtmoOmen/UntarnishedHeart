@@ -22,9 +22,5 @@ public sealed class TextCommandAction : ExecuteActionBase
     protected override int GetCoreHashCode() => Commands.GetHashCode(StringComparison.Ordinal);
 
     public override ExecuteActionBase DeepCopy() =>
-        new TextCommandAction
-        {
-            Commands  = Commands,
-            Condition = ConditionCollection.Copy(Condition)
-        };
+        CopyBasePropertiesTo(new TextCommandAction { Commands = Commands });
 }

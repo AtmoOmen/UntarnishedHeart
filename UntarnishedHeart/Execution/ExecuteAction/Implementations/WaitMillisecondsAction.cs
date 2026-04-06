@@ -22,9 +22,5 @@ public sealed class WaitMillisecondsAction : ExecuteActionBase
     protected override int GetCoreHashCode() => Milliseconds;
 
     public override ExecuteActionBase DeepCopy() =>
-        new WaitMillisecondsAction
-        {
-            Milliseconds = Milliseconds,
-            Condition    = ConditionCollection.Copy(Condition)
-        };
+        CopyBasePropertiesTo(new WaitMillisecondsAction { Milliseconds = Milliseconds });
 }

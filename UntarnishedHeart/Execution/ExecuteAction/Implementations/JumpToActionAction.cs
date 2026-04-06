@@ -22,9 +22,5 @@ public sealed class JumpToActionAction : ExecuteActionBase
     protected override int GetCoreHashCode() => ActionIndex;
 
     public override ExecuteActionBase DeepCopy() =>
-        new JumpToActionAction
-        {
-            ActionIndex = ActionIndex,
-            Condition   = ConditionCollection.Copy(Condition)
-        };
+        CopyBasePropertiesTo(new JumpToActionAction { ActionIndex = ActionIndex });
 }

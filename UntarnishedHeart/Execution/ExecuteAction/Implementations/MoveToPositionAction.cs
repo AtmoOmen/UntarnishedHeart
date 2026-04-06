@@ -35,10 +35,12 @@ public sealed class MoveToPositionAction : ExecuteActionBase
     protected override int GetCoreHashCode() => HashCode.Combine(Position, (int)MoveType);
 
     public override ExecuteActionBase DeepCopy() =>
-        new MoveToPositionAction
-        {
-            Position  = Position,
-            MoveType  = MoveType,
-            Condition = ConditionCollection.Copy(Condition)
-        };
+        CopyBasePropertiesTo
+        (
+            new MoveToPositionAction
+            {
+                Position = Position,
+                MoveType = MoveType
+            }
+        );
 }

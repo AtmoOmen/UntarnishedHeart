@@ -89,7 +89,7 @@ internal static class PresetStepEditor
 
         ImGui.TableSetColumnIndex(0);
         if (ImGuiOm.ButtonSelectable($"添加动作###{phase}AddAction"))
-            actions.Add(new WaitMillisecondsAction());
+            actions.Add(CreateDefaultAction(ExecuteActionKind.WaitMilliseconds));
 
         using (var child = ImRaii.Child
                (
@@ -105,7 +105,7 @@ internal static class PresetStepEditor
                 for (var actionIndex = 0; actionIndex < actions.Count; actionIndex++)
                 {
                     var action     = actions[actionIndex];
-                    var actionName = $"{actionIndex}. {action.Kind.GetDescription()}";
+                    var actionName = $"{actionIndex}. {action.Name}";
 
                     if (ImGui.Selectable(actionName, actionIndex == selectedIndex, ImGuiSelectableFlags.AllowDoubleClick))
                         selectedIndex = actionIndex;
@@ -184,7 +184,7 @@ internal static class PresetStepEditor
         using var context = ImRaii.ContextPopupItem($"ActionContentMenu_{phase}_{actionIndex}");
         if (!context) return;
 
-        ImGui.Text($"第 {actionIndex} 个动作: {action.Kind.GetDescription()}");
+        ImGui.Text($"第 {actionIndex} 个动作: {action.Name}");
         ImGui.Separator();
 
         if (ImGui.MenuItem("复制"))
@@ -230,7 +230,7 @@ internal static class PresetStepEditor
             actionIndex,
             contextOperation,
             selectedIndex,
-            () => new WaitMillisecondsAction(),
+            () => CreateDefaultAction(ExecuteActionKind.WaitMilliseconds),
             state.ActionToCopy == null ? null : () => ExecuteActionBase.Copy(state.ActionToCopy),
             () => ExecuteActionBase.Copy(action)
         );
@@ -240,6 +240,12 @@ internal static class PresetStepEditor
     {
         using var id = ImRaii.PushId($"{phase}-Action-{actionIndex}");
 
+        DrawActionMetadataEditor(action);
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        
         var current = DrawActionTypeSelector(action);
 
         ImGui.Spacing();
@@ -254,6 +260,19 @@ internal static class PresetStepEditor
         current.Condition.Draw();
 
         return current;
+    }
+
+    private static void DrawActionMetadataEditor(ExecuteActionBase action)
+    {
+        var actionName = action.Name;
+        ImGuiOm.CompLabelLeft("名称:", -1f, () => ImGui.InputText("###ActionNameInput", ref actionName, 128));
+        if (ImGui.IsItemDeactivatedAfterEdit())
+            action.Name = actionName;
+
+        var actionRemark = action.Remark;
+        ImGuiOm.CompLabelLeft("备注:", -1f, () => ImGui.InputText("###ActionRemarkInput", ref actionRemark, 2048));
+        if (ImGui.IsItemDeactivatedAfterEdit())
+            action.Remark = actionRemark;
     }
 
     private static ExecuteActionBase DrawActionTypeSelector(ExecuteActionBase current)
@@ -271,7 +290,13 @@ internal static class PresetStepEditor
             if (current.Kind == actionKind)
                 return current;
 
+            var keepCustomName = !string.IsNullOrEmpty(current.Name) &&
+                                 !string.Equals(current.Name, current.GetDefaultName(), StringComparison.Ordinal);
             var next = CreateDefaultAction(actionKind);
+            if (keepCustomName)
+                next.Name = current.Name;
+
+            next.Remark    = current.Remark;
             next.Condition = ConditionCollection.Copy(current.Condition);
             return next;
         }
@@ -280,23 +305,32 @@ internal static class PresetStepEditor
     }
 
     private static ExecuteActionBase CreateDefaultAction(ExecuteActionKind kind) =>
-        kind switch
-        {
-            ExecuteActionKind.WaitMilliseconds          => new WaitMillisecondsAction(),
-            ExecuteActionKind.JumpToStep                => new JumpToStepAction(),
-            ExecuteActionKind.RestartCurrentStep        => new RestartCurrentStepAction(),
-            ExecuteActionKind.JumpToAction              => new JumpToActionAction(),
-            ExecuteActionKind.RestartCurrentAction      => new RestartCurrentActionAction(),
-            ExecuteActionKind.LeaveDutyAndEndPreset     => new LeaveDutyAndEndAction(),
-            ExecuteActionKind.LeaveDutyAndRestartPreset => new LeaveDutyAndRestartAction(),
-            ExecuteActionKind.TextCommand               => new TextCommandAction(),
-            ExecuteActionKind.SelectTarget              => new SelectTargetAction(),
-            ExecuteActionKind.InteractTarget            => new InteractTargetAction(),
-            ExecuteActionKind.InteractNearestObject     => new InteractNearestObjectAction(),
-            ExecuteActionKind.UseAction                 => new UseActionExecuteAction(),
-            ExecuteActionKind.MoveToPosition            => new MoveToPositionAction(),
-            _                                           => new WaitMillisecondsAction()
-        };
+        InitializeMetadata
+        (
+            kind switch
+            {
+                ExecuteActionKind.WaitMilliseconds          => new WaitMillisecondsAction(),
+                ExecuteActionKind.JumpToStep                => new JumpToStepAction(),
+                ExecuteActionKind.RestartCurrentStep        => new RestartCurrentStepAction(),
+                ExecuteActionKind.JumpToAction              => new JumpToActionAction(),
+                ExecuteActionKind.RestartCurrentAction      => new RestartCurrentActionAction(),
+                ExecuteActionKind.LeaveDutyAndEndPreset     => new LeaveDutyAndEndAction(),
+                ExecuteActionKind.LeaveDutyAndRestartPreset => new LeaveDutyAndRestartAction(),
+                ExecuteActionKind.TextCommand               => new TextCommandAction(),
+                ExecuteActionKind.SelectTarget              => new SelectTargetAction(),
+                ExecuteActionKind.InteractTarget            => new InteractTargetAction(),
+                ExecuteActionKind.InteractNearestObject     => new InteractNearestObjectAction(),
+                ExecuteActionKind.UseAction                 => new UseActionExecuteAction(),
+                ExecuteActionKind.MoveToPosition            => new MoveToPositionAction(),
+                _                                           => new WaitMillisecondsAction()
+            }
+        );
+
+    private static ExecuteActionBase InitializeMetadata(ExecuteActionBase action)
+    {
+        action.ResetMetadata();
+        return action;
+    }
 
     private static void DrawReorderButtons(ref int i, List<PresetStep> steps)
     {

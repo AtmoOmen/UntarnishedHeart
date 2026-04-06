@@ -30,10 +30,12 @@ public sealed class InteractTargetAction : ExecuteActionBase
     protected override int GetCoreHashCode() => HashCode.Combine(Selector, OpenObjectInteraction);
 
     public override ExecuteActionBase DeepCopy() =>
-        new InteractTargetAction
-        {
-            Selector              = TargetSelector.Copy(Selector),
-            OpenObjectInteraction = OpenObjectInteraction,
-            Condition             = ConditionCollection.Copy(Condition)
-        };
+        CopyBasePropertiesTo
+        (
+            new InteractTargetAction
+            {
+                Selector              = TargetSelector.Copy(Selector),
+                OpenObjectInteraction = OpenObjectInteraction
+            }
+        );
 }

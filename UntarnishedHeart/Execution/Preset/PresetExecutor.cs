@@ -515,7 +515,7 @@ public class PresetExecutor : IDisposable
         CancellationToken cancellationToken
     )
     {
-        var actionLabel = BuildActionMessage(stepIndex, step, phase, actionIndex, action.Kind.GetDescription());
+        var actionLabel = BuildActionMessage(stepIndex, step, phase, actionIndex, action.Name);
 
         switch (action)
         {
@@ -1098,5 +1098,7 @@ public class PresetExecutor : IDisposable
     }
 
     private static string BuildActionMessage(int stepIndex, PresetStep step, PresetStepPhase phase, int actionIndex, string suffix) =>
-        $"步骤 {stepIndex} [{phase.GetDescription()} #{actionIndex}] {step.Name}: {suffix}";
+        string.IsNullOrEmpty(suffix)
+            ? $"步骤 {stepIndex} [{phase.GetDescription()} #{actionIndex}] {step.Name}"
+            : $"步骤 {stepIndex} [{phase.GetDescription()} #{actionIndex}] {step.Name}: {suffix}";
 }

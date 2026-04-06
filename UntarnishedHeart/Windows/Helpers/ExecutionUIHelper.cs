@@ -156,8 +156,8 @@ internal static class ExecutionUIHelper
         if (!isStopAfterDutyCompletionRequested)
             return runningMessage;
 
-        const string requestMessage = "已请求完成副本后结束，等待当前或下一次副本完成并退出";
-        return string.IsNullOrWhiteSpace(runningMessage) ? requestMessage : $"{runningMessage}\n{requestMessage}";
+        const string REQUEST_MESSAGE = "已请求完成副本后结束，等待当前或下一次副本完成并退出";
+        return string.IsNullOrWhiteSpace(runningMessage) ? REQUEST_MESSAGE : $"{runningMessage}\n{REQUEST_MESSAGE}";
     }
 
     private static unsafe void CancelDutyQueueIfNeeded()

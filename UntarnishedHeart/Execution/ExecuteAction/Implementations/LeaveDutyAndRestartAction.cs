@@ -15,8 +15,5 @@ public sealed class LeaveDutyAndRestartAction : ExecuteActionBase
     protected override int GetCoreHashCode() => 0;
 
     public override ExecuteActionBase DeepCopy() =>
-        new LeaveDutyAndRestartAction
-        {
-            Condition = ConditionCollection.Copy(Condition)
-        };
+        CopyBasePropertiesTo(new LeaveDutyAndRestartAction());
 }

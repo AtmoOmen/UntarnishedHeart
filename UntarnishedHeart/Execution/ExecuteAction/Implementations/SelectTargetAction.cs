@@ -18,9 +18,5 @@ public sealed class SelectTargetAction : ExecuteActionBase
     protected override int GetCoreHashCode() => Selector.GetHashCode();
 
     public override ExecuteActionBase DeepCopy() =>
-        new SelectTargetAction
-        {
-            Selector  = TargetSelector.Copy(Selector),
-            Condition = ConditionCollection.Copy(Condition)
-        };
+        CopyBasePropertiesTo(new SelectTargetAction { Selector = TargetSelector.Copy(Selector) });
 }
