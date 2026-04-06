@@ -40,11 +40,14 @@ public sealed class HasSpecificTargetCondition : ConditionBase
     protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, Selector);
 
     public override ConditionBase DeepCopy() =>
-        new HasSpecificTargetCondition
-        {
-            ComparisonType = ComparisonType,
-            Selector       = TargetSelector.Copy(Selector)
-        };
+        CopyBasePropertiesTo
+        (
+            new HasSpecificTargetCondition
+            {
+                ComparisonType = ComparisonType,
+                Selector       = TargetSelector.Copy(Selector)
+            }
+        );
 
     protected override void DrawBody()
     {

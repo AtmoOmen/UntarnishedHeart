@@ -28,11 +28,14 @@ public sealed class ActionUsableCondition : ConditionBase
     protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, Action);
 
     public override ConditionBase DeepCopy() =>
-        new ActionUsableCondition
-        {
-            ComparisonType = ComparisonType,
-            Action         = ActionReference.Copy(Action)
-        };
+        CopyBasePropertiesTo
+        (
+            new ActionUsableCondition
+            {
+                ComparisonType = ComparisonType,
+                Action         = ActionReference.Copy(Action)
+            }
+        );
 
     protected override void DrawBody()
     {

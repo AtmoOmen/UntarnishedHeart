@@ -30,12 +30,15 @@ public sealed class StatusCondition : ConditionBase
     protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, (int)TargetType, StatusID);
 
     public override ConditionBase DeepCopy() =>
-        new StatusCondition
-        {
-            ComparisonType = ComparisonType,
-            TargetType     = TargetType,
-            StatusID       = StatusID
-        };
+        CopyBasePropertiesTo
+        (
+            new StatusCondition
+            {
+                ComparisonType = ComparisonType,
+                TargetType     = TargetType,
+                StatusID       = StatusID
+            }
+        );
 
     protected override void DrawBody()
     {

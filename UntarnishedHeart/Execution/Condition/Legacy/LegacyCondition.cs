@@ -18,13 +18,16 @@ internal sealed class LegacyCondition : ConditionBase
         MigrateLegacyV1ToV2(DetectType, ComparisonType, TargetType, Value).Evaluate(context);
 
     public override ConditionBase DeepCopy() =>
-        new LegacyCondition
-        {
-            DetectType     = DetectType,
-            ComparisonType = ComparisonType,
-            TargetType     = TargetType,
-            Value          = Value
-        };
+        CopyBasePropertiesTo
+        (
+            new LegacyCondition
+            {
+                DetectType     = DetectType,
+                ComparisonType = ComparisonType,
+                TargetType     = TargetType,
+                Value          = Value
+            }
+        );
 
     protected override void DrawBody()
     {

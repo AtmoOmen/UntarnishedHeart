@@ -41,10 +41,7 @@ public sealed class PartyAllDeadCondition : ConditionBase
     protected override int GetCoreHashCode() => (int)ComparisonType;
 
     public override ConditionBase DeepCopy() =>
-        new PartyAllDeadCondition
-        {
-            ComparisonType = ComparisonType
-        };
+        CopyBasePropertiesTo(new PartyAllDeadCondition { ComparisonType = ComparisonType });
 
     protected override void DrawBody()
     {

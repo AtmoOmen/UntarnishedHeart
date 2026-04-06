@@ -130,15 +130,16 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
         ImGui.NewLine();
 
         if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, "添加新条件", true))
-            Conditions.Add(new HealthCondition());
+            Conditions.Add(ConditionBase.CreateDefaultCondition(ConditionDetectType.Health));
 
         ImGui.Spacing();
 
         for (var i = 0; i < Conditions.Count; i++)
         {
             var condition = Conditions[i];
+            var label     = BuildConditionLabel(i, condition);
 
-            using (var node = ImRaii.TreeNode($"第 {i} 条###Condition-{i}"))
+            using (var node = ImRaii.TreeNode($"{label}###Condition-{i}"))
             {
                 if (node)
                 {
@@ -178,6 +179,9 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
 
         using var context = ImRaii.ContextPopupItem($"ConditionContentMenu_{index}");
         if (!context) return;
+
+        ImGui.Text(BuildConditionLabel(index, condition));
+        ImGui.Separator();
 
         if (ImGui.MenuItem("复制"))
             conditionToCopy = ConditionBase.Copy(condition);
@@ -221,11 +225,13 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
             Conditions,
             index,
             contextOperation,
-            createNew: () => new HealthCondition(),
+            createNew: () => ConditionBase.CreateDefaultCondition(ConditionDetectType.Health),
             createClipboardCopy: conditionToCopy == null ? null : () => ConditionBase.Copy(conditionToCopy),
             createCurrentCopy: () => ConditionBase.Copy(condition)
         );
     }
+
+    private static string BuildConditionLabel(int index, ConditionBase condition) => $"{index}. {condition.Name}";
 
     public static ConditionCollection Copy(ConditionCollection source) =>
         new()

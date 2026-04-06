@@ -25,11 +25,14 @@ public sealed class GameConditionStateCondition : ConditionBase
     protected override int GetCoreHashCode() => HashCode.Combine((int)Flag, (int)ComparisonType);
 
     public override ConditionBase DeepCopy() =>
-        new GameConditionStateCondition
-        {
-            Flag           = Flag,
-            ComparisonType = ComparisonType
-        };
+        CopyBasePropertiesTo
+        (
+            new GameConditionStateCondition
+            {
+                Flag           = Flag,
+                ComparisonType = ComparisonType
+            }
+        );
 
     protected override void DrawBody()
     {

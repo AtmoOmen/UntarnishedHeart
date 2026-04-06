@@ -22,10 +22,7 @@ public sealed class HasTargetCondition : ConditionBase
     protected override int GetCoreHashCode() => (int)ComparisonType;
 
     public override ConditionBase DeepCopy() =>
-        new HasTargetCondition
-        {
-            ComparisonType = ComparisonType
-        };
+        CopyBasePropertiesTo(new HasTargetCondition { ComparisonType = ComparisonType });
 
     protected override void DrawBody()
     {

@@ -13,27 +13,50 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
 {
     protected const float EQUALITY_TOLERANCE = 0.01f;
 
+    public string Name { get; set; } = string.Empty;
+
+    public string Remark { get; set; } = string.Empty;
+
     public abstract ConditionDetectType Kind { get; }
 
     public abstract bool Evaluate(in ConditionContext context);
 
     public abstract ConditionBase DeepCopy();
 
+    public string GetDefaultName() => Kind.GetDescription();
+
+    public void ResetMetadata()
+    {
+        Name   = GetDefaultName();
+        Remark = string.Empty;
+    }
+
     public bool Equals(ConditionBase? other)
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
 
-        return Kind == other.Kind && EqualsCore(other);
+        return Kind == other.Kind      &&
+               Name == other.Name     &&
+               Remark == other.Remark &&
+               EqualsCore(other);
     }
 
     protected abstract bool EqualsCore(ConditionBase other);
 
     public override bool Equals(object? obj) => Equals(obj as ConditionBase);
 
-    public override int GetHashCode() => HashCode.Combine((int)Kind, GetCoreHashCode());
+    public override int GetHashCode() => HashCode.Combine((int)Kind, Name, Remark, GetCoreHashCode());
 
     protected abstract int GetCoreHashCode();
+
+    protected T CopyBasePropertiesTo<T>(T target)
+        where T : ConditionBase
+    {
+        target.Name   = Name;
+        target.Remark = Remark;
+        return target;
+    }
 
     public ConditionBase Draw(int index)
     {
@@ -43,8 +66,10 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         if (!table)
             return this;
 
-        ImGui.TableSetupColumn("名称", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("六个中国汉字").X);
+        ImGui.TableSetupColumn("名称", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("一二三四五六七八").X);
         ImGui.TableSetupColumn("内容", ImGuiTableColumnFlags.WidthStretch);
+
+        DrawMetadataFields();
 
         var current = DrawKindSelector();
         current.DrawBody();
@@ -123,27 +148,30 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         PresetTargetResolver.Resolve(selector);
 
     protected static ConditionBase CreateDefault(ConditionDetectType kind) =>
-        kind switch
-        {
-            ConditionDetectType.GameCondition              => new GameConditionStateCondition(),
-            ConditionDetectType.Status                     => new StatusCondition(),
-            ConditionDetectType.Health                     => new HealthCondition(),
-            ConditionDetectType.ActionCast                 => new ActionCastCondition(),
-            ConditionDetectType.ActionCooldown             => new ActionCooldownCondition(),
-            ConditionDetectType.ActionUsable               => new ActionUsableCondition(),
-            ConditionDetectType.PositionRange              => new PositionRangeCondition(),
-            ConditionDetectType.NearbyTarget               => new NearbyTargetCondition(),
-            ConditionDetectType.HasTarget                  => new HasTargetCondition(),
-            ConditionDetectType.HasSpecificTarget          => new HasSpecificTargetCondition(),
-            ConditionDetectType.PartyAllDead               => new PartyAllDeadCondition(),
-            ConditionDetectType.TargetTargetIsSelf         => new TargetTargetIsSelfCondition(),
-            ConditionDetectType.PlayerLevel                => new PlayerLevelCondition(),
-            ConditionDetectType.OptimalPartyRecommendation => new OptimalPartyRecommendationCondition(),
-            ConditionDetectType.CompletedDutyCount         => new CompletedDutyCountCondition(),
-            ConditionDetectType.AchievementCount           => new AchievementCountCondition(),
-            ConditionDetectType.ItemCount                  => new ItemCountCondition(),
-            _                                              => new HealthCondition()
-        };
+        InitializeMetadata
+        (
+            kind switch
+            {
+                ConditionDetectType.GameCondition              => new GameConditionStateCondition(),
+                ConditionDetectType.Status                     => new StatusCondition(),
+                ConditionDetectType.Health                     => new HealthCondition(),
+                ConditionDetectType.ActionCast                 => new ActionCastCondition(),
+                ConditionDetectType.ActionCooldown             => new ActionCooldownCondition(),
+                ConditionDetectType.ActionUsable               => new ActionUsableCondition(),
+                ConditionDetectType.PositionRange              => new PositionRangeCondition(),
+                ConditionDetectType.NearbyTarget               => new NearbyTargetCondition(),
+                ConditionDetectType.HasTarget                  => new HasTargetCondition(),
+                ConditionDetectType.HasSpecificTarget          => new HasSpecificTargetCondition(),
+                ConditionDetectType.PartyAllDead               => new PartyAllDeadCondition(),
+                ConditionDetectType.TargetTargetIsSelf         => new TargetTargetIsSelfCondition(),
+                ConditionDetectType.PlayerLevel                => new PlayerLevelCondition(),
+                ConditionDetectType.OptimalPartyRecommendation => new OptimalPartyRecommendationCondition(),
+                ConditionDetectType.CompletedDutyCount         => new CompletedDutyCountCondition(),
+                ConditionDetectType.AchievementCount           => new AchievementCountCondition(),
+                ConditionDetectType.ItemCount                  => new ItemCountCondition(),
+                _                                              => new HealthCondition()
+            }
+        );
 
     internal static ConditionBase MigrateLegacyV1ToV2
     (
@@ -152,39 +180,42 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         ConditionTargetType     targetType,
         float                   value
     ) =>
-        detectType switch
-        {
-            ConditionDetectType.Health => new HealthCondition
+        InitializeMetadata
+        (
+            detectType switch
             {
-                TargetType = targetType,
-                ComparisonType = comparisonType switch
+                ConditionDetectType.Health => new HealthCondition
                 {
-                    ConditionComparisonType.GreaterThan => NumericComparisonType.GreaterThan,
-                    ConditionComparisonType.EqualTo     => NumericComparisonType.EqualTo,
-                    ConditionComparisonType.NotEqualTo  => NumericComparisonType.NotEqualTo,
-                    _                                   => NumericComparisonType.LessThan
+                    TargetType = targetType,
+                    ComparisonType = comparisonType switch
+                    {
+                        ConditionComparisonType.GreaterThan => NumericComparisonType.GreaterThan,
+                        ConditionComparisonType.EqualTo     => NumericComparisonType.EqualTo,
+                        ConditionComparisonType.NotEqualTo  => NumericComparisonType.NotEqualTo,
+                        _                                   => NumericComparisonType.LessThan
+                    },
+                    Threshold = value
                 },
-                Threshold = value
-            },
-            ConditionDetectType.Status => new StatusCondition
-            {
-                TargetType     = targetType,
-                ComparisonType = comparisonType == ConditionComparisonType.NotHas ? PresenceComparisonType.NotHas : PresenceComparisonType.Has,
-                StatusID       = (uint)Math.Max(0, value)
-            },
-            ConditionDetectType.ActionCooldown => new ActionCooldownCondition
-            {
-                ComparisonType = comparisonType == ConditionComparisonType.NotFinished ? CooldownComparisonType.NotFinished : CooldownComparisonType.Finished,
-                Action         = new ActionReference { ActionID = (uint)Math.Max(0, value) }
-            },
-            ConditionDetectType.ActionCast or ConditionDetectType.ActionCastStart => new ActionCastCondition
-            {
-                TargetType     = targetType,
-                ComparisonType = comparisonType == ConditionComparisonType.NotHas ? PresenceComparisonType.NotHas : PresenceComparisonType.Has,
-                Action         = new ActionReference { ActionID = (uint)Math.Max(0, value) }
-            },
-            _ => new HealthCondition()
-        };
+                ConditionDetectType.Status => new StatusCondition
+                {
+                    TargetType     = targetType,
+                    ComparisonType = comparisonType == ConditionComparisonType.NotHas ? PresenceComparisonType.NotHas : PresenceComparisonType.Has,
+                    StatusID       = (uint)Math.Max(0, value)
+                },
+                ConditionDetectType.ActionCooldown => new ActionCooldownCondition
+                {
+                    ComparisonType = comparisonType == ConditionComparisonType.NotFinished ? CooldownComparisonType.NotFinished : CooldownComparisonType.Finished,
+                    Action         = new ActionReference { ActionID = (uint)Math.Max(0, value) }
+                },
+                ConditionDetectType.ActionCast or ConditionDetectType.ActionCastStart => new ActionCastCondition
+                {
+                    TargetType     = targetType,
+                    ComparisonType = comparisonType == ConditionComparisonType.NotHas ? PresenceComparisonType.NotHas : PresenceComparisonType.Has,
+                    Action         = new ActionReference { ActionID = (uint)Math.Max(0, value) }
+                },
+                _ => new HealthCondition()
+            }
+        );
 
     private ConditionBase DrawKindSelector()
     {
@@ -194,8 +225,36 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         if (selectedKind == Kind)
             return this;
 
-        return CreateDefault(selectedKind);
+        var keepCustomName = !string.IsNullOrEmpty(Name) &&
+                             !string.Equals(Name, GetDefaultName(), StringComparison.Ordinal);
+        var next = CreateDefault(selectedKind);
+        if (keepCustomName)
+            next.Name = Name;
+
+        next.Remark = Remark;
+        return next;
     }
+
+    private void DrawMetadataFields()
+    {
+        DrawLabel("名称", KnownColor.LightSkyBlue.ToVector4());
+        var name = Name;
+        if (ImGui.InputText("###ConditionNameInput", ref name, 128))
+            Name = name;
+
+        DrawLabel("备注", KnownColor.LightSkyBlue.ToVector4());
+        var remark = Remark;
+        if (ImGui.InputText("###ConditionRemarkInput", ref remark, 2048))
+            Remark = remark;
+    }
+
+    private static ConditionBase InitializeMetadata(ConditionBase condition)
+    {
+        condition.ResetMetadata();
+        return condition;
+    }
+
+    internal static ConditionBase CreateDefaultCondition(ConditionDetectType kind) => CreateDefault(kind);
 
     public static ConditionBase Copy(ConditionBase source) => source.DeepCopy();
 }

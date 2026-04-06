@@ -31,12 +31,15 @@ public sealed class HealthCondition : ConditionBase
     protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, (int)TargetType, Threshold);
 
     public override ConditionBase DeepCopy() =>
-        new HealthCondition
-        {
-            ComparisonType = ComparisonType,
-            TargetType     = TargetType,
-            Threshold      = Threshold
-        };
+        CopyBasePropertiesTo
+        (
+            new HealthCondition
+            {
+                ComparisonType = ComparisonType,
+                TargetType     = TargetType,
+                Threshold      = Threshold
+            }
+        );
 
     protected override void DrawBody()
     {

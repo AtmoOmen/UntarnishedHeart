@@ -27,11 +27,14 @@ public sealed class NearbyTargetCondition : ConditionBase
     protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, Selector);
 
     public override ConditionBase DeepCopy() =>
-        new NearbyTargetCondition
-        {
-            ComparisonType = ComparisonType,
-            Selector       = TargetSelector.Copy(Selector)
-        };
+        CopyBasePropertiesTo
+        (
+            new NearbyTargetCondition
+            {
+                ComparisonType = ComparisonType,
+                Selector       = TargetSelector.Copy(Selector)
+            }
+        );
 
     protected override void DrawBody()
     {

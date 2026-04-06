@@ -32,11 +32,14 @@ public sealed class ActionCooldownCondition : ConditionBase
     protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, Action);
 
     public override ConditionBase DeepCopy() =>
-        new ActionCooldownCondition
-        {
-            ComparisonType = ComparisonType,
-            Action         = ActionReference.Copy(Action)
-        };
+        CopyBasePropertiesTo
+        (
+            new ActionCooldownCondition
+            {
+                ComparisonType = ComparisonType,
+                Action         = ActionReference.Copy(Action)
+            }
+        );
 
     protected override void DrawBody()
     {

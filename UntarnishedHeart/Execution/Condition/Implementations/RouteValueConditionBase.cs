@@ -23,7 +23,7 @@ public abstract class RouteValueConditionBase : ConditionBase
 
     protected virtual int GetExtraHashCode() => 0;
 
-    public override ConditionBase DeepCopy() => DeepCopyCore();
+    public override ConditionBase DeepCopy() => CopyBasePropertiesTo(DeepCopyCore());
 
     protected override void DrawBody()
     {

@@ -33,12 +33,15 @@ public sealed class ActionCastCondition : ConditionBase
     protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, (int)TargetType, Action);
 
     public override ConditionBase DeepCopy() =>
-        new ActionCastCondition
-        {
-            ComparisonType = ComparisonType,
-            TargetType     = TargetType,
-            Action         = ActionReference.Copy(Action)
-        };
+        CopyBasePropertiesTo
+        (
+            new ActionCastCondition
+            {
+                ComparisonType = ComparisonType,
+                TargetType     = TargetType,
+                Action         = ActionReference.Copy(Action)
+            }
+        );
 
     protected override void DrawBody()
     {

@@ -30,11 +30,14 @@ public sealed class PositionRangeCondition : ConditionBase
     protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, Range);
 
     public override ConditionBase DeepCopy() =>
-        new PositionRangeCondition
-        {
-            ComparisonType = ComparisonType,
-            Range          = PositionRange.Copy(Range)
-        };
+        CopyBasePropertiesTo
+        (
+            new PositionRangeCondition
+            {
+                ComparisonType = ComparisonType,
+                Range          = PositionRange.Copy(Range)
+            }
+        );
 
     protected override void DrawBody()
     {

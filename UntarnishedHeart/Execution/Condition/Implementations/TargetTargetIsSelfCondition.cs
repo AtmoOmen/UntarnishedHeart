@@ -24,10 +24,7 @@ public sealed class TargetTargetIsSelfCondition : ConditionBase
     protected override int GetCoreHashCode() => (int)ComparisonType;
 
     public override ConditionBase DeepCopy() =>
-        new TargetTargetIsSelfCondition
-        {
-            ComparisonType = ComparisonType
-        };
+        CopyBasePropertiesTo(new TargetTargetIsSelfCondition { ComparisonType = ComparisonType });
 
     protected override void DrawBody()
     {
