@@ -1,4 +1,5 @@
 using System.Numerics;
+using OmenTools.OmenService;
 using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.Models;
 using UntarnishedHeart.Execution.Preset.Enums;
@@ -22,24 +23,35 @@ internal static class ExecuteActionDrawHelper
 
     public static void DrawTargetSelector(TargetSelector selector, string idSuffix)
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "目标选择方式:");
-        ImGui.SameLine();
-        selector.Kind = ConditionBase.DrawEnumCombo($"###TargetSelectorKind{idSuffix}", selector.Kind);
+        ImGui.SetNextItemWidth(240f * GlobalUIScale);
+        selector.Kind = ConditionBase.DrawEnumCombo($"目标选择方式###TargetSelectorKind{idSuffix}", selector.Kind);
 
         switch (selector.Kind)
         {
             case TargetSelectorKind.ByObjectKindAndDataID:
-                ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "对象类型:");
+
+                using (ImRaii.Group())
+                {
+                    selector.ObjectKind = ConditionBase.DrawEnumCombo($"对象类型###TargetObjectKind{idSuffix}", selector.ObjectKind);
+
+                    var dataID = selector.DataID;
+                    ImGui.SetNextItemWidth(240f * GlobalUIScale);
+                    if (ImGui.InputUInt($"Data ID###{idSuffix}", ref dataID))
+                        selector.DataID = dataID;
+                }
+                
                 ImGui.SameLine();
-                selector.ObjectKind = ConditionBase.DrawEnumCombo($"###TargetObjectKind{idSuffix}", selector.ObjectKind);
-
-                var dataID = selector.DataID;
-                ImGui.SetNextItemWidth(240f * GlobalUIScale);
-                if (ImGui.InputUInt($"Data ID###{idSuffix}", ref dataID))
-                    selector.DataID = dataID;
-
+                if (ImGuiOm.ButtonIconWithTextVertical(FontAwesomeIcon.Bullseye, "选择当前目标"))
+                {
+                    if (TargetManager.Target is { } target)
+                    {
+                        selector.ObjectKind = target.ObjectKind;
+                        selector.DataID     = target.DataID;
+                    }
+                }
+                
                 var requireTargetable = selector.RequireTargetable;
-                if (ImGui.Checkbox($"要求可选中###{idSuffix}", ref requireTargetable))
+                if (ImGui.Checkbox($"要求对象为可选中状态###{idSuffix}", ref requireTargetable))
                     selector.RequireTargetable = requireTargetable;
                 break;
 
@@ -48,6 +60,13 @@ internal static class ExecuteActionDrawHelper
                 ImGui.SetNextItemWidth(240f * GlobalUIScale);
                 if (ImGui.InputUInt($"Entity ID###{idSuffix}", ref entityID))
                     selector.EntityID = entityID;
+                
+                ImGui.SameLine();
+                if (ImGuiOm.ButtonIcon("SelectTarget", FontAwesomeIcon.Bullseye, "选择当前目标"))
+                {
+                    if (TargetManager.Target is { } target)
+                        selector.EntityID = target.EntityID;
+                }
                 break;
         }
     }
