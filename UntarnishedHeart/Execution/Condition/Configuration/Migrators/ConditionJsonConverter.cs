@@ -109,6 +109,33 @@ public sealed class ConditionJsonConverter : JsonConverter<Condition>
             case TargetTargetIsSelfCondition targetTargetIsSelf:
                 obj["ComparisonType"] = targetTargetIsSelf.ComparisonType.ToString();
                 break;
+
+            case PlayerLevelCondition playerLevel:
+                obj["ComparisonType"] = playerLevel.ComparisonType.ToString();
+                obj["ExpectedValue"]  = playerLevel.ExpectedValue;
+                break;
+
+            case OptimalPartyRecommendationCondition optimalPartyRecommendation:
+                obj["ComparisonType"] = optimalPartyRecommendation.ComparisonType.ToString();
+                obj["ExpectedValue"]  = optimalPartyRecommendation.ExpectedValue;
+                break;
+
+            case CompletedDutyCountCondition completedDutyCount:
+                obj["ComparisonType"] = completedDutyCount.ComparisonType.ToString();
+                obj["ExpectedValue"]  = completedDutyCount.ExpectedValue;
+                break;
+
+            case AchievementCountCondition achievementCount:
+                obj["ComparisonType"] = achievementCount.ComparisonType.ToString();
+                obj["ExpectedValue"]  = achievementCount.ExpectedValue;
+                obj["AchievementId"]  = achievementCount.AchievementID;
+                break;
+
+            case ItemCountCondition itemCount:
+                obj["ComparisonType"] = itemCount.ComparisonType.ToString();
+                obj["ExpectedValue"]  = itemCount.ExpectedValue;
+                obj["ItemId"]         = itemCount.ItemID;
+                break;
         }
 
         return obj;
@@ -179,6 +206,33 @@ public sealed class ConditionJsonConverter : JsonConverter<Condition>
             ConditionDetectType.TargetTargetIsSelf => new TargetTargetIsSelfCondition
             {
                 ComparisonType = ReadEnum(obj["ComparisonType"], PresenceComparisonType.Has)
+            },
+            ConditionDetectType.PlayerLevel => new PlayerLevelCondition
+            {
+                ComparisonType = ReadEnum(obj["ComparisonType"], NumericComparisonType.EqualTo),
+                ExpectedValue  = ReadInt(obj["ExpectedValue"])
+            },
+            ConditionDetectType.OptimalPartyRecommendation => new OptimalPartyRecommendationCondition
+            {
+                ComparisonType = ReadEnum(obj["ComparisonType"], NumericComparisonType.EqualTo),
+                ExpectedValue  = ReadInt(obj["ExpectedValue"])
+            },
+            ConditionDetectType.CompletedDutyCount => new CompletedDutyCountCondition
+            {
+                ComparisonType = ReadEnum(obj["ComparisonType"], NumericComparisonType.EqualTo),
+                ExpectedValue  = ReadInt(obj["ExpectedValue"])
+            },
+            ConditionDetectType.AchievementCount => new AchievementCountCondition
+            {
+                ComparisonType = ReadEnum(obj["ComparisonType"], NumericComparisonType.EqualTo),
+                ExpectedValue  = ReadInt(obj["ExpectedValue"]),
+                AchievementID  = ReadUInt(obj["AchievementId"] ?? obj["AchievementID"])
+            },
+            ConditionDetectType.ItemCount => new ItemCountCondition
+            {
+                ComparisonType = ReadEnum(obj["ComparisonType"], NumericComparisonType.EqualTo),
+                ExpectedValue  = ReadInt(obj["ExpectedValue"]),
+                ItemID         = ReadUInt(obj["ItemId"] ?? obj["ItemID"])
             },
             _ => new HealthCondition()
         };

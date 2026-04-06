@@ -437,14 +437,14 @@ public class PresetExecutor : IDisposable
             case ConditionExecuteType.Wait:
                 await WaitUntilAsync
                 (
-                    conditionCollection.Evaluate,
+                    () => conditionCollection.Evaluate(CreateConditionContext()),
                     BuildActionMessage(stepIndex, step, phase, actionIndex, "等待条件满足"),
                     cancellationToken
                 );
                 return await ExecuteActionCoreAsync(stepIndex, step, phase, actionIndex, action, currentPhaseActionCount, cancellationToken);
 
             case ConditionExecuteType.Skip:
-                if (!conditionCollection.Evaluate())
+                if (!conditionCollection.Evaluate(CreateConditionContext()))
                     return ActionFlowResult.Continue();
 
                 return await ExecuteActionCoreAsync(stepIndex, step, phase, actionIndex, action, currentPhaseActionCount, cancellationToken);
@@ -1016,6 +1016,8 @@ public class PresetExecutor : IDisposable
         completionSource.TrySetResult(result);
     }
 
+    private ConditionContext CreateConditionContext() => ConditionContext.Create((int)CurrentRound);
+
     private static List<ExecuteAction.ExecuteAction> GetActions(PresetStep step, PresetStepPhase phase) =>
         phase switch
         {
@@ -1025,7 +1027,7 @@ public class PresetExecutor : IDisposable
             _                     => throw new InvalidOperationException($"不支持的阶段: {phase}")
         };
 
-    private static bool ShouldRepeat(ConditionCollection conditionCollection, int executedCount)
+    private bool ShouldRepeat(ConditionCollection conditionCollection, int executedCount)
     {
         if (conditionCollection.MaxExecuteCount > 0 && executedCount >= conditionCollection.MaxExecuteCount)
             return false;
@@ -1033,10 +1035,10 @@ public class PresetExecutor : IDisposable
         if (executedCount < conditionCollection.MinExecuteCount)
             return true;
 
-        return !conditionCollection.Evaluate();
+        return !conditionCollection.Evaluate(CreateConditionContext());
     }
 
-    private static bool ShouldSustain(ConditionCollection conditionCollection, int executedCount)
+    private bool ShouldSustain(ConditionCollection conditionCollection, int executedCount)
     {
         if (conditionCollection.MaxExecuteCount > 0 && executedCount >= conditionCollection.MaxExecuteCount)
             return false;
@@ -1044,7 +1046,7 @@ public class PresetExecutor : IDisposable
         if (executedCount < conditionCollection.MinExecuteCount)
             return true;
 
-        return conditionCollection.Evaluate();
+        return conditionCollection.Evaluate(CreateConditionContext());
     }
 
     private void ValidateStepIndex(int stepIndex)

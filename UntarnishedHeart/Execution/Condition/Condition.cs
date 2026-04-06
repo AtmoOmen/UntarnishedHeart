@@ -95,6 +95,30 @@ public abstract class Condition : IEquatable<Condition>
             _                          => null
         };
 
+    protected static bool CompareNumeric(NumericComparisonType comparisonType, float actualValue, float expectedValue) =>
+        comparisonType switch
+        {
+            NumericComparisonType.GreaterThan        => actualValue > expectedValue,
+            NumericComparisonType.GreaterThanOrEqual => actualValue >= expectedValue,
+            NumericComparisonType.LessThan           => actualValue < expectedValue,
+            NumericComparisonType.LessThanOrEqual    => actualValue <= expectedValue,
+            NumericComparisonType.EqualTo            => MathF.Abs(actualValue - expectedValue) <= EqualityTolerance,
+            NumericComparisonType.NotEqualTo         => MathF.Abs(actualValue - expectedValue) > EqualityTolerance,
+            _                                        => false
+        };
+
+    protected static bool CompareNumeric(NumericComparisonType comparisonType, int actualValue, int expectedValue) =>
+        comparisonType switch
+        {
+            NumericComparisonType.GreaterThan        => actualValue > expectedValue,
+            NumericComparisonType.GreaterThanOrEqual => actualValue >= expectedValue,
+            NumericComparisonType.LessThan           => actualValue < expectedValue,
+            NumericComparisonType.LessThanOrEqual    => actualValue <= expectedValue,
+            NumericComparisonType.EqualTo            => actualValue == expectedValue,
+            NumericComparisonType.NotEqualTo         => actualValue != expectedValue,
+            _                                        => false
+        };
+
     protected static IGameObject? ResolveSpecificTarget(TargetSelector selector) =>
         PresetTargetResolver.Resolve(selector);
 
@@ -113,6 +137,11 @@ public abstract class Condition : IEquatable<Condition>
             ConditionDetectType.HasSpecificTarget  => new HasSpecificTargetCondition(),
             ConditionDetectType.PartyAllDead       => new PartyAllDeadCondition(),
             ConditionDetectType.TargetTargetIsSelf => new TargetTargetIsSelfCondition(),
+            ConditionDetectType.PlayerLevel        => new PlayerLevelCondition(),
+            ConditionDetectType.OptimalPartyRecommendation => new OptimalPartyRecommendationCondition(),
+            ConditionDetectType.CompletedDutyCount => new CompletedDutyCountCondition(),
+            ConditionDetectType.AchievementCount   => new AchievementCountCondition(),
+            ConditionDetectType.ItemCount          => new ItemCountCondition(),
             _                                      => new HealthCondition()
         };
 

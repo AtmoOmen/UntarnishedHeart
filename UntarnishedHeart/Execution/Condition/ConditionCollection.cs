@@ -28,16 +28,43 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
 
     public bool Evaluate()
     {
+        var context = ConditionContext.Create();
+        return Evaluate(context);
+    }
+
+    public bool Evaluate(in ConditionContext context)
+    {
         if (Conditions.Count == 0)
             return true;
 
-        var context = ConditionContext.Create();
         return RelationType switch
         {
-            ConditionRelationType.And => Conditions.All(x => x.Evaluate(context)),
-            ConditionRelationType.Or  => Conditions.Any(x => x.Evaluate(context)),
+            ConditionRelationType.And => EvaluateAnd(context),
+            ConditionRelationType.Or  => EvaluateOr(context),
             _                         => false
         };
+    }
+
+    private bool EvaluateAnd(in ConditionContext context)
+    {
+        foreach (var condition in Conditions)
+        {
+            if (!condition.Evaluate(context))
+                return false;
+        }
+
+        return true;
+    }
+
+    private bool EvaluateOr(in ConditionContext context)
+    {
+        foreach (var condition in Conditions)
+        {
+            if (condition.Evaluate(context))
+                return true;
+        }
+
+        return false;
     }
 
     public bool Equals(ConditionCollection? other)

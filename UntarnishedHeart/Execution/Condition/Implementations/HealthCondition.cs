@@ -19,14 +19,7 @@ public sealed class HealthCondition : Condition
             return false;
 
         var healthPercent = (float)target.CurrentHp / target.MaxHp * 100f;
-        return ComparisonType switch
-        {
-            NumericComparisonType.GreaterThan => healthPercent                        > Threshold,
-            NumericComparisonType.LessThan    => healthPercent                        < Threshold,
-            NumericComparisonType.EqualTo     => MathF.Abs(healthPercent - Threshold) <= EqualityTolerance,
-            NumericComparisonType.NotEqualTo  => MathF.Abs(healthPercent - Threshold) > EqualityTolerance,
-            _                                 => false
-        };
+        return CompareNumeric(ComparisonType, healthPercent, Threshold);
     }
 
     protected override bool EqualsCore(Condition other) =>

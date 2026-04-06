@@ -7,8 +7,14 @@ public enum NumericComparisonType
     [Description("大于")]
     GreaterThan,
 
+    [Description("大于等于")]
+    GreaterThanOrEqual,
+
     [Description("小于")]
     LessThan,
+
+    [Description("小于等于")]
+    LessThanOrEqual,
 
     [Description("等于")]
     EqualTo,
