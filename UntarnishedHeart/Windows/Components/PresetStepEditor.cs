@@ -83,7 +83,7 @@ internal static class PresetStepEditor
         using var table = ImRaii.Table($"{phase}ActionsTable", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV);
         if (!table) return;
 
-        ImGui.TableSetupColumn("ActionsList",   ImGuiTableColumnFlags.WidthFixed, 300f * GlobalUIScale);
+        ImGui.TableSetupColumn("ActionsList",   ImGuiTableColumnFlags.WidthFixed, 200f * GlobalUIScale);
         ImGui.TableSetupColumn("ActionDetails", ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableNextRow();
 

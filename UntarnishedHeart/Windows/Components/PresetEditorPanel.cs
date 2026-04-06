@@ -113,7 +113,7 @@ internal static class PresetEditorPanel
         using var table = ImRaii.Table("PresetStepsTable", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV);
         if (!table) return;
 
-        ImGui.TableSetupColumn("StepsList",   ImGuiTableColumnFlags.WidthFixed, 320f * GlobalUIScale);
+        ImGui.TableSetupColumn("StepsList",   ImGuiTableColumnFlags.WidthFixed, 200f * GlobalUIScale);
         ImGui.TableSetupColumn("StepDetails", ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableNextRow();
 
