@@ -361,19 +361,29 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
 
     private static void DrawSwitchPresetConfig(RouteStep step)
     {
-        // 预设选择
-        ImGui.SetNextItemWidth(250f * GlobalUIScale);
-        using (var combo = ImRaii.Combo("预设###TargetPreset", step.PresetName))
+        var presets             = PluginConfig.Instance().Presets;
+        var selectedPresetIndex = -1;
+        for (var i = 0; i < presets.Count; i++)
         {
-            if (combo)
-            {
-                foreach (var preset in PluginConfig.Instance().Presets)
-                {
-                    if (ImGui.Selectable(preset.Name, step.PresetName == preset.Name))
-                        step.PresetName = preset.Name;
-                }
-            }
+            if (presets[i].Name != step.PresetName)
+                continue;
+
+            selectedPresetIndex = i;
+            break;
         }
+
+        CollectionToolbar.DrawSelector
+        (
+            "预设:",
+            "###TargetPresetSelectCombo",
+            presets,
+            ref selectedPresetIndex,
+            preset => preset.Name,
+            emptyText: "暂无预设",
+            itemWidth: 250f
+        );
+
+        step.PresetName = selectedPresetIndex >= 0 ? presets[selectedPresetIndex].Name : string.Empty;
 
         // 副本选项配置
         DrawDutyOptions(step.DutyOptions);
