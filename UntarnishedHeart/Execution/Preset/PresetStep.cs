@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using UntarnishedHeart.Execution.ExecuteAction;
 
 namespace UntarnishedHeart.Execution.Preset;
 
@@ -9,11 +10,11 @@ public class PresetStep : IEquatable<PresetStep>
 
     public string Remark { get; set; } = string.Empty;
 
-    public List<ExecuteAction.ExecuteAction> EnterActions { get; set; } = [];
+    public List<ExecuteActionBase> EnterActions { get; set; } = [];
 
-    public List<ExecuteAction.ExecuteAction> BodyActions { get; set; } = [];
+    public List<ExecuteActionBase> BodyActions { get; set; } = [];
 
-    public List<ExecuteAction.ExecuteAction> ExitActions { get; set; } = [];
+    public List<ExecuteActionBase> ExitActions { get; set; } = [];
 
     public bool Equals(PresetStep? other)
     {
@@ -39,8 +40,8 @@ public class PresetStep : IEquatable<PresetStep>
         {
             Name         = source.Name,
             Remark       = source.Remark,
-            EnterActions = source.EnterActions.Select(ExecuteAction.ExecuteAction.Copy).ToList(),
-            BodyActions  = source.BodyActions.Select(ExecuteAction.ExecuteAction.Copy).ToList(),
-            ExitActions  = source.ExitActions.Select(ExecuteAction.ExecuteAction.Copy).ToList()
+            EnterActions = source.EnterActions.Select(ExecuteActionBase.Copy).ToList(),
+            BodyActions  = source.BodyActions.Select(ExecuteActionBase.Copy).ToList(),
+            ExitActions  = source.ExitActions.Select(ExecuteActionBase.Copy).ToList()
         };
 }

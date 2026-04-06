@@ -5,7 +5,7 @@ using UntarnishedHeart.Execution.Models;
 
 namespace UntarnishedHeart.Execution.Condition;
 
-public sealed class PositionRangeCondition : Condition
+public sealed class PositionRangeCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.PositionRange;
 
@@ -22,14 +22,14 @@ public sealed class PositionRangeCondition : Condition
         return ComparisonType == PresenceComparisonType.Has ? isInside : !isInside;
     }
 
-    protected override bool EqualsCore(Condition other) =>
+    protected override bool EqualsCore(ConditionBase other) =>
         other is PositionRangeCondition condition  &&
         ComparisonType == condition.ComparisonType &&
         Range.Equals(condition.Range);
 
     protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, Range);
 
-    public override Condition DeepCopy() =>
+    public override ConditionBase DeepCopy() =>
         new PositionRangeCondition
         {
             ComparisonType = ComparisonType,

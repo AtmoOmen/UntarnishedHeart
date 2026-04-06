@@ -3,7 +3,7 @@ using UntarnishedHeart.Execution.Condition.Enums;
 
 namespace UntarnishedHeart.Execution.Condition;
 
-public sealed class HasTargetCondition : Condition
+public sealed class HasTargetCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.HasTarget;
 
@@ -15,13 +15,13 @@ public sealed class HasTargetCondition : Condition
         return ComparisonType == PresenceComparisonType.Has ? hasTarget : !hasTarget;
     }
 
-    protected override bool EqualsCore(Condition other) =>
+    protected override bool EqualsCore(ConditionBase other) =>
         other is HasTargetCondition condition &&
         ComparisonType == condition.ComparisonType;
 
     protected override int GetCoreHashCode() => (int)ComparisonType;
 
-    public override Condition DeepCopy() =>
+    public override ConditionBase DeepCopy() =>
         new HasTargetCondition
         {
             ComparisonType = ComparisonType

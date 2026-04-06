@@ -1,4 +1,3 @@
-using Dalamud.Interface.Utility;
 using Newtonsoft.Json;
 using UntarnishedHeart.Execution.Condition.Configuration;
 using UntarnishedHeart.Execution.Condition.Enums;
@@ -10,7 +9,7 @@ namespace UntarnishedHeart.Execution.Condition;
 [JsonConverter(typeof(ConditionCollectionJSONConverter))]
 public sealed class ConditionCollection : IEquatable<ConditionCollection>
 {
-    public List<Condition> Conditions { get; set; } = [];
+    public List<ConditionBase> Conditions { get; set; } = [];
 
     public ConditionRelationType RelationType { get; set; } = ConditionRelationType.And;
 
@@ -22,7 +21,7 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
 
     public int IntervalMs { get; set; }
 
-    private Condition? conditionToCopy;
+    private ConditionBase? conditionToCopy;
 
     public bool IsEmpty => Conditions.Count == 0;
 
@@ -170,7 +169,7 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
             IntervalMs = Math.Max(0, intervalMs);
     }
 
-    private void DrawConditionContextMenu(int index, Condition condition)
+    private void DrawConditionContextMenu(int index, ConditionBase condition)
     {
         var contextOperation = StepOperationType.Pass;
 
@@ -181,7 +180,7 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
         if (!context) return;
 
         if (ImGui.MenuItem("复制"))
-            conditionToCopy = Condition.Copy(condition);
+            conditionToCopy = ConditionBase.Copy(condition);
 
         if (conditionToCopy != null)
         {
@@ -223,15 +222,15 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
             index,
             contextOperation,
             createNew: () => new HealthCondition(),
-            createClipboardCopy: conditionToCopy == null ? null : () => Condition.Copy(conditionToCopy),
-            createCurrentCopy: () => Condition.Copy(condition)
+            createClipboardCopy: conditionToCopy == null ? null : () => ConditionBase.Copy(conditionToCopy),
+            createCurrentCopy: () => ConditionBase.Copy(condition)
         );
     }
 
     public static ConditionCollection Copy(ConditionCollection source) =>
         new()
         {
-            Conditions      = source.Conditions.Select(Condition.Copy).ToList(),
+            Conditions      = source.Conditions.Select(ConditionBase.Copy).ToList(),
             RelationType    = source.RelationType,
             ExecuteType     = source.ExecuteType,
             MinExecuteCount = source.MinExecuteCount,

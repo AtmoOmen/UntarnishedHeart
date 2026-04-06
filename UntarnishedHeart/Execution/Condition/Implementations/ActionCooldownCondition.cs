@@ -5,7 +5,7 @@ using UntarnishedHeart.Execution.Models;
 
 namespace UntarnishedHeart.Execution.Condition;
 
-public sealed class ActionCooldownCondition : Condition
+public sealed class ActionCooldownCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.ActionCooldown;
 
@@ -24,14 +24,14 @@ public sealed class ActionCooldownCondition : Condition
         };
     }
 
-    protected override bool EqualsCore(Condition other) =>
+    protected override bool EqualsCore(ConditionBase other) =>
         other is ActionCooldownCondition condition &&
         ComparisonType == condition.ComparisonType &&
         Action.Equals(condition.Action);
 
     protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, Action);
 
-    public override Condition DeepCopy() =>
+    public override ConditionBase DeepCopy() =>
         new ActionCooldownCondition
         {
             ComparisonType = ComparisonType,

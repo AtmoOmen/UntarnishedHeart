@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using UntarnishedHeart.Execution.ExecuteAction;
 using UntarnishedHeart.Execution.Preset.Configuration;
 
 namespace UntarnishedHeart.Execution.Preset;
@@ -53,9 +54,9 @@ public sealed class PresetStepJsonConverter : JsonConverter<PresetStep>
         {
             Name         = ReadString(jsonObject["Name"]),
             Remark       = ReadString(jsonObject["Remark"]),
-            EnterActions = ReadObject(jsonObject["EnterActions"], serializer, new List<ExecuteAction.ExecuteAction>()),
-            BodyActions  = ReadObject(jsonObject["BodyActions"],  serializer, new List<ExecuteAction.ExecuteAction>()),
-            ExitActions  = ReadObject(jsonObject["ExitActions"],  serializer, new List<ExecuteAction.ExecuteAction>())
+            EnterActions = ReadObject(jsonObject["EnterActions"], serializer, new List<ExecuteActionBase>()),
+            BodyActions  = ReadObject(jsonObject["BodyActions"],  serializer, new List<ExecuteActionBase>()),
+            ExitActions  = ReadObject(jsonObject["ExitActions"],  serializer, new List<ExecuteActionBase>())
         };
 
     internal static bool ReadBool(JToken? token, bool fallback = false) =>

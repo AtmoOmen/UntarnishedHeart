@@ -18,6 +18,7 @@ using OmenTools.Threading;
 using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Enums;
+using UntarnishedHeart.Execution.ExecuteAction;
 using UntarnishedHeart.Execution.ExecuteAction.Implementations;
 using UntarnishedHeart.Execution.Preset.Enums;
 using UntarnishedHeart.Execution.Preset.Helpers;
@@ -383,11 +384,11 @@ public class PresetExecutor : IDisposable
 
     private async Task<ActionFlowResult> ExecutePhaseAsync
     (
-        int                               stepIndex,
-        PresetStep                        step,
-        PresetStepPhase                   phase,
-        List<ExecuteAction.ExecuteAction> actions,
-        CancellationToken                 cancellationToken
+        int                     stepIndex,
+        PresetStep              step,
+        PresetStepPhase         phase,
+        List<ExecuteActionBase> actions,
+        CancellationToken       cancellationToken
     )
     {
         for (var actionIndex = 0; actionIndex < actions.Count;)
@@ -420,13 +421,13 @@ public class PresetExecutor : IDisposable
 
     private async Task<ActionFlowResult> ExecuteActionAsync
     (
-        int                         stepIndex,
-        PresetStep                  step,
-        PresetStepPhase             phase,
-        int                         actionIndex,
-        ExecuteAction.ExecuteAction action,
-        int                         currentPhaseActionCount,
-        CancellationToken           cancellationToken
+        int               stepIndex,
+        PresetStep        step,
+        PresetStepPhase   phase,
+        int               actionIndex,
+        ExecuteActionBase action,
+        int               currentPhaseActionCount,
+        CancellationToken cancellationToken
     )
     {
         var conditionCollection = action.Condition ?? new ConditionCollection();
@@ -484,13 +485,13 @@ public class PresetExecutor : IDisposable
 
     private async Task<ActionFlowResult> ExecuteActionCoreAsync
     (
-        int                         stepIndex,
-        PresetStep                  step,
-        PresetStepPhase             phase,
-        int                         actionIndex,
-        ExecuteAction.ExecuteAction action,
-        int                         currentPhaseActionCount,
-        CancellationToken           cancellationToken
+        int               stepIndex,
+        PresetStep        step,
+        PresetStepPhase   phase,
+        int               actionIndex,
+        ExecuteActionBase action,
+        int               currentPhaseActionCount,
+        CancellationToken cancellationToken
     )
     {
         var actionLabel = BuildActionMessage(stepIndex, step, phase, actionIndex, action.Kind.GetDescription());
@@ -1018,7 +1019,7 @@ public class PresetExecutor : IDisposable
 
     private ConditionContext CreateConditionContext() => ConditionContext.Create((int)CurrentRound);
 
-    private static List<ExecuteAction.ExecuteAction> GetActions(PresetStep step, PresetStepPhase phase) =>
+    private static List<ExecuteActionBase> GetActions(PresetStep step, PresetStepPhase phase) =>
         phase switch
         {
             PresetStepPhase.Enter => step.EnterActions,

@@ -2,7 +2,7 @@
 
 namespace UntarnishedHeart.Execution.Condition;
 
-public sealed class HealthCondition : Condition
+public sealed class HealthCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.Health;
 
@@ -22,15 +22,15 @@ public sealed class HealthCondition : Condition
         return CompareNumeric(ComparisonType, healthPercent, Threshold);
     }
 
-    protected override bool EqualsCore(Condition other) =>
+    protected override bool EqualsCore(ConditionBase other) =>
         other is HealthCondition condition                                    &&
         ComparisonType                            == condition.ComparisonType &&
         TargetType                                == condition.TargetType     &&
-        Math.Abs(Threshold - condition.Threshold) <= EqualityTolerance;
+        Math.Abs(Threshold - condition.Threshold) <= EQUALITY_TOLERANCE;
 
     protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, (int)TargetType, Threshold);
 
-    public override Condition DeepCopy() =>
+    public override ConditionBase DeepCopy() =>
         new HealthCondition
         {
             ComparisonType = ComparisonType,

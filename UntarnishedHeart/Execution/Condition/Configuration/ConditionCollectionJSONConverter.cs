@@ -53,7 +53,7 @@ public sealed class ConditionCollectionJSONConverter : JsonConverter<ConditionCo
     internal static ConditionCollection DeserializeCurrent(JObject jsonObject, JsonSerializer serializer) =>
         new()
         {
-            Conditions      = ConditionJsonConverter.ReadObject(jsonObject["Conditions"], serializer, new List<Condition>()),
+            Conditions      = ConditionJsonConverter.ReadObject(jsonObject["Conditions"], serializer, new List<ConditionBase>()),
             RelationType    = ConditionJsonConverter.ReadEnum(jsonObject["RelationType"], ConditionRelationType.And),
             ExecuteType     = ConditionJsonConverter.ReadEnum(jsonObject["ExecuteType"],  ConditionExecuteType.Wait),
             MinExecuteCount = (int)ConditionJsonConverter.ReadUInt(jsonObject["MinExecuteCount"] ?? new JValue(1)),

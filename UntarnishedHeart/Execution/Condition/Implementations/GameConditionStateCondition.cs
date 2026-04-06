@@ -3,7 +3,7 @@ using UntarnishedHeart.Execution.Condition.Enums;
 
 namespace UntarnishedHeart.Execution.Condition;
 
-public sealed class GameConditionStateCondition : Condition
+public sealed class GameConditionStateCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.GameCondition;
 
@@ -17,14 +17,14 @@ public sealed class GameConditionStateCondition : Condition
         return ComparisonType == PresenceComparisonType.Has ? hasFlag : !hasFlag;
     }
 
-    protected override bool EqualsCore(Condition other) =>
+    protected override bool EqualsCore(ConditionBase other) =>
         other is GameConditionStateCondition condition &&
         Flag           == condition.Flag               &&
         ComparisonType == condition.ComparisonType;
 
     protected override int GetCoreHashCode() => HashCode.Combine((int)Flag, (int)ComparisonType);
 
-    public override Condition DeepCopy() =>
+    public override ConditionBase DeepCopy() =>
         new GameConditionStateCondition
         {
             Flag           = Flag,

@@ -2,7 +2,7 @@ using UntarnishedHeart.Execution.Condition.Enums;
 
 namespace UntarnishedHeart.Execution.Condition;
 
-public abstract class RouteValueConditionBase : Condition
+public abstract class RouteValueConditionBase : ConditionBase
 {
     public NumericComparisonType ComparisonType { get; set; } = NumericComparisonType.EqualTo;
 
@@ -11,10 +11,10 @@ public abstract class RouteValueConditionBase : Condition
     public override bool Evaluate(in ConditionContext context) =>
         CompareNumeric(ComparisonType, GetCurrentValue(context), ExpectedValue);
 
-    protected override bool EqualsCore(Condition other) =>
+    protected override bool EqualsCore(ConditionBase other) =>
         other is RouteValueConditionBase condition &&
         ComparisonType == condition.ComparisonType &&
-        ExpectedValue == condition.ExpectedValue &&
+        ExpectedValue  == condition.ExpectedValue  &&
         EqualsExtraCore(condition);
 
     protected virtual bool EqualsExtraCore(RouteValueConditionBase other) => true;
@@ -23,7 +23,7 @@ public abstract class RouteValueConditionBase : Condition
 
     protected virtual int GetExtraHashCode() => 0;
 
-    public override Condition DeepCopy() => DeepCopyCore();
+    public override ConditionBase DeepCopy() => DeepCopyCore();
 
     protected override void DrawBody()
     {

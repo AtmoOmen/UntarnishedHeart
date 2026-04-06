@@ -9,17 +9,17 @@ using UntarnishedHeart.Execution.Preset.Helpers;
 namespace UntarnishedHeart.Execution.Condition;
 
 [JsonConverter(typeof(ConditionJsonConverter))]
-public abstract class Condition : IEquatable<Condition>
+public abstract class ConditionBase : IEquatable<ConditionBase>
 {
-    protected const float EqualityTolerance = 0.01f;
+    protected const float EQUALITY_TOLERANCE = 0.01f;
 
     public abstract ConditionDetectType Kind { get; }
 
     public abstract bool Evaluate(in ConditionContext context);
 
-    public abstract Condition DeepCopy();
+    public abstract ConditionBase DeepCopy();
 
-    public bool Equals(Condition? other)
+    public bool Equals(ConditionBase? other)
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
@@ -27,15 +27,15 @@ public abstract class Condition : IEquatable<Condition>
         return Kind == other.Kind && EqualsCore(other);
     }
 
-    protected abstract bool EqualsCore(Condition other);
+    protected abstract bool EqualsCore(ConditionBase other);
 
-    public override bool Equals(object? obj) => Equals(obj as Condition);
+    public override bool Equals(object? obj) => Equals(obj as ConditionBase);
 
     public override int GetHashCode() => HashCode.Combine((int)Kind, GetCoreHashCode());
 
     protected abstract int GetCoreHashCode();
 
-    public Condition Draw(int index)
+    public ConditionBase Draw(int index)
     {
         using var id    = ImRaii.PushId($"Condition-{index}");
         using var group = ImRaii.Group();
@@ -98,12 +98,12 @@ public abstract class Condition : IEquatable<Condition>
     protected static bool CompareNumeric(NumericComparisonType comparisonType, float actualValue, float expectedValue) =>
         comparisonType switch
         {
-            NumericComparisonType.GreaterThan        => actualValue > expectedValue,
-            NumericComparisonType.GreaterThanOrEqual => actualValue >= expectedValue,
-            NumericComparisonType.LessThan           => actualValue < expectedValue,
-            NumericComparisonType.LessThanOrEqual    => actualValue <= expectedValue,
-            NumericComparisonType.EqualTo            => MathF.Abs(actualValue - expectedValue) <= EqualityTolerance,
-            NumericComparisonType.NotEqualTo         => MathF.Abs(actualValue - expectedValue) > EqualityTolerance,
+            NumericComparisonType.GreaterThan        => actualValue                            > expectedValue,
+            NumericComparisonType.GreaterThanOrEqual => actualValue                            >= expectedValue,
+            NumericComparisonType.LessThan           => actualValue                            < expectedValue,
+            NumericComparisonType.LessThanOrEqual    => actualValue                            <= expectedValue,
+            NumericComparisonType.EqualTo            => MathF.Abs(actualValue - expectedValue) <= EQUALITY_TOLERANCE,
+            NumericComparisonType.NotEqualTo         => MathF.Abs(actualValue - expectedValue) > EQUALITY_TOLERANCE,
             _                                        => false
         };
 
@@ -122,30 +122,30 @@ public abstract class Condition : IEquatable<Condition>
     protected static IGameObject? ResolveSpecificTarget(TargetSelector selector) =>
         PresetTargetResolver.Resolve(selector);
 
-    protected static Condition CreateDefault(ConditionDetectType kind) =>
+    protected static ConditionBase CreateDefault(ConditionDetectType kind) =>
         kind switch
         {
-            ConditionDetectType.GameCondition      => new GameConditionStateCondition(),
-            ConditionDetectType.Status             => new StatusCondition(),
-            ConditionDetectType.Health             => new HealthCondition(),
-            ConditionDetectType.ActionCast         => new ActionCastCondition(),
-            ConditionDetectType.ActionCooldown     => new ActionCooldownCondition(),
-            ConditionDetectType.ActionUsable       => new ActionUsableCondition(),
-            ConditionDetectType.PositionRange      => new PositionRangeCondition(),
-            ConditionDetectType.NearbyTarget       => new NearbyTargetCondition(),
-            ConditionDetectType.HasTarget          => new HasTargetCondition(),
-            ConditionDetectType.HasSpecificTarget  => new HasSpecificTargetCondition(),
-            ConditionDetectType.PartyAllDead       => new PartyAllDeadCondition(),
-            ConditionDetectType.TargetTargetIsSelf => new TargetTargetIsSelfCondition(),
-            ConditionDetectType.PlayerLevel        => new PlayerLevelCondition(),
+            ConditionDetectType.GameCondition              => new GameConditionStateCondition(),
+            ConditionDetectType.Status                     => new StatusCondition(),
+            ConditionDetectType.Health                     => new HealthCondition(),
+            ConditionDetectType.ActionCast                 => new ActionCastCondition(),
+            ConditionDetectType.ActionCooldown             => new ActionCooldownCondition(),
+            ConditionDetectType.ActionUsable               => new ActionUsableCondition(),
+            ConditionDetectType.PositionRange              => new PositionRangeCondition(),
+            ConditionDetectType.NearbyTarget               => new NearbyTargetCondition(),
+            ConditionDetectType.HasTarget                  => new HasTargetCondition(),
+            ConditionDetectType.HasSpecificTarget          => new HasSpecificTargetCondition(),
+            ConditionDetectType.PartyAllDead               => new PartyAllDeadCondition(),
+            ConditionDetectType.TargetTargetIsSelf         => new TargetTargetIsSelfCondition(),
+            ConditionDetectType.PlayerLevel                => new PlayerLevelCondition(),
             ConditionDetectType.OptimalPartyRecommendation => new OptimalPartyRecommendationCondition(),
-            ConditionDetectType.CompletedDutyCount => new CompletedDutyCountCondition(),
-            ConditionDetectType.AchievementCount   => new AchievementCountCondition(),
-            ConditionDetectType.ItemCount          => new ItemCountCondition(),
-            _                                      => new HealthCondition()
+            ConditionDetectType.CompletedDutyCount         => new CompletedDutyCountCondition(),
+            ConditionDetectType.AchievementCount           => new AchievementCountCondition(),
+            ConditionDetectType.ItemCount                  => new ItemCountCondition(),
+            _                                              => new HealthCondition()
         };
 
-    internal static Condition MigrateLegacyV1ToV2
+    internal static ConditionBase MigrateLegacyV1ToV2
     (
         ConditionDetectType     detectType,
         ConditionComparisonType comparisonType,
@@ -186,7 +186,7 @@ public abstract class Condition : IEquatable<Condition>
             _ => new HealthCondition()
         };
 
-    private Condition DrawKindSelector()
+    private ConditionBase DrawKindSelector()
     {
         DrawLabel("条件类型", KnownColor.LightSkyBlue.ToVector4());
 
@@ -197,5 +197,5 @@ public abstract class Condition : IEquatable<Condition>
         return CreateDefault(selectedKind);
     }
 
-    public static Condition Copy(Condition source) => source.DeepCopy();
+    public static ConditionBase Copy(ConditionBase source) => source.DeepCopy();
 }

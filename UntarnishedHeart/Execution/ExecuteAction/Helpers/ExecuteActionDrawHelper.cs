@@ -1,0 +1,64 @@
+using System.Numerics;
+using UntarnishedHeart.Execution.Condition;
+using UntarnishedHeart.Execution.Models;
+using UntarnishedHeart.Execution.Preset.Enums;
+using UntarnishedHeart.Execution.Preset.Helpers;
+
+namespace UntarnishedHeart.Execution.ExecuteAction.Helpers;
+
+internal static class ExecuteActionDrawHelper
+{
+    public static void DrawActionReference(ActionReference reference, string idSuffix = "")
+    {
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "技能类型:");
+        ImGui.SameLine();
+        reference.ActionType = ConditionBase.DrawEnumCombo($"###ActionTypeCombo{idSuffix}", reference.ActionType);
+
+        var actionID = reference.ActionID;
+        ImGui.SetNextItemWidth(240f * GlobalUIScale);
+        if (ImGui.InputUInt($"技能 ID###{idSuffix}", ref actionID))
+            reference.ActionID = actionID;
+    }
+
+    public static void DrawTargetSelector(TargetSelector selector, string idSuffix)
+    {
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "目标选择方式:");
+        ImGui.SameLine();
+        selector.Kind = ConditionBase.DrawEnumCombo($"###TargetSelectorKind{idSuffix}", selector.Kind);
+
+        switch (selector.Kind)
+        {
+            case TargetSelectorKind.ByObjectKindAndDataID:
+                ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "对象类型:");
+                ImGui.SameLine();
+                selector.ObjectKind = ConditionBase.DrawEnumCombo($"###TargetObjectKind{idSuffix}", selector.ObjectKind);
+
+                var dataID = selector.DataID;
+                ImGui.SetNextItemWidth(240f * GlobalUIScale);
+                if (ImGui.InputUInt($"Data ID###{idSuffix}", ref dataID))
+                    selector.DataID = dataID;
+
+                var requireTargetable = selector.RequireTargetable;
+                if (ImGui.Checkbox($"要求可选中###{idSuffix}", ref requireTargetable))
+                    selector.RequireTargetable = requireTargetable;
+                break;
+
+            case TargetSelectorKind.ByEntityID:
+                var entityID = selector.EntityID;
+                ImGui.SetNextItemWidth(240f * GlobalUIScale);
+                if (ImGui.InputUInt($"Entity ID###{idSuffix}", ref entityID))
+                    selector.EntityID = entityID;
+                break;
+        }
+    }
+
+    public static void DrawCurrentPositionButton(string buttonID, Action<Vector3> setPosition)
+    {
+        ImGui.SameLine();
+        if (ImGuiOm.ButtonIcon(buttonID, FontAwesomeIcon.Bullseye, "取当前位置", true) &&
+            DService.Instance().ObjectTable.LocalPlayer is { } localPlayer)
+            setPosition(localPlayer.Position);
+    }
+
+    public static void DrawNoExtraParametersHint() => ImGui.TextDisabled("此动作无需额外参数");
+}

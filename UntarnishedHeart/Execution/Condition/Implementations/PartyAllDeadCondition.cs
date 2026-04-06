@@ -2,7 +2,7 @@ using UntarnishedHeart.Execution.Condition.Enums;
 
 namespace UntarnishedHeart.Execution.Condition;
 
-public sealed class PartyAllDeadCondition : Condition
+public sealed class PartyAllDeadCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.PartyAllDead;
 
@@ -34,13 +34,13 @@ public sealed class PartyAllDeadCondition : Condition
         return ComparisonType == PresenceComparisonType.Has ? allDead : !allDead;
     }
 
-    protected override bool EqualsCore(Condition other) =>
+    protected override bool EqualsCore(ConditionBase other) =>
         other is PartyAllDeadCondition condition &&
         ComparisonType == condition.ComparisonType;
 
     protected override int GetCoreHashCode() => (int)ComparisonType;
 
-    public override Condition DeepCopy() =>
+    public override ConditionBase DeepCopy() =>
         new PartyAllDeadCondition
         {
             ComparisonType = ComparisonType

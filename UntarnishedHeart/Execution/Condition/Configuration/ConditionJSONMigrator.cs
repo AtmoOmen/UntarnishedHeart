@@ -5,7 +5,7 @@ using UntarnishedHeart.Internal.Configuration.Json;
 
 namespace UntarnishedHeart.Execution.Condition.Configuration;
 
-internal sealed class ConditionJSONMigrator : VersionedJsonMigratorBase<Condition>
+internal sealed class ConditionJSONMigrator : VersionedJsonMigratorBase<ConditionBase>
 {
     internal const int CurrentJSONVersion = 4;
 

@@ -1,4 +1,3 @@
-using Dalamud.Interface.Utility;
 using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.Route;
 using UntarnishedHeart.Internal;
@@ -51,6 +50,7 @@ internal static class DutyOptionsEditor
         ImGui.Spacing();
 
         var runTimes = dutyOptions.RunTimes;
+
         if (ImGui.InputInt("运行次数###DutyOptionsRunTimes", ref runTimes))
         {
             dutyOptions.RunTimes = runTimes;
@@ -62,28 +62,31 @@ internal static class DutyOptionsEditor
             if (table)
             {
                 ImGui.TableNextRow();
-                
+
                 ImGui.TableNextColumn();
                 var leaderMode = dutyOptions.LeaderMode;
+
                 if (ImGui.Checkbox("队长模式###DutyOptionsLeaderMode", ref leaderMode))
                 {
                     dutyOptions.LeaderMode = leaderMode;
                     changed                = true;
                 }
+
                 ImGuiOm.TooltipHover("勾选后, 运行预设时会自动进入指定副本");
 
                 ImGui.TableNextColumn();
                 var autoRecommendGear = dutyOptions.AutoRecommendGear;
+
                 if (ImGui.Checkbox("自动最强装备###DutyOptionsAutoRecommendGear", ref autoRecommendGear))
                 {
                     dutyOptions.AutoRecommendGear = autoRecommendGear;
                     changed                       = true;
                 }
+
                 ImGuiOm.TooltipHover("勾选后, 在进入副本后, 会自动装备当前职业的最强装备");
             }
         }
-        
-        
+
 
         return changed;
     }
@@ -102,11 +105,11 @@ internal static class DutyOptionsEditor
             {
                 ImGui.TableNextRow();
                 changed |= DrawFinderOptionCell(0, "解除限制", option.UnrestrictedParty, value => option.UnrestrictedParty = value);
-                changed |= DrawFinderOptionCell(1, "等级同步", option.LevelSync, value => option.LevelSync = value);
+                changed |= DrawFinderOptionCell(1, "等级同步", option.LevelSync,         value => option.LevelSync         = value);
 
                 ImGui.TableNextRow();
 
-                changed |= DrawFinderOptionCell(0, "最低品级", option.MinimalIL, value => option.MinimalIL = value);
+                changed |= DrawFinderOptionCell(0, "最低品级",    option.MinimalIL,   value => option.MinimalIL   = value);
                 changed |= DrawFinderOptionCell(1, "超越之力无效化", option.SilenceEcho, value => option.SilenceEcho = value);
 
                 ImGui.TableNextRow();
@@ -117,8 +120,9 @@ internal static class DutyOptionsEditor
                 ImGui.TextDisabled("单人进入多变迷宫需要解除限制");
             }
         }
-        
+
         var lootRule = option.LootRules;
+
         using (var combo = ImRaii.Combo("战利品分配###DutyOptionsLootRule", LootRuleNames[lootRule]))
         {
             if (combo)
@@ -133,7 +137,7 @@ internal static class DutyOptionsEditor
                 }
             }
         }
-        
+
         using (var combo = ImRaii.Combo("副本入口###DutyOptionsContentEntryCombo", dutyOptions.ContentEntryType.GetDescription()))
         {
             if (combo)
@@ -164,6 +168,7 @@ internal static class DutyOptionsEditor
         ImGui.Spacing();
 
         var lootRule = option.LootRules;
+
         if (ImGui.BeginCombo("战利品分配###DutyOptionsLootRule", LootRuleNames[lootRule]))
         {
             foreach (var (loot, name) in LootRuleNames)
@@ -179,6 +184,7 @@ internal static class DutyOptionsEditor
         }
 
         ImGui.SetNextItemWidth(220f * GlobalUIScale);
+
         if (ImGui.BeginCombo("副本入口###DutyOptionsContentEntryCombo", dutyOptions.ContentEntryType.GetDescription()))
         {
             foreach (var entryType in Enum.GetValues<ContentEntryType>())
@@ -203,7 +209,7 @@ internal static class DutyOptionsEditor
     {
         ImGui.TableSetColumnIndex(columnIndex);
 
-        var value = currentValue;
+        var value   = currentValue;
         var changed = ImGui.Checkbox($"{label}##{label}", ref value);
         if (changed)
             assign(value);

@@ -4,7 +4,7 @@ using UntarnishedHeart.Execution.Condition.Enums;
 
 namespace UntarnishedHeart.Execution.Condition;
 
-public sealed class StatusCondition : Condition
+public sealed class StatusCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.Status;
 
@@ -21,7 +21,7 @@ public sealed class StatusCondition : Condition
         return ComparisonType == PresenceComparisonType.Has ? hasStatus : !hasStatus;
     }
 
-    protected override bool EqualsCore(Condition other) =>
+    protected override bool EqualsCore(ConditionBase other) =>
         other is StatusCondition condition         &&
         ComparisonType == condition.ComparisonType &&
         TargetType     == condition.TargetType     &&
@@ -29,7 +29,7 @@ public sealed class StatusCondition : Condition
 
     protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, (int)TargetType, StatusID);
 
-    public override Condition DeepCopy() =>
+    public override ConditionBase DeepCopy() =>
         new StatusCondition
         {
             ComparisonType = ComparisonType,

@@ -18,7 +18,7 @@ public class MainWindow : Window
         {
             MinimumSize = new(300, 400)
         };
-        
+
         RefreshWindowFlags();
     }
 
@@ -66,9 +66,9 @@ public class MainWindow : Window
 
         ImGui.TableNextRow();
 
-        DrawTopActionButton(0, "预设", width, () => WindowManager.Instance().Get<PresetEditor>().IsOpen ^= true);
-        DrawTopActionButton(1, "路线", width, () => WindowManager.Instance().Get<RouteEditor>().IsOpen  ^= true);
-        DrawTopActionButton(2, "调试", width, () => WindowManager.Instance().Get<Debug>().IsOpen        ^= true);
+        DrawTopActionButton(0, "预设", width, () => WindowManager.Instance().Get<PresetEditor>().IsOpen   ^= true);
+        DrawTopActionButton(1, "路线", width, () => WindowManager.Instance().Get<RouteEditor>().IsOpen    ^= true);
+        DrawTopActionButton(2, "调试", width, () => WindowManager.Instance().Get<Debug>().IsOpen          ^= true);
         DrawTopActionButton(3, "设置", width, () => WindowManager.Instance().Get<SettingsWindow>().IsOpen ^= true);
     }
 
@@ -102,6 +102,7 @@ public class MainWindow : Window
     private static void DrawSimpleMode()
     {
         var config = PluginConfig.Instance();
+
         if (config.Presets.Count == 0)
         {
             DrawEmptyState("暂无预设", () => WindowManager.Instance().Get<PresetEditor>().IsOpen = true, ImportPresetFromClipboard);
@@ -132,6 +133,7 @@ public class MainWindow : Window
     private static void DrawRouteMode()
     {
         var config = PluginConfig.Instance();
+
         if (config.Routes.Count == 0)
         {
             DrawEmptyState("暂无路线", () => WindowManager.Instance().Get<RouteEditor>().IsOpen = true, ImportRouteFromClipboard);
@@ -188,7 +190,7 @@ public class MainWindow : Window
     {
         var config                = PluginConfig.Instance();
         var normalizedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(config.SelectedPresetIndex, config.Presets.Count);
-        var normalizedRouteIndex  = CollectionToolbar.NormalizeSelectedIndex(config.SelectedRouteIndex, config.Routes.Count);
+        var normalizedRouteIndex  = CollectionToolbar.NormalizeSelectedIndex(config.SelectedRouteIndex,  config.Routes.Count);
 
         if (config.SelectedPresetIndex == normalizedPresetIndex && config.SelectedRouteIndex == normalizedRouteIndex)
             return;
@@ -200,8 +202,8 @@ public class MainWindow : Window
 
     private static void PersistSelectedPresetIndex(int selectedPresetIndex)
     {
-        var config                 = PluginConfig.Instance();
-        var normalizedPresetIndex  = CollectionToolbar.NormalizeSelectedIndex(selectedPresetIndex, config.Presets.Count);
+        var config                = PluginConfig.Instance();
+        var normalizedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(selectedPresetIndex, config.Presets.Count);
         if (config.SelectedPresetIndex == normalizedPresetIndex)
             return;
 
@@ -211,8 +213,8 @@ public class MainWindow : Window
 
     private static void PersistSelectedRouteIndex(int selectedRouteIndex)
     {
-        var config                = PluginConfig.Instance();
-        var normalizedRouteIndex  = CollectionToolbar.NormalizeSelectedIndex(selectedRouteIndex, config.Routes.Count);
+        var config               = PluginConfig.Instance();
+        var normalizedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(selectedRouteIndex, config.Routes.Count);
         if (config.SelectedRouteIndex == normalizedRouteIndex)
             return;
 
@@ -261,7 +263,7 @@ public class MainWindow : Window
     {
         try
         {
-            var config = PluginConfig.Instance();
+            var config        = PluginConfig.Instance();
             var clipboardText = ImGui.GetClipboardText();
             if (string.IsNullOrWhiteSpace(clipboardText))
                 return;
@@ -282,7 +284,7 @@ public class MainWindow : Window
 
     private static void StartSimpleExecution()
     {
-        var config = PluginConfig.Instance();
+        var config              = PluginConfig.Instance();
         var selectedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(config.SelectedPresetIndex, config.Presets.Count);
         if (selectedPresetIndex < 0)
             return;
@@ -298,7 +300,7 @@ public class MainWindow : Window
 
     private static void StartRouteExecution()
     {
-        var config = PluginConfig.Instance();
+        var config             = PluginConfig.Instance();
         var selectedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(config.SelectedRouteIndex, config.Routes.Count);
         if (selectedRouteIndex < 0)
             return;

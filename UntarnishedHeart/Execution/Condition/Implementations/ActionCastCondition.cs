@@ -4,7 +4,7 @@ using UntarnishedHeart.Execution.Models;
 
 namespace UntarnishedHeart.Execution.Condition;
 
-public sealed class ActionCastCondition : Condition
+public sealed class ActionCastCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.ActionCast;
 
@@ -24,7 +24,7 @@ public sealed class ActionCastCondition : Condition
         return ComparisonType == PresenceComparisonType.Has ? isCasting : !isCasting;
     }
 
-    protected override bool EqualsCore(Condition other) =>
+    protected override bool EqualsCore(ConditionBase other) =>
         other is ActionCastCondition condition     &&
         ComparisonType == condition.ComparisonType &&
         TargetType     == condition.TargetType     &&
@@ -32,7 +32,7 @@ public sealed class ActionCastCondition : Condition
 
     protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, (int)TargetType, Action);
 
-    public override Condition DeepCopy() =>
+    public override ConditionBase DeepCopy() =>
         new ActionCastCondition
         {
             ComparisonType = ComparisonType,

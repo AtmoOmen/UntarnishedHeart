@@ -7,9 +7,9 @@ using UntarnishedHeart.Execution.Preset.Helpers;
 
 namespace UntarnishedHeart.Execution.Condition.Configuration.Migrators;
 
-public sealed class ConditionJsonConverter : JsonConverter<Condition>
+public sealed class ConditionJsonConverter : JsonConverter<ConditionBase>
 {
-    public override void WriteJson(JsonWriter writer, Condition? value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, ConditionBase? value, JsonSerializer serializer)
     {
         if (value is null)
         {
@@ -20,11 +20,11 @@ public sealed class ConditionJsonConverter : JsonConverter<Condition>
         SerializeToJObject(value, serializer).WriteTo(writer);
     }
 
-    public override Condition? ReadJson
+    public override ConditionBase? ReadJson
     (
         JsonReader     reader,
         Type           objectType,
-        Condition?     existingValue,
+        ConditionBase? existingValue,
         bool           hasExistingValue,
         JsonSerializer serializer
     )
@@ -40,7 +40,7 @@ public sealed class ConditionJsonConverter : JsonConverter<Condition>
         return DeserializeCurrent(jsonObject, serializer);
     }
 
-    internal static JObject SerializeToJObject(Condition value, JsonSerializer serializer)
+    internal static JObject SerializeToJObject(ConditionBase value, JsonSerializer serializer)
     {
         var obj = new JObject
         {
@@ -141,7 +141,7 @@ public sealed class ConditionJsonConverter : JsonConverter<Condition>
         return obj;
     }
 
-    internal static Condition DeserializeCurrent(JObject obj, JsonSerializer serializer)
+    internal static ConditionBase DeserializeCurrent(JObject obj, JsonSerializer serializer)
     {
         var kind = ReadConditionKind(obj["Kind"]);
 

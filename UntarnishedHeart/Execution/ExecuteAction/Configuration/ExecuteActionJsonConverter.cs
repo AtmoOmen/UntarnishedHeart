@@ -11,11 +11,11 @@ using UntarnishedHeart.Execution.Preset.Helpers;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Configuration;
 
-public sealed class PresetExecuteActionJsonConverter : JsonConverter<ExecuteAction>
+public sealed class ExecuteActionJsonConverter : JsonConverter<ExecuteActionBase>
 {
     internal const int CURRENT_JSON_VERSION = 1;
 
-    public override void WriteJson(JsonWriter writer, ExecuteAction? value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, ExecuteActionBase? value, JsonSerializer serializer)
     {
         if (value is null)
         {
@@ -26,13 +26,13 @@ public sealed class PresetExecuteActionJsonConverter : JsonConverter<ExecuteActi
         SerializeToJObject(value, serializer).WriteTo(writer);
     }
 
-    public override ExecuteAction? ReadJson
+    public override ExecuteActionBase? ReadJson
     (
-        JsonReader     reader,
-        Type           objectType,
-        ExecuteAction? existingValue,
-        bool           hasExistingValue,
-        JsonSerializer serializer
+        JsonReader         reader,
+        Type               objectType,
+        ExecuteActionBase? existingValue,
+        bool               hasExistingValue,
+        JsonSerializer     serializer
     )
     {
         if (reader.TokenType == JsonToken.Null)
@@ -45,7 +45,7 @@ public sealed class PresetExecuteActionJsonConverter : JsonConverter<ExecuteActi
         return DeserializeCurrent((JObject)token, serializer);
     }
 
-    internal static JObject SerializeToJObject(ExecuteAction value, JsonSerializer serializer)
+    internal static JObject SerializeToJObject(ExecuteActionBase value, JsonSerializer serializer)
     {
         var obj = new JObject
         {
@@ -91,7 +91,7 @@ public sealed class PresetExecuteActionJsonConverter : JsonConverter<ExecuteActi
         return obj;
     }
 
-    internal static ExecuteAction DeserializeCurrent(JObject obj, JsonSerializer serializer)
+    internal static ExecuteActionBase DeserializeCurrent(JObject obj, JsonSerializer serializer)
     {
         var kind      = PresetStepJsonConverter.ReadEnum(obj["Kind"], ExecuteActionKind.WaitMilliseconds);
         var condition = PresetStepJsonConverter.ReadObject(obj["Condition"], serializer, new ConditionCollection());

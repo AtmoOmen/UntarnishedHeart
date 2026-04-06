@@ -14,7 +14,7 @@ internal sealed class ConditionV1ToV2Migrator : JsonObjectMigratorBase
 
     public override JObject Migrate(JObject jsonObject)
     {
-        var migrated = Condition.MigrateLegacyV1ToV2
+        var migrated = ConditionBase.MigrateLegacyV1ToV2
         (
             ConditionJsonConverter.ReadEnum(jsonObject["DetectType"],     ConditionDetectType.Health),
             ConditionJsonConverter.ReadEnum(jsonObject["ComparisonType"], ConditionComparisonType.LessThan),

@@ -1,5 +1,4 @@
 using System.Numerics;
-using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
@@ -363,6 +362,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
     {
         var presets             = PluginConfig.Instance().Presets;
         var selectedPresetIndex = -1;
+
         for (var i = 0; i < presets.Count; i++)
         {
             if (presets[i].Name != step.PresetName)
@@ -397,6 +397,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
         using (ImRaii.PushIndent())
         {
             ImGui.SetNextItemWidth(250f * GlobalUIScale);
+
             using (var combo = ImRaii.Combo("执行动作###AfterPresetAction", step.AfterPresetAction.GetDescription()))
             {
                 if (combo)

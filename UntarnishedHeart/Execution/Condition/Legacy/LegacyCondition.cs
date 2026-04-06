@@ -2,7 +2,7 @@ using UntarnishedHeart.Execution.Condition.Enums;
 
 namespace UntarnishedHeart.Execution.Condition.Legacy;
 
-internal sealed class LegacyCondition : Condition
+internal sealed class LegacyCondition : ConditionBase
 {
     public override ConditionDetectType Kind => DetectType;
 
@@ -17,7 +17,7 @@ internal sealed class LegacyCondition : Condition
     public override bool Evaluate(in ConditionContext context) =>
         MigrateLegacyV1ToV2(DetectType, ComparisonType, TargetType, Value).Evaluate(context);
 
-    public override Condition DeepCopy() =>
+    public override ConditionBase DeepCopy() =>
         new LegacyCondition
         {
             DetectType     = DetectType,
@@ -32,12 +32,12 @@ internal sealed class LegacyCondition : Condition
         ImGui.TextUnformatted("旧版本配置, 请重启一次插件以自动转换为新配置");
     }
 
-    protected override bool EqualsCore(Condition other) =>
+    protected override bool EqualsCore(ConditionBase other) =>
         other is LegacyCondition condition                            &&
         DetectType                        == condition.DetectType     &&
         ComparisonType                    == condition.ComparisonType &&
         TargetType                        == condition.TargetType     &&
-        Math.Abs(Value - condition.Value) <= EqualityTolerance;
+        Math.Abs(Value - condition.Value) <= EQUALITY_TOLERANCE;
 
     protected override int GetCoreHashCode() => HashCode.Combine((int)DetectType, (int)ComparisonType, (int)TargetType, Value);
 }

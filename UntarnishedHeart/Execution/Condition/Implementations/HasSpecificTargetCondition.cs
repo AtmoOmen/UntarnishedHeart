@@ -6,7 +6,7 @@ using UntarnishedHeart.Execution.Preset.Helpers;
 
 namespace UntarnishedHeart.Execution.Condition;
 
-public sealed class HasSpecificTargetCondition : Condition
+public sealed class HasSpecificTargetCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.HasSpecificTarget;
 
@@ -32,14 +32,14 @@ public sealed class HasSpecificTargetCondition : Condition
         return ComparisonType == PresenceComparisonType.Has ? matches : !matches;
     }
 
-    protected override bool EqualsCore(Condition other) =>
+    protected override bool EqualsCore(ConditionBase other) =>
         other is HasSpecificTargetCondition condition &&
         ComparisonType == condition.ComparisonType    &&
         Selector.Equals(condition.Selector);
 
     protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, Selector);
 
-    public override Condition DeepCopy() =>
+    public override ConditionBase DeepCopy() =>
         new HasSpecificTargetCondition
         {
             ComparisonType = ComparisonType,
