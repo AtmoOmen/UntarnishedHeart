@@ -156,8 +156,7 @@ public class Preset : IEquatable<Preset>
                 [
                     new MoveToPositionAction
                     {
-                        Position       = new(-0.24348414f, -1.9395045f, -14.213441f),
-                        WaitForArrival = false
+                        Position = new(-0.24348414f, -1.9395045f, -14.213441f)
                     },
                     new WaitMillisecondsAction
                     {
@@ -172,8 +171,7 @@ public class Preset : IEquatable<Preset>
                 [
                     new MoveToPositionAction
                     {
-                        Position       = new(-0.63603175f, -1.8021163f, 0.6449276f),
-                        WaitForArrival = false
+                        Position = new(-0.63603175f, -1.8021163f, 0.6449276f)
                     },
                     new WaitMillisecondsAction
                     {

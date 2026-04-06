@@ -602,16 +602,6 @@ public class PresetExecutor : IDisposable
                 break;
         }
 
-        if (!action.WaitForArrival)
-            return;
-
-        await WaitUntilAsync
-        (
-            () => DService.Instance().ObjectTable.LocalPlayer is { } localPlayer &&
-                  Vector2.DistanceSquared(localPlayer.Position.ToVector2(), action.Position.ToVector2()) <= 4f,
-            $"{actionLabel} - 等待接近目标位置",
-            cancellationToken
-        );
     }
 
     private async Task HandleDutyCompletedAsync(CancellationToken cancellationToken)

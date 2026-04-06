@@ -13,8 +13,6 @@ namespace UntarnishedHeart.Execution.ExecuteAction.Configuration;
 
 public sealed class ExecuteActionJsonConverter : JsonConverter<ExecuteActionBase>
 {
-    internal const int CURRENT_JSON_VERSION = 1;
-
     public override void WriteJson(JsonWriter writer, ExecuteActionBase? value, JsonSerializer serializer)
     {
         if (value is null)
@@ -42,14 +40,15 @@ public sealed class ExecuteActionJsonConverter : JsonConverter<ExecuteActionBase
         if (token.Type != JTokenType.Object)
             return null;
 
-        return DeserializeCurrent((JObject)token, serializer);
+        var jsonObject = ExecuteActionJSONMigrator.Instance.MigrateToLatest((JObject)token);
+        return DeserializeCurrent(jsonObject, serializer);
     }
 
     internal static JObject SerializeToJObject(ExecuteActionBase value, JsonSerializer serializer)
     {
         var obj = new JObject
         {
-            ["Version"]   = CURRENT_JSON_VERSION,
+            ["Version"]   = ExecuteActionJSONMigrator.CurrentJSONVersion,
             ["Kind"]      = value.Kind.ToString(),
             ["Condition"] = JToken.FromObject(value.Condition, serializer)
         };
@@ -82,9 +81,8 @@ public sealed class ExecuteActionJsonConverter : JsonConverter<ExecuteActionBase
                 obj["UseLocation"]    = useAction.UseLocation;
                 break;
             case MoveToPositionAction moveToPosition:
-                obj["Position"]       = JToken.FromObject(moveToPosition.Position, serializer);
-                obj["MoveType"]       = JToken.FromObject(moveToPosition.MoveType, serializer);
-                obj["WaitForArrival"] = moveToPosition.WaitForArrival;
+                obj["Position"] = JToken.FromObject(moveToPosition.Position, serializer);
+                obj["MoveType"] = JToken.FromObject(moveToPosition.MoveType, serializer);
                 break;
         }
 
@@ -159,10 +157,9 @@ public sealed class ExecuteActionJsonConverter : JsonConverter<ExecuteActionBase
             },
             ExecuteActionKind.MoveToPosition => new MoveToPositionAction
             {
-                Position       = PresetStepJsonConverter.ReadObject(obj["Position"], serializer, default(Vector3)),
-                MoveType       = PresetStepJsonConverter.ReadEnum(obj["MoveType"], MoveType.传送),
-                WaitForArrival = PresetStepJsonConverter.ReadBool(obj["WaitForArrival"]),
-                Condition      = condition
+                Position  = PresetStepJsonConverter.ReadObject(obj["Position"], serializer, default(Vector3)),
+                MoveType  = PresetStepJsonConverter.ReadEnum(obj["MoveType"], MoveType.传送),
+                Condition = condition
             },
             _ => new WaitMillisecondsAction { Condition = condition }
         };

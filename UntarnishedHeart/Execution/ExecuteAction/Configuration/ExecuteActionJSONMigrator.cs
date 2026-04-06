@@ -1,25 +1,23 @@
 using System.Collections.Frozen;
 using Newtonsoft.Json.Linq;
-using UntarnishedHeart.Execution.Preset.Configuration.Migrators;
+using UntarnishedHeart.Execution.ExecuteAction.Configuration.Migrators;
 using UntarnishedHeart.Internal.Configuration.Json;
 
-namespace UntarnishedHeart.Execution.Preset.Configuration;
+namespace UntarnishedHeart.Execution.ExecuteAction.Configuration;
 
-internal sealed class PresetStepJSONMigrator : VersionedJsonMigratorBase<PresetStep>
+internal sealed class ExecuteActionJSONMigrator : VersionedJsonMigratorBase<ExecuteActionBase>
 {
-    internal const int CurrentJSONVersion = 4;
+    internal const int CurrentJSONVersion = 2;
 
     private static readonly FrozenDictionary<int, JsonObjectMigratorBase> MigratorsInternal =
         new JsonObjectMigratorBase[]
         {
-            new PresetStepV1ToV2Migrator(),
-            new PresetStepV2ToV3Migrator(),
-            new PresetStepV3ToV4Migrator()
+            new ExecuteActionV1ToV2Migrator()
         }.ToFrozenDictionary(migrator => migrator.FromVersion);
 
-    internal static PresetStepJSONMigrator Instance { get; } = new();
+    internal static ExecuteActionJSONMigrator Instance { get; } = new();
 
-    protected override string DisplayName => "预设步骤";
+    protected override string DisplayName => "执行动作";
 
     protected override int CurrentVersion => CurrentJSONVersion;
 
