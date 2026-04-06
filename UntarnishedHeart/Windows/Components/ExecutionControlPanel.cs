@@ -4,37 +4,26 @@ namespace UntarnishedHeart.Windows.Components;
 
 internal static class ExecutionControlPanel
 {
-    public static void DrawStatus(string statusLabel, bool isRunning, string progressLabel, string progressText, string runningMessage)
+    public static void DrawStatus(ExecutionStatusViewState status)
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "运行状态:");
-        using var indent = ImRaii.PushIndent();
-
-        ImGui.Text("当前状态:");
+        ImGui.TextDisabled(status.ModeName);
+        ImGui.TextColored(status.IsRunning ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudRed, status.IsRunning ? "执行中" : "待命");
         ImGui.SameLine();
-        ImGui.TextColored
-        (
-            isRunning ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudRed,
-            isRunning ? "运行中" : "等待中"
-        );
+        ImGui.TextDisabled($"{status.ProgressLabel} {status.ProgressText}");
 
-        ImGui.Text(progressLabel);
-        ImGui.SameLine();
-        ImGui.Text(progressText);
+        ImGui.Spacing();
 
-        ImGui.Text(statusLabel);
-        ImGui.SameLine();
-        ImGui.TextWrapped(runningMessage);
-    }
+        if (string.IsNullOrWhiteSpace(status.RunningMessage))
+            ImGui.TextDisabled("暂无运行信息");
+        else
+            ImGui.TextWrapped(status.RunningMessage);
 
-    public static void DrawControls(string startLabel, Action onStart, bool canStart, string stopLabel, Action onStop)
-    {
-        using (ImRaii.Disabled(!canStart))
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(!status.CanStop))
         {
-            if (ImGuiOm.ButtonSelectable(startLabel))
-                onStart();
+            if (ImGui.Button(status.StopLabel, new(-1f, 0f)))
+                status.StopAction();
         }
-
-        if (ImGuiOm.ButtonSelectable(stopLabel))
-            onStop();
     }
 }

@@ -8,7 +8,7 @@ public enum ExecutionMode
     /// <summary>
     ///     简单模式
     /// </summary>
-    Simple,
+    Preset,
 
     /// <summary>
     ///     运行路线模式

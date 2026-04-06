@@ -21,7 +21,7 @@ public class PluginConfig : IPluginConfiguration
 
     // 运行路线相关配置
     public List<Route>   Routes               { get; set; } = [];
-    public ExecutionMode CurrentExecutionMode { get; set; } = ExecutionMode.Simple;
+    public ExecutionMode CurrentExecutionMode { get; set; } = ExecutionMode.Preset;
     public int           SelectedRouteIndex   { get; set; } = -1;
 
     private static PluginConfig? InstanceInternal;

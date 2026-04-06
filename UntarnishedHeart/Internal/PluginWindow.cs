@@ -15,6 +15,7 @@ internal static class PluginWindow
         WindowStylesHandle = windowManager.RegDrawScopes(() => fontManager.UIFont.Push());
 
         windowManager.AddWindow<Main>();
+        windowManager.AddWindow<ExecutionStatusWindow>();
         windowManager.AddWindow<PresetEditor>();
         windowManager.AddWindow<RouteEditor>();
         windowManager.AddWindow<Debug>();
@@ -27,6 +28,7 @@ internal static class PluginWindow
         var manager = WindowManager.Instance();
 
         manager.RemoveWindow<Main>();
+        manager.RemoveWindow<ExecutionStatusWindow>();
         manager.RemoveWindow<PresetEditor>();
         manager.RemoveWindow<RouteEditor>();
         manager.RemoveWindow<Debug>();

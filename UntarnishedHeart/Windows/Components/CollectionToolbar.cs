@@ -16,7 +16,8 @@ internal static class CollectionToolbar
         ref int         selectedIndex,
         Func<T, string> getName,
         Action<T>?      onDelete  = null,
-        string          emptyText = "暂无数据"
+        string          emptyText = "暂无数据",
+        float           itemWidth = 280f
     )
     {
         if (!string.IsNullOrEmpty(label))
@@ -27,49 +28,50 @@ internal static class CollectionToolbar
 
         selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
 
-        if (items.Count == 0 || selectedIndex < 0)
+        if (items.Count == 0)
         {
-            ImGui.Text(emptyText);
+            if (!string.IsNullOrEmpty(label))
+                ImGui.SameLine();
+
+            ImGui.TextDisabled(emptyText);
             return;
         }
 
-        var selectedItem = items[selectedIndex];
+        var selectedItem = selectedIndex >= 0 ? items[selectedIndex] : items[0];
+        var previewValue = selectedIndex >= 0 ? getName(selectedItem) : "请选择";
 
         if (!string.IsNullOrEmpty(label))
             ImGui.SameLine();
-        ImGui.SetNextItemWidth(250f * GlobalUIScale);
-        using (var combo = ImRaii.Combo(comboID, getName(selectedItem), ImGuiComboFlags.HeightLarge))
-            if (combo)
-            {
-            }
 
-        if (ImGui.IsItemClicked())
-            ImGui.OpenPopup(comboID);
-
-        using (var popup = ImRaii.PopupModal(comboID, ImGuiWindowFlags.AlwaysAutoResize))
+        ImGui.SetNextItemWidth(itemWidth <= 0f ? itemWidth : itemWidth * GlobalUIScale);
+        using (var combo = ImRaii.Combo(comboID, previewValue, ImGuiComboFlags.HeightLarge))
         {
-            if (popup)
+            if (!combo)
+                return;
+
+            for (var i = 0; i < items.Count; i++)
             {
-                for (var i = 0; i < items.Count; i++)
+                var item       = items[i];
+                var isSelected = selectedIndex == i;
+                if (ImGui.Selectable($"{getName(item)}###{comboID}-{i}", isSelected))
+                    selectedIndex = i;
+
+                if (isSelected)
+                    ImGui.SetItemDefaultFocus();
+
+                if (onDelete == null)
+                    continue;
+
+                using var context = ImRaii.ContextPopupItem($"{comboID}-{i}ContextPopup");
+                if (!context) continue;
+
+                using var disabled = ImRaii.Disabled(items.Count <= 1);
+
+                if (ImGui.MenuItem($"删除##{comboID}-{i}"))
                 {
-                    var item = items[i];
-                    if (ImGui.Selectable($"{getName(item)}###{comboID}-{i}"))
-                        selectedIndex = i;
-
-                    if (onDelete == null)
-                        continue;
-
-                    using var context = ImRaii.ContextPopupItem($"{comboID}-{i}ContextPopup");
-                    if (!context) continue;
-
-                    using var disabled = ImRaii.Disabled(items.Count <= 1);
-
-                    if (ImGui.MenuItem($"删除##{comboID}-{i}"))
-                    {
-                        onDelete(item);
-                        selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
-                        return;
-                    }
+                    onDelete(item);
+                    selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
+                    return;
                 }
             }
         }
