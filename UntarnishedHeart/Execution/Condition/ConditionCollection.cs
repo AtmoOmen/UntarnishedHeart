@@ -137,16 +137,18 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
 
         for (var i = 0; i < Conditions.Count; i++)
         {
-            var       condition = Conditions[i];
-            using var node      = ImRaii.TreeNode($"第 {i} 条###Condition-{i}");
+            var condition = Conditions[i];
 
-            if (node)
+            using (var node = ImRaii.TreeNode($"第 {i} 条###Condition-{i}"))
             {
-                condition     = condition.Draw(i);
-                Conditions[i] = condition;
+                if (node)
+                {
+                    condition     = condition.Draw(i);
+                    Conditions[i] = condition;
+                }
+                else
+                    DrawConditionContextMenu(i, condition);
             }
-
-            DrawConditionContextMenu(i, condition);
         }
     }
 

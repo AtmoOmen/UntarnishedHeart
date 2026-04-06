@@ -54,15 +54,15 @@ internal static class PresetStepEditor
         if (!tabBar) return;
 
         var enterSelectedIndex = state.EnterSelectedIndex;
-        DrawPhaseTab("进入阶段", step.EnterActions, PresetStepPhase.Enter, ref enterSelectedIndex, state);
+        DrawPhaseTab("进入阶段", "一般用来存储是否要进入该步骤的动作与判断", step.EnterActions, PresetStepPhase.Enter, ref enterSelectedIndex, state);
         state.EnterSelectedIndex = enterSelectedIndex;
 
         var bodySelectedIndex = state.BodySelectedIndex;
-        DrawPhaseTab("进行阶段", step.BodyActions, PresetStepPhase.Body, ref bodySelectedIndex, state);
+        DrawPhaseTab("进行阶段", "一般用来存储该步骤的实际逻辑", step.BodyActions, PresetStepPhase.Body, ref bodySelectedIndex, state);
         state.BodySelectedIndex = bodySelectedIndex;
 
         var exitSelectedIndex = state.ExitSelectedIndex;
-        DrawPhaseTab("离开阶段", step.ExitActions, PresetStepPhase.Exit, ref exitSelectedIndex, state);
+        DrawPhaseTab("离开阶段", "一般用来存储是否要离开该步骤的动作与判断", step.ExitActions, PresetStepPhase.Exit, ref exitSelectedIndex, state);
         state.ExitSelectedIndex = exitSelectedIndex;
 
         DrawReorderButtons(ref i, steps);
@@ -71,6 +71,7 @@ internal static class PresetStepEditor
     private static unsafe void DrawPhaseTab
     (
         string              title,
+        string              decription,
         List<ExecuteAction> actions,
         PresetStepPhase     phase,
         ref int             selectedIndex,
@@ -78,7 +79,9 @@ internal static class PresetStepEditor
     )
     {
         using var tab = ImRaii.TabItem(title);
-        if (!tab) return;
+        ImGuiOm.TooltipHover(decription);
+        if (!tab)
+            return;
 
         selectedIndex = CollectionToolbar.NormalizeSelectedIndex(selectedIndex, actions.Count);
 
@@ -243,10 +246,16 @@ internal static class PresetStepEditor
         using var id = ImRaii.PushId($"{phase}-Action-{actionIndex}");
 
         var current = DrawActionTypeSelector(action);
+        
+        ImGui.Spacing();
+        
         DrawActionBody(current);
 
+        ImGui.Spacing();
         ImGui.Separator();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "条件组:");
+        ImGui.Spacing();
+        
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "条件组");
         current.Condition.Draw();
 
         return current;
@@ -254,7 +263,8 @@ internal static class PresetStepEditor
 
     private static ExecuteAction DrawActionTypeSelector(ExecuteAction current)
     {
-        using var combo = ImRaii.Combo("###ActionKindCombo", current.Kind.GetDescription(), ImGuiComboFlags.HeightLargest);
+        ImGui.SetNextItemWidth(240f * GlobalUIScale);
+        using var combo = ImRaii.Combo("执行动作###ActionKindCombo", current.Kind.GetDescription(), ImGuiComboFlags.HeightLargest);
         if (!combo)
             return current;
 
@@ -402,6 +412,7 @@ internal static class PresetStepEditor
         var waitForArrival = action.WaitForArrival;
         if (ImGui.Checkbox("等待接近后再继续###WaitForArrivalInput", ref waitForArrival))
             action.WaitForArrival = waitForArrival;
+        ImGuiOm.HelpMarker("不推荐使用这一选项, 目前仅做兼容性功能提供, 后续可能会删除\n建议使用条件组, 设置处理类型为\"持续\", 新增条件 \"坐标范围\" 来实现更加精细的判断");
     }
 
     private static void DrawActionReference(ActionReference reference)
