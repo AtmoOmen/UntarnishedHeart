@@ -99,13 +99,13 @@ internal static class ExecutionUIHelper
 
     private static Preset? GetSelectedPreset()
     {
-        var selectedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(Main.SelectedPresetIndexAccessor, PluginConfig.Instance().Presets.Count);
+        var selectedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(MainWindow.SelectedPresetIndexAccessor, PluginConfig.Instance().Presets.Count);
         return selectedPresetIndex >= 0 ? PluginConfig.Instance().Presets[selectedPresetIndex] : null;
     }
 
     private static Route? GetSelectedRoute()
     {
-        var selectedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(Main.SelectedRouteIndexAccessor, PluginConfig.Instance().Routes.Count);
+        var selectedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(MainWindow.SelectedRouteIndexAccessor, PluginConfig.Instance().Routes.Count);
         return selectedRouteIndex >= 0 ? PluginConfig.Instance().Routes[selectedRouteIndex] : null;
     }
 

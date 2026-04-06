@@ -10,15 +10,30 @@ using UntarnishedHeart.Windows.Components;
 
 namespace UntarnishedHeart.Windows;
 
-public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.PLUGIN_NAME}-MainWindow", ImGuiWindowFlags.AlwaysAutoResize)
+public class MainWindow : Window
 {
-    private static  int SelectedPresetIndex;
-    private static  int SelectedRouteIndex;
-    internal static int SelectedPresetIndexAccessor => SelectedPresetIndex;
-    internal static int SelectedRouteIndexAccessor  => SelectedRouteIndex;
+    public MainWindow() : base($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.PLUGIN_NAME}-MainWindow")
+    {
+        SizeConstraints = new()
+        {
+            MinimumSize = new(300, 400)
+        };
+        
+        RefreshWindowFlags();
+    }
+
+    internal static int SelectedPresetIndexAccessor =>
+        CollectionToolbar.NormalizeSelectedIndex(PluginConfig.Instance().SelectedPresetIndex, PluginConfig.Instance().Presets.Count);
+
+    internal static int SelectedRouteIndexAccessor =>
+        CollectionToolbar.NormalizeSelectedIndex(PluginConfig.Instance().SelectedRouteIndex, PluginConfig.Instance().Routes.Count);
+
+    public void RefreshWindowFlags() =>
+        Flags = PluginConfig.Instance().UnlockMainWindowSize ? ImGuiWindowFlags.None : ImGuiWindowFlags.AlwaysAutoResize;
 
     public override void Draw()
     {
+        NormalizeSelections();
         DrawTopActionRow();
 
         ImGui.Spacing();
@@ -54,9 +69,7 @@ public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.P
         DrawTopActionButton(0, "预设", width, () => WindowManager.Instance().Get<PresetEditor>().IsOpen ^= true);
         DrawTopActionButton(1, "路线", width, () => WindowManager.Instance().Get<RouteEditor>().IsOpen  ^= true);
         DrawTopActionButton(2, "调试", width, () => WindowManager.Instance().Get<Debug>().IsOpen        ^= true);
-        DrawTopActionButton(3, "设置", width, () => ImGui.OpenPopup("MainSettingsPopup"));
-
-        DrawSettingsPopup();
+        DrawTopActionButton(3, "设置", width, () => WindowManager.Instance().Get<SettingsWindow>().IsOpen ^= true);
     }
 
     private static void DrawModeRow()
@@ -86,42 +99,27 @@ public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.P
         }
     }
 
-    private static void DrawSettingsPopup()
-    {
-        using var popup = ImRaii.Popup("MainSettingsPopup");
-        if (!popup)
-            return;
-
-        ImGui.SetNextItemWidth(180f * GlobalUIScale);
-        var changed = ImGui.InputFloat("界面字号###InterfaceFontInput", ref FontManager.Instance().Config.FontSize, 0, 0, "%.1f");
-        if (changed)
-            FontManager.Instance().Config.FontSize = Math.Clamp(FontManager.Instance().Config.FontSize, 8, 48);
-
-        if (!ImGui.IsItemDeactivatedAfterEdit())
-            return;
-
-        FontManager.Instance().Config.Save();
-        _ = FontManager.Instance().RebuildUIFontsAsync();
-    }
-
     private static void DrawSimpleMode()
     {
-        if (PluginConfig.Instance().Presets.Count == 0)
+        var config = PluginConfig.Instance();
+        if (config.Presets.Count == 0)
         {
             DrawEmptyState("暂无预设", () => WindowManager.Instance().Get<PresetEditor>().IsOpen = true, ImportPresetFromClipboard);
             return;
         }
 
+        var selectedPresetIndex = config.SelectedPresetIndex;
         CollectionToolbar.DrawSelector
         (
             string.Empty,
             "###MainPresetSelectCombo",
-            PluginConfig.Instance().Presets,
-            ref SelectedPresetIndex,
+            config.Presets,
+            ref selectedPresetIndex,
             preset => preset.Name,
             emptyText: "暂无预设",
             itemWidth: CalculateSelectorWidth(72f)
         );
+        PersistSelectedPresetIndex(selectedPresetIndex);
 
         ImGui.SameLine();
 
@@ -134,22 +132,25 @@ public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.P
 
     private static void DrawRouteMode()
     {
-        if (PluginConfig.Instance().Routes.Count == 0)
+        var config = PluginConfig.Instance();
+        if (config.Routes.Count == 0)
         {
             DrawEmptyState("暂无路线", () => WindowManager.Instance().Get<RouteEditor>().IsOpen = true, ImportRouteFromClipboard);
             return;
         }
 
+        var selectedRouteIndex = config.SelectedRouteIndex;
         CollectionToolbar.DrawSelector
         (
             string.Empty,
             "###MainRouteSelectCombo",
-            PluginConfig.Instance().Routes,
-            ref SelectedRouteIndex,
+            config.Routes,
+            ref selectedRouteIndex,
             route => route.Name,
             emptyText: "暂无路线",
             itemWidth: CalculateSelectorWidth(72f)
         );
+        PersistSelectedRouteIndex(selectedRouteIndex);
 
         ImGui.SameLine();
 
@@ -184,16 +185,40 @@ public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.P
         }
     }
 
-    private static Preset? GetSelectedPreset()
+    private static void NormalizeSelections()
     {
-        SelectedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(SelectedPresetIndex, PluginConfig.Instance().Presets.Count);
-        return SelectedPresetIndex >= 0 ? PluginConfig.Instance().Presets[SelectedPresetIndex] : null;
+        var config                = PluginConfig.Instance();
+        var normalizedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(config.SelectedPresetIndex, config.Presets.Count);
+        var normalizedRouteIndex  = CollectionToolbar.NormalizeSelectedIndex(config.SelectedRouteIndex, config.Routes.Count);
+
+        if (config.SelectedPresetIndex == normalizedPresetIndex && config.SelectedRouteIndex == normalizedRouteIndex)
+            return;
+
+        config.SelectedPresetIndex = normalizedPresetIndex;
+        config.SelectedRouteIndex  = normalizedRouteIndex;
+        config.Save();
     }
 
-    private static Route? GetSelectedRoute()
+    private static void PersistSelectedPresetIndex(int selectedPresetIndex)
     {
-        SelectedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(SelectedRouteIndex, PluginConfig.Instance().Routes.Count);
-        return SelectedRouteIndex >= 0 ? PluginConfig.Instance().Routes[SelectedRouteIndex] : null;
+        var config                 = PluginConfig.Instance();
+        var normalizedPresetIndex  = CollectionToolbar.NormalizeSelectedIndex(selectedPresetIndex, config.Presets.Count);
+        if (config.SelectedPresetIndex == normalizedPresetIndex)
+            return;
+
+        config.SelectedPresetIndex = normalizedPresetIndex;
+        config.Save();
+    }
+
+    private static void PersistSelectedRouteIndex(int selectedRouteIndex)
+    {
+        var config                = PluginConfig.Instance();
+        var normalizedRouteIndex  = CollectionToolbar.NormalizeSelectedIndex(selectedRouteIndex, config.Routes.Count);
+        if (config.SelectedRouteIndex == normalizedRouteIndex)
+            return;
+
+        config.SelectedRouteIndex = normalizedRouteIndex;
+        config.Save();
     }
 
     private static void DrawEmptyState(string text, Action openEditor, Action importAction)
@@ -223,19 +248,21 @@ public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.P
 
     private static void ImportPresetFromClipboard()
     {
+        var config = PluginConfig.Instance();
         var preset = Preset.ImportFromClipboard();
         if (preset == null)
             return;
 
-        PluginConfig.Instance().Presets.Add(preset);
-        SelectedPresetIndex = PluginConfig.Instance().Presets.Count - 1;
-        PluginConfig.Instance().Save();
+        config.Presets.Add(preset);
+        config.SelectedPresetIndex = config.Presets.Count - 1;
+        config.Save();
     }
 
     private static void ImportRouteFromClipboard()
     {
         try
         {
+            var config = PluginConfig.Instance();
             var clipboardText = ImGui.GetClipboardText();
             if (string.IsNullOrWhiteSpace(clipboardText))
                 return;
@@ -244,9 +271,9 @@ public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.P
             if (route == null)
                 return;
 
-            PluginConfig.Instance().Routes.Add(route);
-            SelectedRouteIndex = PluginConfig.Instance().Routes.Count - 1;
-            PluginConfig.Instance().Save();
+            config.Routes.Add(route);
+            config.SelectedRouteIndex = config.Routes.Count - 1;
+            config.Save();
         }
         catch (Exception ex)
         {
@@ -256,14 +283,15 @@ public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.P
 
     private static void StartSimpleExecution()
     {
-        SelectedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(SelectedPresetIndex, PluginConfig.Instance().Presets.Count);
-        if (SelectedPresetIndex < 0)
+        var config = PluginConfig.Instance();
+        var selectedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(config.SelectedPresetIndex, config.Presets.Count);
+        if (selectedPresetIndex < 0)
             return;
 
         ExecutionManager.StartSimpleExecution
         (
-            PluginConfig.Instance().Presets[SelectedPresetIndex],
-            PluginConfig.Instance().CreatePresetRunOptions()
+            config.Presets[selectedPresetIndex],
+            config.CreatePresetRunOptions()
         );
 
         ExecutionUIHelper.OpenStatusWindow();
@@ -271,11 +299,12 @@ public class Main() : Window($"{Plugin.PLUGIN_NAME} {Plugin.Version}###{Plugin.P
 
     private static void StartRouteExecution()
     {
-        SelectedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(SelectedRouteIndex, PluginConfig.Instance().Routes.Count);
-        if (SelectedRouteIndex < 0)
+        var config = PluginConfig.Instance();
+        var selectedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(config.SelectedRouteIndex, config.Routes.Count);
+        if (selectedRouteIndex < 0)
             return;
 
-        ExecutionManager.StartRouteExecution(PluginConfig.Instance().Routes[SelectedRouteIndex]);
+        ExecutionManager.StartRouteExecution(config.Routes[selectedRouteIndex]);
 
         ExecutionUIHelper.OpenStatusWindow();
     }

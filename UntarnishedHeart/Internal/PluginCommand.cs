@@ -29,7 +29,7 @@ internal static class PluginCommand
 
     private static void OnMainCommand(string command, string arguments)
     {
-        if (WindowManager.Instance().Get<Main>() is { } main)
+        if (WindowManager.Instance().Get<MainWindow>() is { } main)
             main.IsOpen ^= true;
     }
 
