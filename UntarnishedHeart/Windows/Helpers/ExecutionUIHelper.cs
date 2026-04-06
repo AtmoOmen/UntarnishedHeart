@@ -15,23 +15,53 @@ internal static class ExecutionUIHelper
     {
         if (PluginConfig.Instance().CurrentExecutionMode == ExecutionMode.Preset)
         {
-            var presetExecutor = ExecutionManager.PresetExecutor;
-            var isRunning      = presetExecutor is { IsDisposed: false, Completion.IsCompleted: false };
-            var maxRoundText   = presetExecutor?.MaxRound == -1 ? "无限" : $"{presetExecutor?.MaxRound ?? 0}";
-            var progressText   = $"{presetExecutor?.CurrentRound ?? 0} / {maxRoundText}";
-            var message        = presetExecutor?.RunningMessage ?? string.Empty;
+            var presetExecutor                     = ExecutionManager.PresetExecutor;
+            var isRunning                          = presetExecutor is { IsDisposed: false, Completion.IsCompleted: false };
+            var maxRoundText                       = presetExecutor?.MaxRound == -1 ? "无限" : $"{presetExecutor?.MaxRound ?? 0}";
+            var progressText                       = $"{presetExecutor?.CurrentRound ?? 0} / {maxRoundText}";
+            var isStopAfterDutyCompletionRequested = presetExecutor?.IsStopAfterDutyCompletionRequested == true;
+            var message                            = BuildRunningMessage(presetExecutor?.RunningMessage ?? string.Empty, isStopAfterDutyCompletionRequested);
 
-            return new("预设模式", isRunning, "轮次", progressText, message, "结束", StopSimpleExecution, isRunning);
+            return new
+            (
+                "预设模式",
+                isRunning,
+                "轮次",
+                progressText,
+                message,
+                "结束",
+                StopSimpleExecution,
+                isRunning,
+                isStopAfterDutyCompletionRequested ? "取消" : "完成副本后结束",
+                isStopAfterDutyCompletionRequested ? CancelSimpleStopAfterDutyCompletionRequest : RequestSimpleStopAfterDutyCompletion,
+                isRunning,
+                isStopAfterDutyCompletionRequested
+            );
         }
 
-        var routeExecutor     = ExecutionManager.RouteExecutor;
-        var isRouteRunning    = routeExecutor?.IsRunning == true;
-        var totalSteps        = routeExecutor?.Steps.Count ?? 0;
-        var currentStepNumber = routeExecutor is { CurrentStepIndex: >= 0 } runningRoute ? runningRoute.CurrentStepIndex + 1 : 0;
-        var routeProgress     = $"{currentStepNumber} / {totalSteps}";
-        var routeMessage      = routeExecutor?.RunningMessage ?? string.Empty;
+        var routeExecutor                           = ExecutionManager.RouteExecutor;
+        var isRouteRunning                          = routeExecutor?.IsRunning == true;
+        var totalSteps                              = routeExecutor?.Steps.Count ?? 0;
+        var currentStepNumber                       = routeExecutor is { CurrentStepIndex: >= 0 } runningRoute ? runningRoute.CurrentStepIndex + 1 : 0;
+        var routeProgress                           = $"{currentStepNumber} / {totalSteps}";
+        var isRouteStopAfterDutyCompletionRequested = routeExecutor?.IsStopAfterDutyCompletionRequested == true;
+        var routeMessage                            = BuildRunningMessage(routeExecutor?.RunningMessage ?? string.Empty, isRouteStopAfterDutyCompletionRequested);
 
-        return new("路线模式", isRouteRunning, "步骤", routeProgress, routeMessage, "停止", StopRouteExecution, isRouteRunning);
+        return new
+        (
+            "路线模式",
+            isRouteRunning,
+            "步骤",
+            routeProgress,
+            routeMessage,
+            "停止",
+            StopRouteExecution,
+            isRouteRunning,
+            isRouteStopAfterDutyCompletionRequested ? "取消" : "完成副本后结束",
+            isRouteStopAfterDutyCompletionRequested ? CancelRouteStopAfterDutyCompletionRequest : RequestRouteStopAfterDutyCompletion,
+            isRouteRunning,
+            isRouteStopAfterDutyCompletionRequested
+        );
     }
 
     public static bool CanStartCurrentMode() => GetStartDisabledReasons().Count == 0;
@@ -97,6 +127,18 @@ internal static class ExecutionUIHelper
         CancelDutyQueueIfNeeded();
     }
 
+    public static void RequestSimpleStopAfterDutyCompletion() =>
+        ExecutionManager.PresetExecutor?.RequestStopAfterDutyCompletion();
+
+    public static void CancelSimpleStopAfterDutyCompletionRequest() =>
+        ExecutionManager.PresetExecutor?.CancelStopAfterDutyCompletionRequest();
+
+    public static void RequestRouteStopAfterDutyCompletion() =>
+        ExecutionManager.RouteExecutor?.RequestStopAfterDutyCompletion();
+
+    public static void CancelRouteStopAfterDutyCompletionRequest() =>
+        ExecutionManager.RouteExecutor?.CancelStopAfterDutyCompletionRequest();
+
     private static Preset? GetSelectedPreset()
     {
         var selectedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(MainWindow.SelectedPresetIndexAccessor, PluginConfig.Instance().Presets.Count);
@@ -107,6 +149,15 @@ internal static class ExecutionUIHelper
     {
         var selectedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(MainWindow.SelectedRouteIndexAccessor, PluginConfig.Instance().Routes.Count);
         return selectedRouteIndex >= 0 ? PluginConfig.Instance().Routes[selectedRouteIndex] : null;
+    }
+
+    private static string BuildRunningMessage(string runningMessage, bool isStopAfterDutyCompletionRequested)
+    {
+        if (!isStopAfterDutyCompletionRequested)
+            return runningMessage;
+
+        const string requestMessage = "已请求完成副本后结束，等待当前或下一次副本完成并退出";
+        return string.IsNullOrWhiteSpace(runningMessage) ? requestMessage : $"{runningMessage}\n{requestMessage}";
     }
 
     private static unsafe void CancelDutyQueueIfNeeded()
@@ -127,5 +178,9 @@ internal readonly record struct ExecutionStatusViewState
     string RunningMessage,
     string StopLabel,
     Action StopAction,
-    bool   CanStop
+    bool   CanStop,
+    string DeferredStopLabel,
+    Action DeferredStopAction,
+    bool   CanDeferredStop,
+    bool   IsStopAfterDutyCompletionRequested
 );

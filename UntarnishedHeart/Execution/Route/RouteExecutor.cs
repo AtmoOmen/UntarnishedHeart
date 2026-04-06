@@ -34,6 +34,8 @@ public class RouteExecutor
 
     public bool IsDisposed { get; private set; }
 
+    public bool IsStopAfterDutyCompletionRequested { get; private set; }
+
     public string RunningMessage
     {
         get
@@ -89,6 +91,7 @@ public class RouteExecutor
         State              = RouteExecutorState.Running;
         CurrentStepIndex   = 0;
         CompletedDutyCount = 0;
+        IsStopAfterDutyCompletionRequested = false;
 
         cancelToken?.Dispose();
         cancelToken = new CancellationTokenSource();
@@ -117,10 +120,31 @@ public class RouteExecutor
         if (State is RouteExecutorState.NotStarted or RouteExecutorState.Completed or RouteExecutorState.Stopped)
             return;
 
+        IsStopAfterDutyCompletionRequested = false;
         cancelToken?.Cancel();
         State = RouteExecutorState.Stopped;
 
         DisposeCurrentExecutor();
+    }
+
+    public bool RequestStopAfterDutyCompletion()
+    {
+        if (!IsRunning)
+            return false;
+
+        IsStopAfterDutyCompletionRequested = true;
+        CurrentExecutor?.RequestStopAfterDutyCompletion();
+        return true;
+    }
+
+    public bool CancelStopAfterDutyCompletionRequest()
+    {
+        if (!IsStopAfterDutyCompletionRequested)
+            return false;
+
+        IsStopAfterDutyCompletionRequested = false;
+        CurrentExecutor?.CancelStopAfterDutyCompletionRequest();
+        return true;
     }
 
     private async Task ExecuteRouteAsync(CancellationToken cancellationToken)
@@ -205,6 +229,9 @@ public class RouteExecutor
         NotifyHelper.Instance().Chat($"开始执行预设: {preset.Name}");
 
         CurrentExecutor = new PresetExecutor(preset, step.DutyOptions.ToRunOptions());
+        if (IsStopAfterDutyCompletionRequested)
+            CurrentExecutor.RequestStopAfterDutyCompletion();
+
         CurrentExecutor.Start();
 
         State = RouteExecutorState.WaitingForExecutor;
@@ -219,6 +246,10 @@ public class RouteExecutor
                 return;
             case ExecutorEndReason.Stopped:
                 State = RouteExecutorState.Stopped;
+                return;
+            case ExecutorEndReason.CompletedAfterDuty:
+                State = RouteExecutorState.Stopped;
+                NotifyHelper.Instance().Chat("已在副本完成并退出后停止路线执行");
                 return;
             case ExecutorEndReason.InvalidPreset:
                 NotifyHelper.Instance().Chat($"预设无效，跳过此步骤: {step.PresetName}");

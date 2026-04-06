@@ -58,4 +58,26 @@ internal static class ExecutionManager
     }
 
     public static void ManualEnqueueNewRound() => PresetExecutor?.ManualEnqueueNewRound();
+
+    public static bool RequestStopAfterDutyCompletion()
+    {
+        if (PresetExecutor is { IsDisposed: false, Completion.IsCompleted: false } presetExecutor)
+            return presetExecutor.RequestStopAfterDutyCompletion();
+
+        if (RouteExecutor?.IsRunning == true)
+            return RouteExecutor.RequestStopAfterDutyCompletion();
+
+        return false;
+    }
+
+    public static bool CancelStopAfterDutyCompletionRequest()
+    {
+        if (PresetExecutor is { IsDisposed: false, Completion.IsCompleted: false } presetExecutor)
+            return presetExecutor.CancelStopAfterDutyCompletionRequest();
+
+        if (RouteExecutor?.IsStopAfterDutyCompletionRequested == true)
+            return RouteExecutor.CancelStopAfterDutyCompletionRequest();
+
+        return false;
+    }
 }

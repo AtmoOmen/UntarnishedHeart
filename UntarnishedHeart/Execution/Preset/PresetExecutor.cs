@@ -38,6 +38,7 @@ public class PresetExecutor : IDisposable
     private Task?                    movementTask;
     private bool                     isStarted;
     private bool                     listenersRegistered;
+    private bool                     stopAfterDutyCompletionRequested;
 
     internal PresetExecutor(Preset? preset, PresetExecutorRunOptions runOptions)
     {
@@ -55,9 +56,11 @@ public class PresetExecutor : IDisposable
 
     public bool IsDisposed { get; private set; }
 
-    public bool IsFinished => Result?.EndReason == ExecutorEndReason.Completed;
+    public bool IsFinished => Result?.EndReason is ExecutorEndReason.Completed or ExecutorEndReason.CompletedAfterDuty;
 
     public bool IsStopped => Result?.EndReason == ExecutorEndReason.Stopped;
+
+    public bool IsStopAfterDutyCompletionRequested => stopAfterDutyCompletionRequested;
 
     internal Task<PresetExecutorResult> Completion => completionSource.Task;
 
@@ -156,6 +159,24 @@ public class PresetExecutor : IDisposable
             return false;
 
         _ = RunManualNearestInteractAsync();
+        return true;
+    }
+
+    public bool RequestStopAfterDutyCompletion()
+    {
+        if (Completion.IsCompleted || IsDisposed)
+            return false;
+
+        stopAfterDutyCompletionRequested = true;
+        return true;
+    }
+
+    public bool CancelStopAfterDutyCompletionRequest()
+    {
+        if (Completion.IsCompleted || IsDisposed || !stopAfterDutyCompletionRequested)
+            return false;
+
+        stopAfterDutyCompletionRequested = false;
         return true;
     }
 
@@ -612,7 +633,11 @@ public class PresetExecutor : IDisposable
         if (ExecutorPreset.DutyDelay > 0)
             await DelayAsync(ExecutorPreset.DutyDelay, $"等待退出延迟: {ExecutorPreset.DutyDelay} ms", cancellationToken);
 
-        await LeaveDutyAndAdvanceRoundAsync("副本完成, 离开副本, 进入下一局", cancellationToken);
+        await LeaveDutyAndAdvanceRoundAsync
+        (
+            stopAfterDutyCompletionRequested ? "副本完成, 离开副本后结束执行" : "副本完成, 离开副本, 进入下一局",
+            cancellationToken
+        );
     }
 
     private async Task RunCommandsAsync(string commands, string actionLabel, CancellationToken cancellationToken)
@@ -695,7 +720,22 @@ public class PresetExecutor : IDisposable
 
         SetRunningMessage(message);
         LeaveDuty();
+        await WaitForDutyExitAsync(cancellationToken);
         CurrentRound++;
+
+        if (stopAfterDutyCompletionRequested)
+        {
+            Finish
+            (
+                new PresetExecutorResult
+                {
+                    EndReason       = ExecutorEndReason.CompletedAfterDuty,
+                    CompletedRounds = CurrentRound
+                },
+                false
+            );
+            return;
+        }
 
         if (HasReachedMaxRound())
         {
@@ -717,7 +757,7 @@ public class PresetExecutor : IDisposable
 
     private bool HasReachedMaxRound() => MaxRound != -1 && CurrentRound >= MaxRound;
 
-    private async Task RegisterDutyAsync(CancellationToken cancellationToken)
+    private async Task WaitForDutyExitAsync(CancellationToken cancellationToken)
     {
         await WaitUntilAsync
         (
@@ -726,9 +766,14 @@ public class PresetExecutor : IDisposable
                 if (!Throttler.Shared.Throttle("等待副本结束节流")) return false;
                 return !DService.Instance().DutyState.IsDutyStarted && DService.Instance().ClientState.TerritoryType != ExecutorPreset!.Zone;
             },
-            "等待副本结束",
+            stopAfterDutyCompletionRequested ? "等待退出副本后结束" : "等待副本结束",
             cancellationToken
         );
+    }
+
+    private async Task RegisterDutyAsync(CancellationToken cancellationToken)
+    {
+        await WaitForDutyExitAsync(cancellationToken);
 
         await WaitUntilAsync
         (

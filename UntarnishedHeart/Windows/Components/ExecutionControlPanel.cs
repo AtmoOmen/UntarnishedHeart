@@ -25,5 +25,11 @@ internal static class ExecutionControlPanel
             if (ImGui.Button(status.StopLabel, new(-1f, 0f)))
                 status.StopAction();
         }
+
+        using (ImRaii.Disabled(!status.CanDeferredStop))
+        {
+            if (ImGui.Button(status.DeferredStopLabel, new(-1f, 0f)))
+                status.DeferredStopAction();
+        }
     }
 }

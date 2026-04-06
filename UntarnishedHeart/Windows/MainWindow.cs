@@ -170,19 +170,22 @@ public class MainWindow : Window
 
         using (ImRaii.Disabled(!isRunning && !canStart))
         {
-            if (!ImGui.Button(label, new(width, 0f)))
-                return;
-
-            if (isRunning)
+            var clicked = ImGui.Button(label, new(width, 0f));
+            if (clicked)
             {
-                status.StopAction();
-                return;
+                if (isRunning)
+                    status.StopAction();
+                else if (PluginConfig.Instance().CurrentExecutionMode == ExecutionMode.Preset)
+                    StartSimpleExecution();
+                else
+                    StartRouteExecution();
             }
+        }
 
-            if (PluginConfig.Instance().CurrentExecutionMode == ExecutionMode.Preset)
-                StartSimpleExecution();
-            else
-                StartRouteExecution();
+        using (ImRaii.Disabled(!status.CanDeferredStop))
+        {
+            if (ImGui.Button(status.DeferredStopLabel, new(width, 0f)))
+                status.DeferredStopAction();
         }
     }
 
