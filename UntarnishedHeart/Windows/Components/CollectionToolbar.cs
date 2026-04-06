@@ -2,6 +2,8 @@ namespace UntarnishedHeart.Windows.Components;
 
 internal static class CollectionToolbar
 {
+    private static readonly Dictionary<string, SelectorTaskState> SelectorTasks = [];
+
     public static int NormalizeSelectedIndex(int selectedIndex, int count)
     {
         if (count <= 0) return -1;
@@ -20,13 +22,14 @@ internal static class CollectionToolbar
         float           itemWidth = 280f
     )
     {
+        selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
+        ConsumePendingResult(comboID, items, ref selectedIndex, onDelete);
+
         if (!string.IsNullOrEmpty(label))
         {
             ImGui.AlignTextToFramePadding();
             ImGui.Text(label);
         }
-
-        selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
 
         if (items.Count == 0)
         {
@@ -43,38 +46,7 @@ internal static class CollectionToolbar
         if (!string.IsNullOrEmpty(label))
             ImGui.SameLine();
 
-        ImGui.SetNextItemWidth(itemWidth <= 0f ? itemWidth : itemWidth * GlobalUIScale);
-        using (var combo = ImRaii.Combo(comboID, previewValue, ImGuiComboFlags.HeightLarge))
-        {
-            if (!combo)
-                return;
-
-            for (var i = 0; i < items.Count; i++)
-            {
-                var item       = items[i];
-                var isSelected = selectedIndex == i;
-                if (ImGui.Selectable($"{getName(item)}###{comboID}-{i}", isSelected))
-                    selectedIndex = i;
-
-                if (isSelected)
-                    ImGui.SetItemDefaultFocus();
-
-                if (onDelete == null)
-                    continue;
-
-                using var context = ImRaii.ContextPopupItem($"{comboID}-{i}ContextPopup");
-                if (!context) continue;
-
-                using var disabled = ImRaii.Disabled(items.Count <= 1);
-
-                if (ImGui.MenuItem($"删除##{comboID}-{i}"))
-                {
-                    onDelete(item);
-                    selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
-                    return;
-                }
-            }
-        }
+        DrawSelectorCombo(label, comboID, items, selectedIndex, getName, onDelete != null, emptyText, itemWidth, previewValue);
     }
 
     public static void DrawActionButtons
@@ -108,5 +80,107 @@ internal static class CollectionToolbar
         using var disabled = ImRaii.Disabled(!canExport);
         if (ImGuiOm.ButtonIcon(exportID, FontAwesomeIcon.FileExport, "导出", true) && canExport)
             onExport();
+    }
+
+    private static void ConsumePendingResult<T>(string comboID, IList<T> items, ref int selectedIndex, Action<T>? onDelete)
+    {
+        if (!SelectorTasks.TryGetValue(comboID, out var state) || state.Task == null || !state.Task.IsCompleted)
+            return;
+
+        var result = state.Task.GetAwaiter().GetResult();
+        state.Task = null;
+
+        if (result.Kind == CollectionSelectorResultKind.Cancelled)
+        {
+            CleanupState(comboID, state);
+            return;
+        }
+
+        if (result.Index < 0 || result.Index >= items.Count)
+        {
+            selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
+            CleanupState(comboID, state);
+            return;
+        }
+
+        switch (result.Kind)
+        {
+            case CollectionSelectorResultKind.Selected:
+                selectedIndex = result.Index;
+                break;
+
+            case CollectionSelectorResultKind.DeleteRequested when onDelete != null:
+                onDelete(items[result.Index]);
+                selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
+                break;
+        }
+
+        CleanupState(comboID, state);
+    }
+
+    private static void DrawSelectorCombo<T>
+    (
+        string          label,
+        string          comboID,
+        IList<T>        items,
+        int             selectedIndex,
+        Func<T, string> getName,
+        bool            allowDelete,
+        string          emptyText,
+        float           itemWidth,
+        string          previewValue
+    )
+    {
+        ImGui.SetNextItemWidth(itemWidth <= 0f ? itemWidth : itemWidth * GlobalUIScale);
+        using var combo = ImRaii.Combo(comboID, previewValue, ImGuiComboFlags.HeightLarge);
+        if (combo)
+            ImGui.CloseCurrentPopup();
+
+        if (!ImGui.IsItemClicked())
+            return;
+
+        var request = new CollectionSelectorRequest
+        (
+            BuildWindowTitle(label),
+            emptyText,
+            selectedIndex,
+            items.Select(item => new CollectionSelectorItem(getName(item))).ToArray(),
+            allowDelete
+        );
+
+        var state = SelectorTasks.GetValueOrDefault(comboID);
+
+        if (state == null)
+        {
+            state                  = new();
+            SelectorTasks[comboID] = state;
+        }
+
+        state.Title = request.Title;
+        state.Task  = CollectionSelectorWindow.OpenAsync(request);
+    }
+
+    private static string BuildWindowTitle(string label)
+    {
+        var trimmed = label.Trim().TrimEnd(':', '：');
+        if (string.IsNullOrWhiteSpace(trimmed))
+            return "选择项目";
+
+        return trimmed.StartsWith("选择", StringComparison.Ordinal) ? trimmed : $"选择{trimmed}";
+    }
+
+    private static void CleanupState(string comboID, SelectorTaskState state)
+    {
+        if (state.Task != null)
+            return;
+
+        SelectorTasks.Remove(comboID);
+    }
+
+    private sealed class SelectorTaskState
+    {
+        public Task<CollectionSelectorResult>? Task { get; set; }
+
+        public string Title { get; set; } = string.Empty;
     }
 }

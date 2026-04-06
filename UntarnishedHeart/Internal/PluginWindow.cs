@@ -17,6 +17,7 @@ internal static class PluginWindow
         windowManager.AddWindow<MainWindow>();
         windowManager.AddWindow<SettingsWindow>();
         windowManager.AddWindow<ExecutionStatusWindow>();
+        windowManager.AddWindow<CollectionSelectorWindow>();
         windowManager.AddWindow<PresetEditor>();
         windowManager.AddWindow<RouteEditor>();
         windowManager.AddWindow<Debug>();
@@ -31,6 +32,7 @@ internal static class PluginWindow
         manager.RemoveWindow<MainWindow>();
         manager.RemoveWindow<SettingsWindow>();
         manager.RemoveWindow<ExecutionStatusWindow>();
+        manager.RemoveWindow<CollectionSelectorWindow>();
         manager.RemoveWindow<PresetEditor>();
         manager.RemoveWindow<RouteEditor>();
         manager.RemoveWindow<Debug>();
