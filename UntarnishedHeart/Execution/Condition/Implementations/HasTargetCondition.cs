@@ -1,12 +1,17 @@
+using Newtonsoft.Json;
 using OmenTools.OmenService;
+using UntarnishedHeart.Execution.Condition.Configuration;
 using UntarnishedHeart.Execution.Condition.Enums;
 
 namespace UntarnishedHeart.Execution.Condition;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ConditionJsonType("HasTarget", ConditionDetectType.HasTarget)]
 public sealed class HasTargetCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.HasTarget;
 
+    [JsonProperty("ComparisonType")]
     public PresenceComparisonType ComparisonType { get; set; } = PresenceComparisonType.Has;
 
     public override bool Evaluate(in ConditionContext context)

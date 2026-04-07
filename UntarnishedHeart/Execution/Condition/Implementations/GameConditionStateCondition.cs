@@ -1,14 +1,20 @@
 ﻿using Dalamud.Game.ClientState.Conditions;
+using Newtonsoft.Json;
+using UntarnishedHeart.Execution.Condition.Configuration;
 using UntarnishedHeart.Execution.Condition.Enums;
 
 namespace UntarnishedHeart.Execution.Condition;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ConditionJsonType("GameCondition", ConditionDetectType.GameCondition)]
 public sealed class GameConditionStateCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.GameCondition;
 
+    [JsonProperty("Flag")]
     public ConditionFlag Flag { get; set; } = ConditionFlag.InCombat;
 
+    [JsonProperty("ComparisonType")]
     public PresenceComparisonType ComparisonType { get; set; } = PresenceComparisonType.NotHas;
 
     public override bool Evaluate(in ConditionContext context)

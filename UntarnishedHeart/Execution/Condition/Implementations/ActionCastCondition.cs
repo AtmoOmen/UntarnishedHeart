@@ -1,17 +1,24 @@
-﻿using UntarnishedHeart.Execution.Condition.Enums;
+using Newtonsoft.Json;
+using UntarnishedHeart.Execution.Condition.Configuration;
+using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Condition.Helpers;
 using UntarnishedHeart.Execution.Models;
 
 namespace UntarnishedHeart.Execution.Condition;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ConditionJsonType("ActionCast", ConditionDetectType.ActionCast)]
 public sealed class ActionCastCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.ActionCast;
 
+    [JsonProperty("ComparisonType")]
     public PresenceComparisonType ComparisonType { get; set; } = PresenceComparisonType.Has;
 
+    [JsonProperty("TargetType")]
     public ConditionTargetType TargetType { get; set; } = ConditionTargetType.Target;
 
+    [JsonProperty("Action")]
     public ActionReference Action { get; set; } = new();
 
     public override bool Evaluate(in ConditionContext context)

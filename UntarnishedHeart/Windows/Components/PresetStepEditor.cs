@@ -4,7 +4,6 @@ using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.ExecuteAction;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
-using UntarnishedHeart.Execution.ExecuteAction.Implementations;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Execution.Preset.Enums;
 using UntarnishedHeart.Windows.Helpers;
@@ -83,15 +82,15 @@ internal static class PresetStepEditor
 
         using var table = ImRaii.Table($"{phase}ActionsTable", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV);
         if (!table) return;
-        
+
         ImGui.TableSetupColumn("ActionsList",   ImGuiTableColumnFlags.WidthFixed, 200f * GlobalUIScale);
         ImGui.TableSetupColumn("ActionDetails", ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableNextRow();
 
         ImGui.TableSetColumnIndex(0);
         if (ImGuiOm.ButtonStretch($"添加动作###{phase}AddAction"))
-            actions.Add(CreateDefaultAction(ExecuteActionKind.Wait));
-        
+            actions.Add(ExecuteActionBase.CreateDefaultAction(ExecuteActionKind.Wait));
+
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
@@ -234,7 +233,7 @@ internal static class PresetStepEditor
             actionIndex,
             contextOperation,
             selectedIndex,
-            () => CreateDefaultAction(ExecuteActionKind.Wait),
+            () => ExecuteActionBase.CreateDefaultAction(ExecuteActionKind.Wait),
             sharedState.ActionToCopy == null ? null : () => ExecuteActionBase.Copy(sharedState.ActionToCopy),
             () => ExecuteActionBase.Copy(action)
         );
@@ -296,7 +295,7 @@ internal static class PresetStepEditor
 
             var keepCustomName = !string.IsNullOrEmpty(current.Name) &&
                                  !string.Equals(current.Name, current.GetDefaultName(), StringComparison.Ordinal);
-            var next = CreateDefaultAction(actionKind);
+            var next = ExecuteActionBase.CreateDefaultAction(actionKind);
             if (keepCustomName)
                 next.Name = current.Name;
 
@@ -306,34 +305,6 @@ internal static class PresetStepEditor
         }
 
         return current;
-    }
-
-    private static ExecuteActionBase CreateDefaultAction(ExecuteActionKind kind) =>
-        InitializeMetadata
-        (
-            kind switch
-            {
-                ExecuteActionKind.Wait          => new WaitMillisecondsAction(),
-                ExecuteActionKind.JumpToStep                => new JumpToStepAction(),
-                ExecuteActionKind.RestartCurrentStep        => new RestartCurrentStepAction(),
-                ExecuteActionKind.JumpToAction              => new JumpToActionAction(),
-                ExecuteActionKind.RestartCurrentAction      => new RestartCurrentActionAction(),
-                ExecuteActionKind.LeaveDutyAndEndPreset     => new LeaveDutyAndEndAction(),
-                ExecuteActionKind.LeaveDutyAndRestartPreset => new LeaveDutyAndRestartAction(),
-                ExecuteActionKind.TextCommand               => new TextCommandAction(),
-                ExecuteActionKind.SelectTarget              => new SelectTargetAction(),
-                ExecuteActionKind.InteractTarget            => new InteractTargetAction(),
-                ExecuteActionKind.InteractNearestObject     => new InteractNearestObjectAction(),
-                ExecuteActionKind.UseAction                 => new UseActionExecuteAction(),
-                ExecuteActionKind.MoveToPosition            => new MoveToPositionAction(),
-                _                                           => new WaitMillisecondsAction()
-            }
-        );
-
-    private static ExecuteActionBase InitializeMetadata(ExecuteActionBase action)
-    {
-        action.ResetMetadata();
-        return action;
     }
 
     private static void DrawReorderButtons(ref int i, List<PresetStep> steps)

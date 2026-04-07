@@ -1,9 +1,14 @@
+using Newtonsoft.Json;
+using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ExecuteActionJsonType("TextCommand", ExecuteActionKind.TextCommand)]
 public sealed class TextCommandAction : ExecuteActionBase
 {
+    [JsonProperty("Commands")]
     public string Commands { get; set; } = string.Empty;
 
     public override ExecuteActionKind Kind => ExecuteActionKind.TextCommand;

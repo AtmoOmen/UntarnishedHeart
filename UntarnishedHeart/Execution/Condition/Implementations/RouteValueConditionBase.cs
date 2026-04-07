@@ -1,11 +1,15 @@
+using Newtonsoft.Json;
 using UntarnishedHeart.Execution.Condition.Enums;
 
 namespace UntarnishedHeart.Execution.Condition;
 
+[JsonObject(MemberSerialization.OptIn)]
 public abstract class RouteValueConditionBase : ConditionBase
 {
+    [JsonProperty("ComparisonType")]
     public NumericComparisonType ComparisonType { get; set; } = NumericComparisonType.EqualTo;
 
+    [JsonProperty("ExpectedValue")]
     public int ExpectedValue { get; set; }
 
     public override bool Evaluate(in ConditionContext context) =>

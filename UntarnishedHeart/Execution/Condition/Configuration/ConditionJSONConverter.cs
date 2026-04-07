@@ -1,14 +1,15 @@
-using Dalamud.Game.ClientState.Conditions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Models;
-using UntarnishedHeart.Execution.Preset.Helpers;
+using UntarnishedHeart.Internal.Configuration.Json;
 
 namespace UntarnishedHeart.Execution.Condition.Configuration;
 
 public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
 {
+    private const string TypeIDPropertyName = "TypeId";
+
     public override void WriteJson(JsonWriter writer, ConditionBase? value, JsonSerializer serializer)
     {
         if (value is null)
@@ -37,26 +38,31 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
             return null;
 
         var jsonObject = ConditionJSONMigrator.Instance.MigrateToLatest((JObject)token);
-        return DeserializeCurrent(jsonObject, serializer);
+        return DeserializeCurrent(jsonObject);
     }
 
     internal static JObject SerializeToJObject(ConditionBase value, JsonSerializer serializer)
     {
+        ArgumentNullException.ThrowIfNull(value);
+
+        var concreteSerializer = PolymorphicJsonSerializerFactory.CreateConcreteTypeSerializer<ConditionBase>();
+        var obj                = JObject.FromObject(value, concreteSerializer);
+        obj["Version"]          = ConditionJSONMigrator.CurrentJSONVersion;
+        obj[TypeIDPropertyName] = ConditionJsonTypeRegistry.Instance.GetTypeID(value);
+        return obj;
+    }
+
+    internal static JObject SerializeLegacyV2ToJObject(ConditionBase value, JsonSerializer serializer)
+    {
         var obj = new JObject
         {
-            ["Version"] = ConditionJSONMigrator.CurrentJSONVersion,
-            ["Kind"]    = value.Kind.ToString(),
-            ["Name"]    = value.Name,
-            ["Remark"]  = value.Remark
+            ["Kind"]   = value.Kind.ToString(),
+            ["Name"]   = value.Name,
+            ["Remark"] = value.Remark
         };
 
         switch (value)
         {
-            case GameConditionStateCondition gameCondition:
-                obj["Flag"]           = gameCondition.Flag.ToString();
-                obj["ComparisonType"] = gameCondition.ComparisonType.ToString();
-                break;
-
             case HealthCondition health:
                 obj["ComparisonType"] = health.ComparisonType.ToString();
                 obj["TargetType"]     = health.TargetType.ToString();
@@ -79,252 +85,22 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
                 obj["ComparisonType"] = cooldown.ComparisonType.ToString();
                 obj["Action"]         = JToken.FromObject(cooldown.Action, serializer);
                 break;
-
-            case ActionUsableCondition usable:
-                obj["ComparisonType"] = usable.ComparisonType.ToString();
-                obj["Action"]         = JToken.FromObject(usable.Action, serializer);
-                break;
-
-            case PositionRangeCondition positionRange:
-                obj["ComparisonType"] = positionRange.ComparisonType.ToString();
-                obj["Range"]          = JToken.FromObject(positionRange.Range, serializer);
-                break;
-
-            case NearbyTargetCondition nearbyTarget:
-                obj["ComparisonType"] = nearbyTarget.ComparisonType.ToString();
-                obj["Selector"]       = JToken.FromObject(nearbyTarget.Selector, serializer);
-                break;
-
-            case HasTargetCondition hasTarget:
-                obj["ComparisonType"] = hasTarget.ComparisonType.ToString();
-                break;
-
-            case HasSpecificTargetCondition hasSpecificTarget:
-                obj["ComparisonType"] = hasSpecificTarget.ComparisonType.ToString();
-                obj["Selector"]       = JToken.FromObject(hasSpecificTarget.Selector, serializer);
-                break;
-
-            case PartyAllDeadCondition partyAllDead:
-                obj["ComparisonType"] = partyAllDead.ComparisonType.ToString();
-                break;
-
-            case TargetTargetIsSelfCondition targetTargetIsSelf:
-                obj["ComparisonType"] = targetTargetIsSelf.ComparisonType.ToString();
-                break;
-
-            case PlayerLevelCondition playerLevel:
-                obj["ComparisonType"] = playerLevel.ComparisonType.ToString();
-                obj["ExpectedValue"]  = playerLevel.ExpectedValue;
-                break;
-
-            case OptimalPartyRecommendationCondition optimalPartyRecommendation:
-                obj["ComparisonType"] = optimalPartyRecommendation.ComparisonType.ToString();
-                obj["ExpectedValue"]  = optimalPartyRecommendation.ExpectedValue;
-                break;
-
-            case CompletedDutyCountCondition completedDutyCount:
-                obj["ComparisonType"] = completedDutyCount.ComparisonType.ToString();
-                obj["ExpectedValue"]  = completedDutyCount.ExpectedValue;
-                break;
-
-            case AchievementCountCondition achievementCount:
-                obj["ComparisonType"] = achievementCount.ComparisonType.ToString();
-                obj["ExpectedValue"]  = achievementCount.ExpectedValue;
-                obj["AchievementId"]  = achievementCount.AchievementID;
-                break;
-
-            case ItemCountCondition itemCount:
-                obj["ComparisonType"] = itemCount.ComparisonType.ToString();
-                obj["ExpectedValue"]  = itemCount.ExpectedValue;
-                obj["ItemId"]         = itemCount.ItemID;
-                break;
         }
 
         return obj;
     }
 
-    internal static ConditionBase DeserializeCurrent(JObject obj, JsonSerializer serializer)
+    internal static ConditionBase DeserializeCurrent(JObject obj)
     {
-        var kind   = ReadConditionKind(obj["Kind"]);
-        var name   = ReadString(obj["Name"], kind.GetDescription());
-        var remark = ReadString(obj["Remark"]);
+        var typeID = ReadString(obj[TypeIDPropertyName]);
+        if (string.IsNullOrWhiteSpace(typeID))
+            throw new InvalidOperationException("条件缺少 TypeId");
 
-        return kind switch
-        {
-            ConditionDetectType.GameCondition => PopulateCommonFields
-            (
-                new GameConditionStateCondition
-                {
-                    Flag           = ReadEnum(obj["Flag"],           ConditionFlag.InCombat),
-                    ComparisonType = ReadEnum(obj["ComparisonType"], PresenceComparisonType.NotHas)
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.Health => PopulateCommonFields
-            (
-                new HealthCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], NumericComparisonType.LessThan),
-                    TargetType     = ReadEnum(obj["TargetType"],     ConditionTargetType.Target),
-                    Threshold      = ReadFloat(obj["Threshold"])
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.Status => PopulateCommonFields
-            (
-                new StatusCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], PresenceComparisonType.Has),
-                    TargetType     = ReadEnum(obj["TargetType"],     ConditionTargetType.Target),
-                    StatusID       = ReadUInt(obj["StatusId"] ?? obj["StatusID"])
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.ActionCast or ConditionDetectType.ActionCastStart => PopulateCommonFields
-            (
-                new ActionCastCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], PresenceComparisonType.Has),
-                    TargetType     = ReadEnum(obj["TargetType"],     ConditionTargetType.Target),
-                    Action         = ReadActionReference(obj["Action"], obj["ActionId"] ?? obj["ActionID"], serializer)
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.ActionCooldown => PopulateCommonFields
-            (
-                new ActionCooldownCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], CooldownComparisonType.Finished),
-                    Action         = ReadActionReference(obj["Action"], obj["ActionId"] ?? obj["ActionID"], serializer)
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.ActionUsable => PopulateCommonFields
-            (
-                new ActionUsableCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], PresenceComparisonType.Has),
-                    Action         = ReadActionReference(obj["Action"], obj["ActionId"] ?? obj["ActionID"], serializer)
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.PositionRange => PopulateCommonFields
-            (
-                new PositionRangeCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], PresenceComparisonType.Has),
-                    Range          = ReadObject(obj["Range"], serializer, new PositionRange())
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.NearbyTarget => PopulateCommonFields
-            (
-                new NearbyTargetCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], PresenceComparisonType.Has),
-                    Selector       = ReadObject(obj["Selector"], serializer, new TargetSelector())
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.HasTarget => PopulateCommonFields
-            (
-                new HasTargetCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], PresenceComparisonType.Has)
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.HasSpecificTarget => PopulateCommonFields
-            (
-                new HasSpecificTargetCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], PresenceComparisonType.Has),
-                    Selector       = ReadObject(obj["Selector"], serializer, new TargetSelector())
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.PartyAllDead => PopulateCommonFields
-            (
-                new PartyAllDeadCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], PresenceComparisonType.Has)
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.TargetTargetIsSelf => PopulateCommonFields
-            (
-                new TargetTargetIsSelfCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], PresenceComparisonType.Has)
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.PlayerLevel => PopulateCommonFields
-            (
-                new PlayerLevelCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], NumericComparisonType.EqualTo),
-                    ExpectedValue  = ReadInt(obj["ExpectedValue"])
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.OptimalPartyRecommendation => PopulateCommonFields
-            (
-                new OptimalPartyRecommendationCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], NumericComparisonType.EqualTo),
-                    ExpectedValue  = ReadInt(obj["ExpectedValue"])
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.CompletedDutyCount => PopulateCommonFields
-            (
-                new CompletedDutyCountCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], NumericComparisonType.EqualTo),
-                    ExpectedValue  = ReadInt(obj["ExpectedValue"])
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.AchievementCount => PopulateCommonFields
-            (
-                new AchievementCountCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], NumericComparisonType.EqualTo),
-                    ExpectedValue  = ReadInt(obj["ExpectedValue"]),
-                    AchievementID  = ReadUInt(obj["AchievementId"] ?? obj["AchievementID"])
-                },
-                name,
-                remark
-            ),
-            ConditionDetectType.ItemCount => PopulateCommonFields
-            (
-                new ItemCountCondition
-                {
-                    ComparisonType = ReadEnum(obj["ComparisonType"], NumericComparisonType.EqualTo),
-                    ExpectedValue  = ReadInt(obj["ExpectedValue"]),
-                    ItemID         = ReadUInt(obj["ItemId"] ?? obj["ItemID"])
-                },
-                name,
-                remark
-            ),
-            _ => PopulateCommonFields(new HealthCondition(), name, remark)
-        };
+        var runtimeType        = ConditionJsonTypeRegistry.Instance.GetRuntimeType(typeID);
+        var concreteSerializer = PolymorphicJsonSerializerFactory.CreateConcreteTypeSerializer<ConditionBase>();
+
+        return obj.ToObject(runtimeType, concreteSerializer) as ConditionBase ??
+               throw new InvalidOperationException($"无法反序列化条件 TypeId: {typeID}");
     }
 
     internal static ConditionDetectType ReadConditionKind(JToken? token)
@@ -415,13 +191,5 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
             return value;
 
         return fallback;
-    }
-
-    private static T PopulateCommonFields<T>(T condition, string name, string remark)
-        where T : ConditionBase
-    {
-        condition.Name   = name;
-        condition.Remark = remark;
-        return condition;
     }
 }

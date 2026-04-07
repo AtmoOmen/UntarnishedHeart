@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+using UntarnishedHeart.Execution.Condition.Configuration;
 using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Condition.Helpers;
 using UntarnishedHeart.Execution.Preset.Enums;
@@ -5,12 +7,16 @@ using UntarnishedHeart.Execution.Preset.Helpers;
 
 namespace UntarnishedHeart.Execution.Condition;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ConditionJsonType("NearbyTarget", ConditionDetectType.NearbyTarget)]
 public sealed class NearbyTargetCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.NearbyTarget;
 
+    [JsonProperty("ComparisonType")]
     public PresenceComparisonType ComparisonType { get; set; } = PresenceComparisonType.Has;
 
+    [JsonProperty("Selector")]
     public TargetSelector Selector { get; set; } = new() { Kind = TargetSelectorKind.ByObjectKindAndDataID };
 
     public override bool Evaluate(in ConditionContext context)

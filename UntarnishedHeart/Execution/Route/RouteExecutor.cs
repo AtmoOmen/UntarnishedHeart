@@ -88,9 +88,9 @@ public class RouteExecutor
     {
         if (IsRunning || Steps.Count == 0) return;
 
-        State              = RouteExecutorState.Running;
-        CurrentStepIndex   = 0;
-        CompletedDutyCount = 0;
+        State                              = RouteExecutorState.Running;
+        CurrentStepIndex                   = 0;
+        CompletedDutyCount                 = 0;
         IsStopAfterDutyCompletionRequested = false;
 
         cancelToken?.Dispose();

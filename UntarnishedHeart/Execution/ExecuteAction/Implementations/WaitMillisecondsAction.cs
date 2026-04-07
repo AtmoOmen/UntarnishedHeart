@@ -1,9 +1,14 @@
+using Newtonsoft.Json;
+using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ExecuteActionJsonType("Wait", ExecuteActionKind.Wait)]
 public sealed class WaitMillisecondsAction : ExecuteActionBase
 {
+    [JsonProperty("Milliseconds")]
     public int Milliseconds { get; set; }
 
     public override ExecuteActionKind Kind => ExecuteActionKind.Wait;

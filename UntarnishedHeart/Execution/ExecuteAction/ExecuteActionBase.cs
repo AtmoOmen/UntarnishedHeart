@@ -5,13 +5,17 @@ using UntarnishedHeart.Execution.ExecuteAction.Enums;
 
 namespace UntarnishedHeart.Execution.ExecuteAction;
 
+[JsonObject(MemberSerialization.OptIn)]
 [JsonConverter(typeof(ExecuteActionJSONConverter))]
 public abstract class ExecuteActionBase : IEquatable<ExecuteActionBase>
 {
+    [JsonProperty("Name")]
     public string Name { get; set; } = string.Empty;
 
+    [JsonProperty("Remark")]
     public string Remark { get; set; } = string.Empty;
 
+    [JsonProperty("Condition")]
     public ConditionCollection Condition { get; set; } = new();
 
     public abstract ExecuteActionKind Kind { get; }
@@ -33,10 +37,10 @@ public abstract class ExecuteActionBase : IEquatable<ExecuteActionBase>
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
 
-        return Kind == other.Kind                  &&
-               Name == other.Name                 &&
-               Remark == other.Remark             &&
-               EqualsCore(other)                  &&
+        return Kind   == other.Kind   &&
+               Name   == other.Name   &&
+               Remark == other.Remark &&
+               EqualsCore(other)      &&
                Condition.Equals(other.Condition);
     }
 
@@ -56,6 +60,9 @@ public abstract class ExecuteActionBase : IEquatable<ExecuteActionBase>
         target.Condition = ConditionCollection.Copy(Condition);
         return target;
     }
+
+    internal static ExecuteActionBase CreateDefaultAction(ExecuteActionKind kind) =>
+        ExecuteActionJsonTypeRegistry.Instance.CreateDefault(kind);
 
     public static ExecuteActionBase Copy(ExecuteActionBase source) => source.DeepCopy();
 }

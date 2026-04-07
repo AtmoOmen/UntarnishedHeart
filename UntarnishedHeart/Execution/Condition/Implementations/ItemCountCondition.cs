@@ -1,14 +1,19 @@
+using Newtonsoft.Json;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
+using UntarnishedHeart.Execution.Condition.Configuration;
 using UntarnishedHeart.Execution.Condition.Enums;
 using Item = Lumina.Excel.Sheets.Item;
 
 namespace UntarnishedHeart.Execution.Condition;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ConditionJsonType("ItemCount", ConditionDetectType.ItemCount)]
 public sealed class ItemCountCondition : RouteValueConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.ItemCount;
 
+    [JsonProperty("ItemId")]
     public uint ItemID { get; set; }
 
     protected override int GetCurrentValue(in ConditionContext context) => (int)LocalPlayerState.GetItemCount(ItemID);

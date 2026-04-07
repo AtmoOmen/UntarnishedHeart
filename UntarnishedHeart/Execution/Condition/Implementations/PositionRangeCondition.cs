@@ -1,16 +1,22 @@
 ﻿using System.Numerics;
+using Newtonsoft.Json;
+using UntarnishedHeart.Execution.Condition.Configuration;
 using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Condition.Helpers;
 using UntarnishedHeart.Execution.Models;
 
 namespace UntarnishedHeart.Execution.Condition;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ConditionJsonType("PositionRange", ConditionDetectType.PositionRange)]
 public sealed class PositionRangeCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.PositionRange;
 
+    [JsonProperty("ComparisonType")]
     public PresenceComparisonType ComparisonType { get; set; } = PresenceComparisonType.Has;
 
+    [JsonProperty("Range")]
     public PositionRange Range { get; set; } = new();
 
     public override bool Evaluate(in ConditionContext context)

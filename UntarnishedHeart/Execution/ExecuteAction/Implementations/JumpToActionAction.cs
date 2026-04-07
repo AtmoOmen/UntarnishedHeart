@@ -1,9 +1,14 @@
+using Newtonsoft.Json;
+using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ExecuteActionJsonType("JumpToAction", ExecuteActionKind.JumpToAction)]
 public sealed class JumpToActionAction : ExecuteActionBase
 {
+    [JsonProperty("ActionIndex")]
     public int ActionIndex { get; set; }
 
     public override ExecuteActionKind Kind => ExecuteActionKind.JumpToAction;

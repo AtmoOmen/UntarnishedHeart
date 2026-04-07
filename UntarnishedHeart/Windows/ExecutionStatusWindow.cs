@@ -1,5 +1,6 @@
 using Dalamud.Interface.Windowing;
 using UntarnishedHeart.Windows.Components;
+using UntarnishedHeart.Windows.Helpers;
 
 namespace UntarnishedHeart.Windows;
 

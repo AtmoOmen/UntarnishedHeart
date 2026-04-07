@@ -1,16 +1,22 @@
-﻿using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game;
+using Newtonsoft.Json;
+using UntarnishedHeart.Execution.Condition.Configuration;
 using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Condition.Helpers;
 using UntarnishedHeart.Execution.Models;
 
 namespace UntarnishedHeart.Execution.Condition;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ConditionJsonType("ActionUsable", ConditionDetectType.ActionUsable)]
 public sealed class ActionUsableCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.ActionUsable;
 
+    [JsonProperty("ComparisonType")]
     public PresenceComparisonType ComparisonType { get; set; } = PresenceComparisonType.Has;
 
+    [JsonProperty("Action")]
     public ActionReference Action { get; set; } = new();
 
     public override unsafe bool Evaluate(in ConditionContext context)

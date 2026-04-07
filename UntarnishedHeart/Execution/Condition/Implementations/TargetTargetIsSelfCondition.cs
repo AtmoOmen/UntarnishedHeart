@@ -1,11 +1,16 @@
+using Newtonsoft.Json;
+using UntarnishedHeart.Execution.Condition.Configuration;
 using UntarnishedHeart.Execution.Condition.Enums;
 
 namespace UntarnishedHeart.Execution.Condition;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ConditionJsonType("TargetTargetIsSelf", ConditionDetectType.TargetTargetIsSelf)]
 public sealed class TargetTargetIsSelfCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.TargetTargetIsSelf;
 
+    [JsonProperty("ComparisonType")]
     public PresenceComparisonType ComparisonType { get; set; } = PresenceComparisonType.Has;
 
     public override bool Evaluate(in ConditionContext context)

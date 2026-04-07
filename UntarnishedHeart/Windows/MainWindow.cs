@@ -7,6 +7,7 @@ using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Execution.Route;
 using UntarnishedHeart.Internal;
 using UntarnishedHeart.Windows.Components;
+using UntarnishedHeart.Windows.Helpers;
 
 namespace UntarnishedHeart.Windows;
 
@@ -171,6 +172,7 @@ public class MainWindow : Window
         using (ImRaii.Disabled(!isRunning && !canStart))
         {
             var clicked = ImGui.Button(label, new(width, 0f));
+
             if (clicked)
             {
                 if (isRunning)

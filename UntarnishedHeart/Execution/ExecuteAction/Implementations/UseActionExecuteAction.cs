@@ -1,4 +1,6 @@
 using System.Numerics;
+using Newtonsoft.Json;
+using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.ExecuteAction.Helpers;
 using UntarnishedHeart.Execution.Models;
@@ -6,14 +8,20 @@ using UntarnishedHeart.Execution.Preset.Helpers;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ExecuteActionJsonType("UseAction", ExecuteActionKind.UseAction)]
 public sealed class UseActionExecuteAction : ExecuteActionBase
 {
+    [JsonProperty("Action")]
     public ActionReference Action { get; set; } = new();
 
+    [JsonProperty("TargetSelector")]
     public TargetSelector TargetSelector { get; set; } = new();
 
+    [JsonProperty("Location")]
     public Vector3 Location { get; set; }
 
+    [JsonProperty("UseLocation")]
     public bool UseLocation { get; set; }
 
     public override ExecuteActionKind Kind => ExecuteActionKind.UseAction;

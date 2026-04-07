@@ -1,7 +1,6 @@
 using System.Numerics;
 using Newtonsoft.Json;
 using UntarnishedHeart.Execution.Condition.Configuration;
-using UntarnishedHeart.Execution.Condition.Configuration.Migrators;
 using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Condition.Legacy;
 using UntarnishedHeart.Execution.Models;
@@ -9,13 +8,16 @@ using UntarnishedHeart.Execution.Preset.Helpers;
 
 namespace UntarnishedHeart.Execution.Condition;
 
+[JsonObject(MemberSerialization.OptIn)]
 [JsonConverter(typeof(ConditionJSONConverter))]
 public abstract class ConditionBase : IEquatable<ConditionBase>
 {
     protected const float EQUALITY_TOLERANCE = 0.01f;
 
+    [JsonProperty("Name")]
     public string Name { get; set; } = string.Empty;
 
+    [JsonProperty("Remark")]
     public string Remark { get; set; } = string.Empty;
 
     public abstract ConditionDetectType Kind { get; }
@@ -37,8 +39,8 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
 
-        return Kind == other.Kind      &&
-               Name == other.Name     &&
+        return Kind   == other.Kind   &&
+               Name   == other.Name   &&
                Remark == other.Remark &&
                EqualsCore(other);
     }
@@ -149,30 +151,7 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         PresetTargetResolver.Resolve(selector);
 
     protected static ConditionBase CreateDefault(ConditionDetectType kind) =>
-        InitializeMetadata
-        (
-            kind switch
-            {
-                ConditionDetectType.GameCondition              => new GameConditionStateCondition(),
-                ConditionDetectType.Status                     => new StatusCondition(),
-                ConditionDetectType.Health                     => new HealthCondition(),
-                ConditionDetectType.ActionCast                 => new ActionCastCondition(),
-                ConditionDetectType.ActionCooldown             => new ActionCooldownCondition(),
-                ConditionDetectType.ActionUsable               => new ActionUsableCondition(),
-                ConditionDetectType.PositionRange              => new PositionRangeCondition(),
-                ConditionDetectType.NearbyTarget               => new NearbyTargetCondition(),
-                ConditionDetectType.HasTarget                  => new HasTargetCondition(),
-                ConditionDetectType.HasSpecificTarget          => new HasSpecificTargetCondition(),
-                ConditionDetectType.PartyAllDead               => new PartyAllDeadCondition(),
-                ConditionDetectType.TargetTargetIsSelf         => new TargetTargetIsSelfCondition(),
-                ConditionDetectType.PlayerLevel                => new PlayerLevelCondition(),
-                ConditionDetectType.OptimalPartyRecommendation => new OptimalPartyRecommendationCondition(),
-                ConditionDetectType.CompletedDutyCount         => new CompletedDutyCountCondition(),
-                ConditionDetectType.AchievementCount           => new AchievementCountCondition(),
-                ConditionDetectType.ItemCount                  => new ItemCountCondition(),
-                _                                              => new HealthCondition()
-            }
-        );
+        ConditionJsonTypeRegistry.Instance.CreateDefault(kind);
 
     internal static ConditionBase MigrateLegacyV1ToV2
     (
@@ -218,6 +197,12 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
             }
         );
 
+    private static ConditionBase InitializeMetadata(ConditionBase condition)
+    {
+        condition.ResetMetadata();
+        return condition;
+    }
+
     private ConditionBase DrawKindSelector()
     {
         DrawLabel("条件类型", KnownColor.LightSkyBlue.ToVector4());
@@ -247,12 +232,6 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         var remark = Remark;
         if (ImGui.InputText("###ConditionRemarkInput", ref remark, 2048))
             Remark = remark;
-    }
-
-    private static ConditionBase InitializeMetadata(ConditionBase condition)
-    {
-        condition.ResetMetadata();
-        return condition;
     }
 
     internal static ConditionBase CreateDefaultCondition(ConditionDetectType kind) => CreateDefault(kind);

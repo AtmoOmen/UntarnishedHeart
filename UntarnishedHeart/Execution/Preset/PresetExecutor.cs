@@ -38,7 +38,6 @@ public class PresetExecutor : IDisposable
     private Task?                    movementTask;
     private bool                     isStarted;
     private bool                     listenersRegistered;
-    private bool                     stopAfterDutyCompletionRequested;
 
     internal PresetExecutor(Preset? preset, PresetExecutorRunOptions runOptions)
     {
@@ -60,7 +59,7 @@ public class PresetExecutor : IDisposable
 
     public bool IsStopped => Result?.EndReason == ExecutorEndReason.Stopped;
 
-    public bool IsStopAfterDutyCompletionRequested => stopAfterDutyCompletionRequested;
+    public bool IsStopAfterDutyCompletionRequested { get; private set; }
 
     internal Task<PresetExecutorResult> Completion => completionSource.Task;
 
@@ -167,16 +166,16 @@ public class PresetExecutor : IDisposable
         if (Completion.IsCompleted || IsDisposed)
             return false;
 
-        stopAfterDutyCompletionRequested = true;
+        IsStopAfterDutyCompletionRequested = true;
         return true;
     }
 
     public bool CancelStopAfterDutyCompletionRequest()
     {
-        if (Completion.IsCompleted || IsDisposed || !stopAfterDutyCompletionRequested)
+        if (Completion.IsCompleted || IsDisposed || !IsStopAfterDutyCompletionRequested)
             return false;
 
-        stopAfterDutyCompletionRequested = false;
+        IsStopAfterDutyCompletionRequested = false;
         return true;
     }
 
@@ -635,7 +634,7 @@ public class PresetExecutor : IDisposable
 
         await LeaveDutyAndAdvanceRoundAsync
         (
-            stopAfterDutyCompletionRequested ? "副本完成, 离开副本后结束执行" : "副本完成, 离开副本, 进入下一局",
+            IsStopAfterDutyCompletionRequested ? "副本完成, 离开副本后结束执行" : "副本完成, 离开副本, 进入下一局",
             cancellationToken
         );
     }
@@ -723,7 +722,7 @@ public class PresetExecutor : IDisposable
         await WaitForDutyExitAsync(cancellationToken);
         CurrentRound++;
 
-        if (stopAfterDutyCompletionRequested)
+        if (IsStopAfterDutyCompletionRequested)
         {
             Finish
             (
@@ -766,7 +765,7 @@ public class PresetExecutor : IDisposable
                 if (!Throttler.Shared.Throttle("等待副本结束节流")) return false;
                 return !DService.Instance().DutyState.IsDutyStarted && DService.Instance().ClientState.TerritoryType != ExecutorPreset!.Zone;
             },
-            stopAfterDutyCompletionRequested ? "等待退出副本后结束" : "等待副本结束",
+            IsStopAfterDutyCompletionRequested ? "等待退出副本后结束" : "等待副本结束",
             cancellationToken
         );
     }

@@ -1,15 +1,22 @@
-﻿using UntarnishedHeart.Execution.Condition.Enums;
+﻿using Newtonsoft.Json;
+using UntarnishedHeart.Execution.Condition.Configuration;
+using UntarnishedHeart.Execution.Condition.Enums;
 
 namespace UntarnishedHeart.Execution.Condition;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ConditionJsonType("Health", ConditionDetectType.Health)]
 public sealed class HealthCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.Health;
 
+    [JsonProperty("ComparisonType")]
     public NumericComparisonType ComparisonType { get; set; } = NumericComparisonType.LessThan;
 
+    [JsonProperty("TargetType")]
     public ConditionTargetType TargetType { get; set; } = ConditionTargetType.Target;
 
+    [JsonProperty("Threshold")]
     public float Threshold { get; set; }
 
     public override bool Evaluate(in ConditionContext context)

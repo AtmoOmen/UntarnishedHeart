@@ -1,13 +1,19 @@
+using Newtonsoft.Json;
+using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.ExecuteAction.Helpers;
 using UntarnishedHeart.Execution.Preset.Helpers;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ExecuteActionJsonType("InteractTarget", ExecuteActionKind.InteractTarget)]
 public sealed class InteractTargetAction : ExecuteActionBase
 {
+    [JsonProperty("Selector")]
     public TargetSelector Selector { get; set; } = new();
 
+    [JsonProperty("OpenObjectInteraction")]
     public bool OpenObjectInteraction { get; set; }
 
     public override ExecuteActionKind Kind => ExecuteActionKind.InteractTarget;

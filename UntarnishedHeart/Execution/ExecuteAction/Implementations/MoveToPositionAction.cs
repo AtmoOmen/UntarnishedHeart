@@ -1,15 +1,21 @@
 using System.Numerics;
+using Newtonsoft.Json;
 using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.Enums;
+using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.ExecuteAction.Helpers;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ExecuteActionJsonType("MoveToPosition", ExecuteActionKind.MoveToPosition)]
 public sealed class MoveToPositionAction : ExecuteActionBase
 {
+    [JsonProperty("Position")]
     public Vector3 Position { get; set; }
 
+    [JsonProperty("MoveType")]
     public MoveType MoveType { get; set; } = MoveType.传送;
 
     public override ExecuteActionKind Kind => ExecuteActionKind.MoveToPosition;

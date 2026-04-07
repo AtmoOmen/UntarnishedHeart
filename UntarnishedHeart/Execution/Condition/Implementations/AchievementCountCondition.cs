@@ -1,14 +1,19 @@
+using Newtonsoft.Json;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
+using UntarnishedHeart.Execution.Condition.Configuration;
 using UntarnishedHeart.Execution.Condition.Enums;
 using Achievement = Lumina.Excel.Sheets.Achievement;
 
 namespace UntarnishedHeart.Execution.Condition;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ConditionJsonType("AchievementCount", ConditionDetectType.AchievementCount)]
 public sealed class AchievementCountCondition : RouteValueConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.AchievementCount;
 
+    [JsonProperty("AchievementId")]
     public uint AchievementID { get; set; }
 
     protected override int GetCurrentValue(in ConditionContext context) =>

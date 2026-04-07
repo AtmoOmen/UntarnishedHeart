@@ -1,17 +1,24 @@
-﻿using Lumina.Excel.Sheets;
+using Lumina.Excel.Sheets;
+using Newtonsoft.Json;
 using OmenTools.Interop.Game.Lumina;
+using UntarnishedHeart.Execution.Condition.Configuration;
 using UntarnishedHeart.Execution.Condition.Enums;
 
 namespace UntarnishedHeart.Execution.Condition;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ConditionJsonType("Status", ConditionDetectType.Status)]
 public sealed class StatusCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.Status;
 
+    [JsonProperty("ComparisonType")]
     public PresenceComparisonType ComparisonType { get; set; } = PresenceComparisonType.Has;
 
+    [JsonProperty("TargetType")]
     public ConditionTargetType TargetType { get; set; } = ConditionTargetType.Target;
 
+    [JsonProperty("StatusId")]
     public uint StatusID { get; set; }
 
     public override bool Evaluate(in ConditionContext context)

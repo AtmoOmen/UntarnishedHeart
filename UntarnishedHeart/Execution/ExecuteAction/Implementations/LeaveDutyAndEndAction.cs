@@ -1,8 +1,12 @@
+using Newtonsoft.Json;
+using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.ExecuteAction.Helpers;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ExecuteActionJsonType("LeaveDutyAndEndPreset", ExecuteActionKind.LeaveDutyAndEndPreset)]
 public sealed class LeaveDutyAndEndAction : ExecuteActionBase
 {
     public override ExecuteActionKind Kind =>

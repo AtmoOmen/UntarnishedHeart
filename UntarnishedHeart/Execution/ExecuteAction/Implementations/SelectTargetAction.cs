@@ -1,11 +1,16 @@
+using Newtonsoft.Json;
+using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.ExecuteAction.Helpers;
 using UntarnishedHeart.Execution.Preset.Helpers;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ExecuteActionJsonType("SelectTarget", ExecuteActionKind.SelectTarget)]
 public sealed class SelectTargetAction : ExecuteActionBase
 {
+    [JsonProperty("Selector")]
     public TargetSelector Selector { get; set; } = new();
 
     public override ExecuteActionKind Kind =>

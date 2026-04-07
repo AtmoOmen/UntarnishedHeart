@@ -6,8 +6,9 @@ using UntarnishedHeart.Execution.Managers;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Execution.Route;
 using UntarnishedHeart.Internal;
+using UntarnishedHeart.Windows.Components;
 
-namespace UntarnishedHeart.Windows.Components;
+namespace UntarnishedHeart.Windows.Helpers;
 
 internal static class ExecutionUIHelper
 {

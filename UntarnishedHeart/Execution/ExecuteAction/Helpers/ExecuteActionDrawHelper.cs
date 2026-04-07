@@ -39,8 +39,9 @@ internal static class ExecuteActionDrawHelper
                     if (ImGui.InputUInt($"Data ID###{idSuffix}", ref dataID))
                         selector.DataID = dataID;
                 }
-                
+
                 ImGui.SameLine();
+
                 if (ImGuiOm.ButtonIconWithTextVertical(FontAwesomeIcon.Bullseye, "选择当前目标"))
                 {
                     if (TargetManager.Target is { } target)
@@ -49,7 +50,7 @@ internal static class ExecuteActionDrawHelper
                         selector.DataID     = target.DataID;
                     }
                 }
-                
+
                 var requireTargetable = selector.RequireTargetable;
                 if (ImGui.Checkbox($"要求对象为可选中状态###{idSuffix}", ref requireTargetable))
                     selector.RequireTargetable = requireTargetable;
@@ -60,13 +61,15 @@ internal static class ExecuteActionDrawHelper
                 ImGui.SetNextItemWidth(240f * GlobalUIScale);
                 if (ImGui.InputUInt($"Entity ID###{idSuffix}", ref entityID))
                     selector.EntityID = entityID;
-                
+
                 ImGui.SameLine();
+
                 if (ImGuiOm.ButtonIcon("SelectTarget", FontAwesomeIcon.Bullseye, "选择当前目标"))
                 {
                     if (TargetManager.Target is { } target)
                         selector.EntityID = target.EntityID;
                 }
+
                 break;
         }
     }
@@ -79,6 +82,6 @@ internal static class ExecuteActionDrawHelper
             setPosition(localPlayer.Position);
     }
 
-    public static void DrawNoExtraParametersHint() => 
+    public static void DrawNoExtraParametersHint() =>
         ImGui.TextDisabled("此动作无需额外参数");
 }

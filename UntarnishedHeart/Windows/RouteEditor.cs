@@ -170,7 +170,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
             route.Steps.Add(new RouteStep { Name = $"步骤 {route.Steps.Count}" });
             selectedStepIndex = route.Steps.Count - 1; // 选中新添加的步骤
         }
-        
+
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();

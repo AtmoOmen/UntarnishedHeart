@@ -1,10 +1,11 @@
 using System.Numerics;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using UntarnishedHeart.Execution.Condition.Configuration;
+using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
+using UntarnishedHeart.Execution.ExecuteAction.Implementations;
 using UntarnishedHeart.Execution.Models;
 using UntarnishedHeart.Internal.Configuration.Json;
 
@@ -71,43 +72,33 @@ internal sealed class PresetStepV3ToV4Migrator : JsonObjectMigratorBase
     }
 
     private static JObject CreateArrivalWaitAction(Vector3 position) =>
+        ExecuteActionJSONConverter.SerializeToJObject
+        (
+            new WaitMillisecondsAction
+            {
+                Milliseconds = 0,
+                Condition    = CreatePositionRangeConditionCollection(position)
+            },
+            JsonSerializer.CreateDefault()
+        );
+
+    private static ConditionCollection CreatePositionRangeConditionCollection(Vector3 position) =>
         new()
         {
-            ["Version"]      = ExecuteActionJSONMigrator.CurrentJSONVersion,
-            ["Kind"]         = ExecuteActionKind.Wait.ToString(),
-            ["Milliseconds"] = 0,
-            ["Condition"]    = CreatePositionRangeConditionCollection(position)
+            Conditions = [CreatePositionRangeCondition(position)]
         };
 
-    private static JObject CreatePositionRangeConditionCollection(Vector3 position) =>
+    private static PositionRangeCondition CreatePositionRangeCondition(Vector3 position) =>
         new()
         {
-            ["Version"]         = ConditionCollectionJSONMigrator.CurrentJSONVersion,
-            ["Conditions"]      = new JArray(CreatePositionRangeCondition(position)),
-            ["RelationType"]    = ConditionRelationType.And.ToString(),
-            ["ExecuteType"]     = ConditionExecuteType.Wait.ToString(),
-            ["MinExecuteCount"] = 1,
-            ["MaxExecuteCount"] = 1,
-            ["IntervalMs"]      = 0
+            ComparisonType = PresenceComparisonType.Has,
+            Range          = CreatePositionRange(position)
         };
 
-    private static JObject CreatePositionRangeCondition(Vector3 position) =>
+    private static PositionRange CreatePositionRange(Vector3 position) =>
         new()
-        {
-            ["Version"]        = ConditionJSONMigrator.CurrentJSONVersion,
-            ["Kind"]           = ConditionDetectType.PositionRange.ToString(),
-            ["ComparisonType"] = PresenceComparisonType.Has.ToString(),
-            ["Range"]          = CreatePositionRange(position)
-        };
-
-    private static JObject CreatePositionRange(Vector3 position)
-    {
-        var range = new PositionRange
         {
             Center = position,
             Radius = 4f
         };
-
-        return JObject.FromObject(range);
-    }
 }

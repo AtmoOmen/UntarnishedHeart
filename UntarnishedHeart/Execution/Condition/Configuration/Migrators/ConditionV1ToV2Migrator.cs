@@ -22,6 +22,6 @@ internal sealed class ConditionV1ToV2Migrator : JsonObjectMigratorBase
             ConditionJSONConverter.ReadFloat(jsonObject["Value"])
         );
 
-        return ConditionJSONConverter.SerializeToJObject(migrated, JsonSerializer.CreateDefault());
+        return ConditionJSONConverter.SerializeLegacyV2ToJObject(migrated, JsonSerializer.CreateDefault());
     }
 }

@@ -1,16 +1,22 @@
-﻿using OmenTools.OmenService;
+using Newtonsoft.Json;
+using OmenTools.OmenService;
+using UntarnishedHeart.Execution.Condition.Configuration;
 using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Condition.Helpers;
 using UntarnishedHeart.Execution.Models;
 
 namespace UntarnishedHeart.Execution.Condition;
 
+[JsonObject(MemberSerialization.OptIn)]
+[ConditionJsonType("ActionCooldown", ConditionDetectType.ActionCooldown)]
 public sealed class ActionCooldownCondition : ConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.ActionCooldown;
 
+    [JsonProperty("ComparisonType")]
     public CooldownComparisonType ComparisonType { get; set; } = CooldownComparisonType.Finished;
 
+    [JsonProperty("Action")]
     public ActionReference Action { get; set; } = new();
 
     public override bool Evaluate(in ConditionContext context)

@@ -7,12 +7,13 @@ namespace UntarnishedHeart.Execution.ExecuteAction.Configuration;
 
 internal sealed class ExecuteActionJSONMigrator : VersionedJsonMigratorBase<ExecuteActionBase>
 {
-    internal const int CurrentJSONVersion = 2;
+    internal const int CurrentJSONVersion = 3;
 
     private static readonly FrozenDictionary<int, JsonObjectMigratorBase> MigratorsInternal =
         new JsonObjectMigratorBase[]
         {
-            new ExecuteActionV1ToV2Migrator()
+            new ExecuteActionV1ToV2Migrator(),
+            new ExecuteActionV2ToV3Migrator()
         }.ToFrozenDictionary(migrator => migrator.FromVersion);
 
     internal static ExecuteActionJSONMigrator Instance { get; } = new();
@@ -25,5 +26,8 @@ internal sealed class ExecuteActionJSONMigrator : VersionedJsonMigratorBase<Exec
 
     protected override IReadOnlyDictionary<int, JsonObjectMigratorBase> Migrators => MigratorsInternal;
 
-    protected override int ResolveMissingVersion(JObject jsonObject) => LegacyVersion;
+    protected override int ResolveMissingVersion(JObject jsonObject) =>
+        jsonObject["TypeId"] is not null
+            ? CurrentVersion
+            : LegacyVersion;
 }
