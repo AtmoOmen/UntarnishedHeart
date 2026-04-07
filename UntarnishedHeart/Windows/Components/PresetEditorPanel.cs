@@ -1,10 +1,8 @@
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using Lumina.Excel.Sheets;
 using OmenTools.ImGuiOm.Widgets.Combos;
 using OmenTools.Interop.Game.Lumina;
 using UntarnishedHeart.Execution.Enums;
-using UntarnishedHeart.Execution.ExecuteAction;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Windows.Helpers;
 
@@ -38,34 +36,34 @@ internal static class PresetEditorPanel
     private static void DrawBasicInfo(Preset preset, PresetEditorState state)
     {
         ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "名称");
-        
+
         var name = preset.Name;
         ImGui.SetNextItemWidth(-1f);
         if (ImGui.InputText("###PresetNameInput", ref name, 128))
             preset.Name = name;
-        
+
         ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "副本区域");
-        
+
         ImGui.SetNextItemWidth(-1f);
         if (state.ContentCombo.DrawRadio())
             preset.Zone = (ushort)state.ContentCombo.SelectedItem.TerritoryType.RowId;
-        
+
         ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "退出延迟 (毫秒)");
         ImGuiOm.HelpMarker("副本完成时, 等待多长时间后自动离开副本");
-        
+
         var dutyDelay = preset.DutyDelay;
         ImGui.SetNextItemWidth(-1f);
         if (ImGui.InputInt("(ms)###PresetLeaveDutyDelayInput", ref dutyDelay))
             preset.DutyDelay = Math.Max(0, dutyDelay);
-        
+
         var autoOpenTreasure = preset.AutoOpenTreasures;
         ImGui.SetNextItemWidth(-1f);
         if (ImGui.Checkbox("自动开启宝箱", ref autoOpenTreasure))
             preset.AutoOpenTreasures = autoOpenTreasure;
         ImGuiOm.HelpMarker("副本进行时, 会自动记录所有宝箱位置, 并在副本结束时, 挨个瞬移至记录位置并尝试开启宝箱");
-        
+
         ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "备注");
-        
+
         var remark = preset.Remark;
         if (ImGui.InputTextMultiline("###RemarkInput", ref remark, 4096, new(-1f)))
             preset.Remark = remark;
@@ -236,9 +234,9 @@ internal static class PresetEditorPanel
 
     internal sealed class PresetEditorState
     {
-        public int                   CurrentStep { get; set; } = -1;
-        public StepEditorSharedState SharedState { get; } = new();
-        public ContentSelectCombo ContentCombo { get; }
+        public int                   CurrentStep  { get; set; } = -1;
+        public StepEditorSharedState SharedState  { get; }      = new();
+        public ContentSelectCombo    ContentCombo { get; }
 
         public PresetEditorState(Preset preset)
         {

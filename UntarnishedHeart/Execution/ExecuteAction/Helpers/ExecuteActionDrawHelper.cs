@@ -1,7 +1,8 @@
 using System.Numerics;
 using OmenTools.OmenService;
-using UntarnishedHeart.Execution.ExecuteAction.Models;
 using UntarnishedHeart.Execution.Condition;
+using UntarnishedHeart.Execution.ExecuteAction.Enums;
+using UntarnishedHeart.Execution.ExecuteAction.Models;
 using UntarnishedHeart.Execution.Models;
 using UntarnishedHeart.Execution.Preset.Enums;
 using UntarnishedHeart.Execution.Preset.Helpers;
@@ -81,7 +82,7 @@ internal static class ExecuteActionDrawHelper
         if (ImGuiOm.ButtonIcon($"{buttonID}_GetCurrent", FontAwesomeIcon.Bullseye, "取当前位置", true) &&
             DService.Instance().ObjectTable.LocalPlayer is { } localPlayer0)
             setPosition(localPlayer0.Position);
-        
+
         ImGui.SameLine();
         if (ImGuiOm.ButtonIcon($"{buttonID}_ToCurrent", FontAwesomeIcon.WheelchairMove, "瞬移至设置坐标", true) &&
             DService.Instance().ObjectTable.LocalPlayer is { } localPlayer1)
@@ -106,7 +107,7 @@ internal static class ExecuteActionDrawHelper
         {
             var parameter = parameters[i];
 
-            using var id = ImRaii.PushId($"{idSuffix}-{i}");
+            using var id    = ImRaii.PushId($"{idSuffix}-{i}");
             using var group = ImRaii.Group();
 
             ImGui.AlignTextToFramePadding();
@@ -143,34 +144,34 @@ internal static class ExecuteActionDrawHelper
     {
         switch (parameter.Type)
         {
-            case Enums.AtkValueParameterType.Int:
+            case AtkValueParameterType.Int:
                 var intValue = parameter.IntValue;
                 ImGui.SetNextItemWidth(200f * GlobalUIScale);
                 if (ImGui.InputInt("参数值###IntValue", ref intValue))
                     parameter.IntValue = intValue;
                 break;
 
-            case Enums.AtkValueParameterType.UInt:
+            case AtkValueParameterType.UInt:
                 var uintValue = parameter.UIntValue;
                 ImGui.SetNextItemWidth(200f * GlobalUIScale);
                 if (ImGui.InputUInt("参数值###UIntValue", ref uintValue))
                     parameter.UIntValue = uintValue;
                 break;
 
-            case Enums.AtkValueParameterType.Float:
+            case AtkValueParameterType.Float:
                 var floatValue = parameter.FloatValue;
                 ImGui.SetNextItemWidth(200f * GlobalUIScale);
                 if (ImGui.InputFloat("参数值###FloatValue", ref floatValue))
                     parameter.FloatValue = floatValue;
                 break;
 
-            case Enums.AtkValueParameterType.Bool:
+            case AtkValueParameterType.Bool:
                 var boolValue = parameter.BoolValue;
                 if (ImGui.Checkbox("参数值###BoolValue", ref boolValue))
                     parameter.BoolValue = boolValue;
                 break;
 
-            case Enums.AtkValueParameterType.String:
+            case AtkValueParameterType.String:
                 var stringValue = parameter.StringValue;
                 ImGui.SetNextItemWidth(240f * GlobalUIScale);
                 if (ImGui.InputText("参数值###StringValue", ref stringValue, 1024))

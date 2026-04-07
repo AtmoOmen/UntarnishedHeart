@@ -38,8 +38,8 @@ public sealed class AgentReceiveEventAction : ExecuteActionBase
 
     protected override bool EqualsCore(ExecuteActionBase other) =>
         other is AgentReceiveEventAction action &&
-        AgentID   == action.AgentID            &&
-        EventKind == action.EventKind          &&
+        AgentID   == action.AgentID             &&
+        EventKind == action.EventKind           &&
         Parameters.SequenceEqual(action.Parameters);
 
     protected override int GetCoreHashCode()

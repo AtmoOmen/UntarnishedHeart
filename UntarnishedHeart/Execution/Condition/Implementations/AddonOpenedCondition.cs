@@ -29,9 +29,9 @@ public sealed class AddonOpenedCondition : ConditionBase
     }
 
     protected override bool EqualsCore(ConditionBase other) =>
-        other is AddonOpenedCondition condition &&
-        AddonName        == condition.AddonName &&
-        ComparisonType   == condition.ComparisonType &&
+        other is AddonOpenedCondition condition       &&
+        AddonName         == condition.AddonName      &&
+        ComparisonType    == condition.ComparisonType &&
         RequireAddonReady == condition.RequireAddonReady;
 
     protected override int GetCoreHashCode() => HashCode.Combine(AddonName, (int)ComparisonType, RequireAddonReady);

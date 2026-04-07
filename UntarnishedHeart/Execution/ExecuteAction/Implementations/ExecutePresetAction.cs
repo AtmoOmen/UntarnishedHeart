@@ -32,18 +32,17 @@ public sealed class ExecutePresetAction : ExecuteActionBase
             selectedPresetIndex = i;
             break;
         }
-        
+
         var preview = selectedPresetIndex >= 0 ? presets[selectedPresetIndex].Name : "暂无预设";
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
+
         using (var combo = ImRaii.Combo("目标预设###ExecutePresetNameCombo", preview, ImGuiComboFlags.HeightLargest))
         {
             if (combo)
             {
                 for (var i = 0; i < presets.Count; i++)
-                {
                     if (ImGui.Selectable(presets[i].Name, selectedPresetIndex == i))
                         selectedPresetIndex = i;
-                }
             }
         }
 
@@ -58,7 +57,7 @@ public sealed class ExecutePresetAction : ExecuteActionBase
 
     protected override bool EqualsCore(ExecuteActionBase other) =>
         other is ExecutePresetAction action &&
-        PresetName == action.PresetName   &&
+        PresetName == action.PresetName     &&
         DutyOptions.Equals(action.DutyOptions);
 
     protected override int GetCoreHashCode() => HashCode.Combine(PresetName, DutyOptions);
@@ -69,7 +68,7 @@ public sealed class ExecutePresetAction : ExecuteActionBase
             new ExecutePresetAction
             {
                 PresetName  = PresetName,
-                DutyOptions = UntarnishedHeart.Execution.Route.DutyOptions.Copy(DutyOptions)
+                DutyOptions = DutyOptions.Copy(DutyOptions)
             }
         );
 }

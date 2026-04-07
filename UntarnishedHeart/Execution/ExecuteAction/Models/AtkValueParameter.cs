@@ -28,12 +28,12 @@ public sealed class AtkValueParameter : IEquatable<AtkValueParameter>
     public object ToValue() =>
         Type switch
         {
-            AtkValueParameterType.Int   => IntValue,
-            AtkValueParameterType.UInt  => UIntValue,
-            AtkValueParameterType.Float => FloatValue,
-            AtkValueParameterType.Bool  => BoolValue,
+            AtkValueParameterType.Int    => IntValue,
+            AtkValueParameterType.UInt   => UIntValue,
+            AtkValueParameterType.Float  => FloatValue,
+            AtkValueParameterType.Bool   => BoolValue,
             AtkValueParameterType.String => StringValue,
-            _                           => IntValue
+            _                            => IntValue
         };
 
     public static AtkValueArray CreateValueArray(IReadOnlyList<AtkValueParameter> parameters)
@@ -51,11 +51,11 @@ public sealed class AtkValueParameter : IEquatable<AtkValueParameter>
     public AtkValueParameter DeepCopy() =>
         new()
         {
-            Type       = Type,
-            IntValue   = IntValue,
-            UIntValue  = UIntValue,
-            FloatValue = FloatValue,
-            BoolValue  = BoolValue,
+            Type        = Type,
+            IntValue    = IntValue,
+            UIntValue   = UIntValue,
+            FloatValue  = FloatValue,
+            BoolValue   = BoolValue,
             StringValue = StringValue
         };
 
@@ -64,11 +64,11 @@ public sealed class AtkValueParameter : IEquatable<AtkValueParameter>
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
 
-        return Type       == other.Type       &&
-               IntValue   == other.IntValue   &&
-               UIntValue  == other.UIntValue  &&
+        return Type      == other.Type             &&
+               IntValue  == other.IntValue         &&
+               UIntValue == other.UIntValue        &&
                FloatValue.Equals(other.FloatValue) &&
-               BoolValue  == other.BoolValue  &&
+               BoolValue   == other.BoolValue      &&
                StringValue == other.StringValue;
     }
 

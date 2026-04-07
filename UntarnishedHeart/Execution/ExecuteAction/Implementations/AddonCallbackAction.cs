@@ -29,8 +29,8 @@ public sealed class AddonCallbackAction : ExecuteActionBase
     }
 
     protected override bool EqualsCore(ExecuteActionBase other) =>
-        other is AddonCallbackAction action            &&
-        AddonName == action.AddonName                 &&
+        other is AddonCallbackAction action &&
+        AddonName == action.AddonName       &&
         Parameters.SequenceEqual(action.Parameters);
 
     protected override int GetCoreHashCode()

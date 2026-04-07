@@ -1,4 +1,3 @@
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using Dalamud.Interface.Windowing;
 using Newtonsoft.Json;
@@ -32,6 +31,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
         ImGui.Separator();
 
         SelectedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(SelectedRouteIndex, PluginConfig.Instance().Routes.Count);
+
         if (SelectedRouteIndex < 0)
         {
             ImGui.TextDisabled("请选择一条路线进行编辑");
@@ -113,12 +113,12 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
         ImGui.Spacing();
 
         ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "名称");
-        
+
         ImGui.SetNextItemWidth(-1f);
         var routeName = route.Name;
         if (ImGui.InputText("###RouteName", ref routeName, 128))
             route.Name = routeName;
-        
+
         ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "备注");
 
         var routeRemark = route.Remark;
@@ -313,7 +313,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
     private sealed class RouteEditorState
     {
         public int                   CurrentStep { get; set; } = -1;
-        public StepEditorSharedState SharedState { get; } = new();
+        public StepEditorSharedState SharedState { get; }      = new();
     }
 
     public void Dispose() { }

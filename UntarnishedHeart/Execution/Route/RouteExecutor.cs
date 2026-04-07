@@ -1,9 +1,9 @@
 using System.Numerics;
+using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using OmenTools.Dalamud;
 using OmenTools.Info.Game.Enums;
 using OmenTools.Interop.Game;
-using OmenTools.Interop.Game.Helpers;
 using OmenTools.Interop.Windows.Helpers;
 using OmenTools.OmenService;
 using UntarnishedHeart.Execution.Common;
@@ -13,18 +13,22 @@ using UntarnishedHeart.Execution.ExecuteAction;
 using UntarnishedHeart.Execution.ExecuteAction.Implementations;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Execution.Preset.Enums;
+using UntarnishedHeart.Execution.Preset.Helpers;
 using UntarnishedHeart.Execution.Route.Enums;
 using UntarnishedHeart.Internal;
 
 namespace UntarnishedHeart.Execution.Route;
 
-public sealed class RouteExecutor(Route route) : ExecuteActionExecutionHost, IDisposable
+public sealed class RouteExecutor
+(
+    Route route
+) : ExecuteActionExecutionHost, IDisposable
 {
     private CancellationTokenSource? cancelToken;
     private Task?                    executionTask;
     private CancellationTokenSource? movementCancellationSource;
     private Task?                    movementTask;
-    private string                   currentPresetName = string.Empty;
+    private string                   currentPresetName   = string.Empty;
     private string                   routeRunningMessage = string.Empty;
 
     public List<PresetStep> Steps { get; } = route.Steps;
@@ -158,7 +162,7 @@ public sealed class RouteExecutor(Route route) : ExecuteActionExecutionHost, IDi
 
     private async Task ExecuteRouteAsync(CancellationToken cancellationToken)
     {
-        while (CurrentStepIndex < Steps.Count &&
+        while (CurrentStepIndex < Steps.Count             &&
                !cancellationToken.IsCancellationRequested &&
                State is RouteExecutorState.Running or RouteExecutorState.WaitingForExecutor)
         {
@@ -215,9 +219,9 @@ public sealed class RouteExecutor(Route route) : ExecuteActionExecutionHost, IDi
 
     private async Task<ActionFlowResult> ExecutePresetActionAsync
     (
-        string             actionLabel,
+        string              actionLabel,
         ExecutePresetAction action,
-        CancellationToken  cancellationToken
+        CancellationToken   cancellationToken
     )
     {
         if (string.IsNullOrWhiteSpace(action.PresetName))
@@ -265,7 +269,7 @@ public sealed class RouteExecutor(Route route) : ExecuteActionExecutionHost, IDi
         await WaitForAreaReadyAsync(cancellationToken);
 
         CompletedDutyCount += (int)result.CompletedRounds;
-        State              = RouteExecutorState.Running;
+        State              =  RouteExecutorState.Running;
         return ActionFlowResult.Continue();
     }
 
@@ -286,7 +290,7 @@ public sealed class RouteExecutor(Route route) : ExecuteActionExecutionHost, IDi
     }
 
     protected override void LeaveDuty() =>
-        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.LeaveDuty, DService.Instance().Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.InCombat] ? 1U : 0);
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.LeaveDuty, DService.Instance().Condition[ConditionFlag.InCombat] ? 1U : 0);
 
     protected override async Task LeaveDutyAndRestartAsync(string message, CancellationToken cancellationToken)
     {
@@ -321,7 +325,8 @@ public sealed class RouteExecutor(Route route) : ExecuteActionExecutionHost, IDi
 
     protected override async Task ExecuteNearestInteractAsync(string sourceName, CancellationToken cancellationToken)
     {
-        var target = Preset.Helpers.PresetTargetResolver.FindNearestInteractableObject();
+        var target = PresetTargetResolver.FindNearestInteractableObject();
+
         if (target == null)
         {
             SetRunningMessage($"未找到可交互物体: {sourceName}");
@@ -338,7 +343,7 @@ public sealed class RouteExecutor(Route route) : ExecuteActionExecutionHost, IDi
             cancellationToken
         );
 
-        Preset.Helpers.PresetTargetResolver.OpenObjectInteraction(target);
+        PresetTargetResolver.OpenObjectInteraction(target);
     }
 
     protected override async Task ExecuteMovementActionAsync(MoveToPositionAction action, string actionLabel, CancellationToken cancellationToken)
@@ -402,8 +407,8 @@ public sealed class RouteExecutor(Route route) : ExecuteActionExecutionHost, IDi
             {
                 var condition = DService.Instance().Condition;
                 return !DService.Instance().DutyState.IsDutyStarted &&
-                       !condition.IsBoundByDuty                    &&
-                       !condition.IsBetweenAreas                   &&
+                       !condition.IsBoundByDuty                     &&
+                       !condition.IsBetweenAreas                    &&
                        UIModule.IsScreenReady();
             },
             "等待退出副本",

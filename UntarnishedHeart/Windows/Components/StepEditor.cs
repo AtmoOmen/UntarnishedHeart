@@ -64,13 +64,13 @@ internal static class StepEditor
 
     private static unsafe void DrawPhaseTab
     (
-        string                              title,
-        string                              decription,
-        List<ExecuteActionBase>             actions,
-        PresetStepPhase                     phase,
-        ref int                             selectedIndex,
-        EditorState                         state,
-        StepEditorSharedState               sharedState
+        string                  title,
+        string                  decription,
+        List<ExecuteActionBase> actions,
+        PresetStepPhase         phase,
+        ref int                 selectedIndex,
+        EditorState             state,
+        StepEditorSharedState   sharedState
     )
     {
         using var tab = ImRaii.TabItem(title);
@@ -171,12 +171,12 @@ internal static class StepEditor
 
     private static void DrawActionContextMenu
     (
-        List<ExecuteActionBase>             actions,
-        StepEditorSharedState               sharedState,
-        ref int                             selectedIndex,
-        int                                 actionIndex,
-        ExecuteActionBase                   action,
-        PresetStepPhase                     phase
+        List<ExecuteActionBase> actions,
+        StepEditorSharedState   sharedState,
+        ref int                 selectedIndex,
+        int                     actionIndex,
+        ExecuteActionBase       action,
+        PresetStepPhase         phase
     )
     {
         var contextOperation = StepOperationType.Pass;

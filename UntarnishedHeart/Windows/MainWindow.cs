@@ -69,7 +69,7 @@ public class MainWindow : Window
 
         DrawTopActionButton(0, "预设", width, () => WindowManager.Instance().Get<PresetEditor>().IsOpen   ^= true);
         DrawTopActionButton(1, "路线", width, () => WindowManager.Instance().Get<RouteEditor>().IsOpen    ^= true);
-        DrawTopActionButton(2, "调试", width, () => WindowManager.Instance().Get<DebugWindow>().IsOpen          ^= true);
+        DrawTopActionButton(2, "调试", width, () => WindowManager.Instance().Get<DebugWindow>().IsOpen    ^= true);
         DrawTopActionButton(3, "设置", width, () => WindowManager.Instance().Get<SettingsWindow>().IsOpen ^= true);
     }
 

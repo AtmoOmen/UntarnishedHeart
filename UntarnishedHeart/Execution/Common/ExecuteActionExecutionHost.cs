@@ -253,6 +253,7 @@ public abstract class ExecuteActionExecutionHost
             case AddonCallbackAction addonCallback:
             {
                 SetRunningMessage(actionLabel);
+
                 unsafe
                 {
                     if (!AddonHelper.TryGetByName(addonCallback.AddonName, out var addon))
@@ -268,6 +269,7 @@ public abstract class ExecuteActionExecutionHost
             case AgentReceiveEventAction agentReceiveEvent:
             {
                 SetRunningMessage(actionLabel);
+
                 unsafe
                 {
                     using var atkValues = AtkValueParameter.CreateValueArray(agentReceiveEvent.Parameters);
@@ -279,7 +281,17 @@ public abstract class ExecuteActionExecutionHost
 
             default:
             {
-                var customResult = await ExecuteCustomActionCoreAsync(stepIndex, step, phase, actionIndex, action, currentPhaseActionCount, actionLabel, cancellationToken);
+                var customResult = await ExecuteCustomActionCoreAsync
+                                   (
+                                       stepIndex,
+                                       step,
+                                       phase,
+                                       actionIndex,
+                                       action,
+                                       currentPhaseActionCount,
+                                       actionLabel,
+                                       cancellationToken
+                                   );
                 if (customResult is { } result)
                     return result;
 

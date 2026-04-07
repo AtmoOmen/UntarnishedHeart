@@ -29,6 +29,7 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
         };
 
         var migratedSteps = new JArray();
+
         if (jsonObject["Steps"] is JArray steps)
         {
             for (var index = 0; index < steps.Count; index++)
@@ -47,7 +48,7 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
     private static PresetStep MigrateStep(JObject stepObject, int stepIndex)
     {
         var legacyStep = stepObject.ToObject<RouteStep>(Serializer) ?? new RouteStep();
-        var step       = new PresetStep
+        var step = new PresetStep
         {
             Name   = legacyStep.Name,
             Remark = legacyStep.Remark
@@ -67,6 +68,7 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
             {
                 var positiveCondition = CreateConditionCollection(CreateCondition(legacyStep), false);
                 var trueAction        = MigrateBranchAction(legacyStep.TrueAction, legacyStep.TrueJumpIndex, stepIndex);
+
                 if (trueAction != null)
                 {
                     trueAction.Condition = positiveCondition;
@@ -74,6 +76,7 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
                 }
 
                 var falseAction = MigrateBranchAction(legacyStep.FalseAction, legacyStep.FalseJumpIndex, stepIndex);
+
                 if (falseAction != null)
                 {
                     falseAction.Condition = CreateConditionCollection(CreateCondition(legacyStep), true);
@@ -91,17 +94,17 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
     {
         var action = new ExecutePresetAction
         {
-            PresetName  = legacyStep.PresetName,
+            PresetName = legacyStep.PresetName,
             DutyOptions = legacyStep.DutyOptions == null
-                ? new DutyOptions()
-                : new DutyOptions
-                {
-                    LeaderMode           = legacyStep.DutyOptions.LeaderMode,
-                    AutoRecommendGear    = legacyStep.DutyOptions.AutoRecommendGear,
-                    RunTimes             = legacyStep.DutyOptions.RunTimes,
-                    ContentEntryType     = legacyStep.DutyOptions.ContentEntryType,
-                    ContentsFinderOption = legacyStep.DutyOptions.ContentsFinderOption.Clone()
-                }
+                              ? new DutyOptions()
+                              : new DutyOptions
+                              {
+                                  LeaderMode           = legacyStep.DutyOptions.LeaderMode,
+                                  AutoRecommendGear    = legacyStep.DutyOptions.AutoRecommendGear,
+                                  RunTimes             = legacyStep.DutyOptions.RunTimes,
+                                  ContentEntryType     = legacyStep.DutyOptions.ContentEntryType,
+                                  ContentsFinderOption = legacyStep.DutyOptions.ContentsFinderOption.Clone()
+                              }
         };
 
         action.ResetMetadata();
@@ -115,10 +118,10 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
             RouteStepActionType.JumpToStep        => InitializeAction(new JumpToStepAction { StepIndex = jumpIndex }),
             RouteStepActionType.EndRoute          => InitializeAction(new LeaveDutyAndEndAction()),
             RouteStepActionType.GoToPreviousStep => stepIndex > 0
-                ? InitializeAction(new JumpToStepAction { StepIndex = stepIndex - 1 })
-                : InitializeAction(new RestartCurrentStepAction()),
+                                                        ? InitializeAction(new JumpToStepAction { StepIndex = stepIndex - 1 })
+                                                        : InitializeAction(new RestartCurrentStepAction()),
             RouteStepActionType.GoToNextStep => null,
-            _                               => null
+            _                                => null
         };
 
     private static ConditionCollection CreateConditionCollection(ConditionBase condition, bool negate) =>
@@ -132,9 +135,9 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
     {
         ConditionBase condition = legacyStep.ConditionType switch
         {
-            RouteConditionType.PlayerLevel => new PlayerLevelCondition(),
+            RouteConditionType.PlayerLevel                => new PlayerLevelCondition(),
             RouteConditionType.OptimalPartyRecommendation => new OptimalPartyRecommendationCondition(),
-            RouteConditionType.CompletedDutyCount => new CompletedDutyCountCondition(),
+            RouteConditionType.CompletedDutyCount         => new CompletedDutyCountCondition(),
             RouteConditionType.AchievementCount => new AchievementCountCondition
             {
                 AchievementID = (uint)Math.Max(0, legacyStep.ExtraID)

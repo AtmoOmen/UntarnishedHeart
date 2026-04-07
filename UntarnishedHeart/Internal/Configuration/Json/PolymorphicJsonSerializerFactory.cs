@@ -13,14 +13,13 @@ internal static class PolymorphicJsonSerializerFactory
         where TBase : class
     {
         public static ThreadLocal<JsonSerializer> Instance { get; } = new
-        (
-            () => JsonSerializer.CreateDefault
-            (
-                new JsonSerializerSettings
-                {
-                    ContractResolver = new SuppressPolymorphicJsonConverterContractResolver(typeof(TBase))
-                }
-            )
+        (() => JsonSerializer.CreateDefault
+         (
+             new JsonSerializerSettings
+             {
+                 ContractResolver = new SuppressPolymorphicJsonConverterContractResolver(typeof(TBase))
+             }
+         )
         );
     }
 
