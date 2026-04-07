@@ -91,7 +91,7 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
     }
 
-    internal static TEnum DrawEnumCombo<TEnum>(string id, TEnum current)
+    internal static TEnum DrawEnumCombo<TEnum>(string id, TEnum current, in HashSet<TEnum>? passedEnums = null)
         where TEnum : struct, Enum
     {
         using var combo = ImRaii.Combo(id, current.GetDescription(), ImGuiComboFlags.HeightLargest);
@@ -100,6 +100,9 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
 
         foreach (var candidate in Enum.GetValues<TEnum>())
         {
+            if (passedEnums != null && passedEnums.Contains(candidate))
+                continue;
+            
             if (ImGui.Selectable(candidate.GetDescription(), EqualityComparer<TEnum>.Default.Equals(current, candidate)))
                 current = candidate;
 
@@ -187,7 +190,7 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
                     ComparisonType = comparisonType == ConditionComparisonType.NotFinished ? CooldownComparisonType.NotFinished : CooldownComparisonType.Finished,
                     Action         = new ActionReference { ActionID = (uint)Math.Max(0, value) }
                 },
-                ConditionDetectType.ActionCast or ConditionDetectType.ActionCastStart => new ActionCastCondition
+                ConditionDetectType.ActionCast => new ActionCastCondition
                 {
                     TargetType     = targetType,
                     ComparisonType = comparisonType == ConditionComparisonType.NotHas ? PresenceComparisonType.NotHas : PresenceComparisonType.Has,
@@ -207,7 +210,7 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
     {
         DrawLabel("条件类型", KnownColor.LightSkyBlue.ToVector4());
 
-        var selectedKind = DrawEnumCombo("###ConditionKindCombo", Kind);
+        var selectedKind = DrawEnumCombo("###ConditionKindCombo", Kind, [ConditionDetectType.ActionCastStart]);
         if (selectedKind == Kind)
             return this;
 
