@@ -2,8 +2,8 @@ namespace UntarnishedHeart.Execution.Enums;
 
 public enum MoveType
 {
-    寻路,
+    简单移动,
     传送,
     无,
-    vnavmesh
+    寻路
 }
