@@ -19,10 +19,10 @@ public enum ExecuteActionKind
     [Description("重新开始当前执行动作")]
     RestartCurrentAction,
 
-    [Description("退出副本并结束预设")]
+    [Description("退出副本并结束预设/路线")]
     LeaveDutyAndEndPreset,
 
-    [Description("退出副本并重新开始预设")]
+    [Description("退出副本并重新开始预设/路线")]
     LeaveDutyAndRestartPreset,
 
     [Description("文本指令")]
