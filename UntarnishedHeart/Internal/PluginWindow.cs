@@ -20,7 +20,7 @@ internal static class PluginWindow
         windowManager.AddWindow<CollectionSelectorWindow>();
         windowManager.AddWindow<PresetEditor>();
         windowManager.AddWindow<RouteEditor>();
-        windowManager.AddWindow<Debug>();
+        windowManager.AddWindow<DebugWindow>();
 
         DService.Instance().UIBuilder.OpenMainUi += OnMainUI;
     }
@@ -35,7 +35,7 @@ internal static class PluginWindow
         manager.RemoveWindow<CollectionSelectorWindow>();
         manager.RemoveWindow<PresetEditor>();
         manager.RemoveWindow<RouteEditor>();
-        manager.RemoveWindow<Debug>();
+        manager.RemoveWindow<DebugWindow>();
 
         manager.UnregDrawScopes(WindowStylesHandle);
         WindowStylesHandle = default;

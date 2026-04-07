@@ -11,7 +11,7 @@ using Status = Lumina.Excel.Sheets.Status;
 
 namespace UntarnishedHeart.Windows;
 
-public class Debug() : Window($"调试窗口###{Plugin.PLUGIN_NAME}-DebugWindow"), IDisposable
+public class DebugWindow() : Window($"调试窗口###{Plugin.PLUGIN_NAME}-DebugWindow"), IDisposable
 {
     private static long LastCopyTime;
 

@@ -34,7 +34,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
         SelectedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(SelectedRouteIndex, PluginConfig.Instance().Routes.Count);
         if (SelectedRouteIndex < 0)
         {
-            ImGui.Text("请选择一个路线进行编辑");
+            ImGui.TextDisabled("请选择一条路线进行编辑");
             return;
         }
 
@@ -112,22 +112,17 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
     {
         ImGui.Spacing();
 
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("名称:");
-        ImGui.SameLine();
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "名称");
+        
         ImGui.SetNextItemWidth(-1f);
-
         var routeName = route.Name;
-        if (ImGui.InputText("###RouteName", ref routeName, 100))
+        if (ImGui.InputText("###RouteName", ref routeName, 128))
             route.Name = routeName;
-
-        ImGui.Spacing();
-
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("备注:");
+        
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "备注");
 
         var routeRemark = route.Remark;
-        if (ImGui.InputTextMultiline("###RouteRemark", ref routeRemark, 2000, new(-1f)))
+        if (ImGui.InputTextMultiline("###RouteRemark", ref routeRemark, 4096, new(-1f)))
             route.Remark = routeRemark;
     }
 
@@ -204,13 +199,13 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
 
         if (state.CurrentStep < 0 || state.CurrentStep >= route.Steps.Count)
         {
-            ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1f), "请选择一个步骤进行编辑");
+            ImGui.TextDisabled("请选择一个步骤进行编辑");
             return;
         }
 
         var currentStep      = route.Steps[state.CurrentStep];
         var currentStepIndex = state.CurrentStep;
-        PresetStepEditor.Draw(currentStep, ref currentStepIndex, route.Steps, state.SharedState);
+        StepEditor.Draw(currentStep, ref currentStepIndex, route.Steps, state.SharedState);
         state.CurrentStep = currentStepIndex;
     }
 

@@ -32,14 +32,10 @@ public sealed class ExecutePresetAction : ExecuteActionBase
             selectedPresetIndex = i;
             break;
         }
-
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("目标预设:");
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(240f * GlobalUIScale);
-
+        
         var preview = selectedPresetIndex >= 0 ? presets[selectedPresetIndex].Name : "暂无预设";
-        using (var combo = ImRaii.Combo("###ExecutePresetNameCombo", preview, ImGuiComboFlags.HeightLargest))
+        ImGui.SetNextItemWidth(240f * GlobalUIScale);
+        using (var combo = ImRaii.Combo("目标预设###ExecutePresetNameCombo", preview, ImGuiComboFlags.HeightLargest))
         {
             if (combo)
             {

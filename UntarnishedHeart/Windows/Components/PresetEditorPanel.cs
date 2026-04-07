@@ -37,73 +37,37 @@ internal static class PresetEditorPanel
 
     private static void DrawBasicInfo(Preset preset, PresetEditorState state)
     {
-        using var table = ImRaii.Table("PresetBasicInfoTable", 2, ImGuiTableFlags.Resizable);
-        if (!table) return;
-
-        ImGui.TableSetupColumn("Label",   ImGuiTableColumnFlags.WidthFixed);
-        ImGui.TableSetupColumn("Control", ImGuiTableColumnFlags.WidthStretch);
-
-        ImGui.TableNextRow();
-        ImGui.TableNextColumn();
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("名称:");
-        ImGui.TableNextColumn();
-        ImGui.SetNextItemWidth(-1f);
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "名称");
+        
         var name = preset.Name;
+        ImGui.SetNextItemWidth(-1f);
         if (ImGui.InputText("###PresetNameInput", ref name, 128))
             preset.Name = name;
-
-        ImGui.TableNextRow();
-        ImGui.TableSetColumnIndex(0);
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("副本区域:");
-        ImGui.TableSetColumnIndex(1);
-        ImGui.SetNextItemWidth(350f * GlobalUIScale);
-
+        
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "副本区域");
+        
+        ImGui.SetNextItemWidth(-1f);
         if (state.ContentCombo.DrawRadio())
             preset.Zone = (ushort)state.ContentCombo.SelectedItem.TerritoryType.RowId;
-
-        ImGui.SameLine();
-
-        if (ImGuiOm.ButtonIcon("GetZone", FontAwesomeIcon.MapMarkedAlt, "取当前区域", true))
-            preset.Zone = DService.Instance().ClientState.TerritoryType;
-
-        using (ImRaii.PushIndent())
-        {
-            if (LuminaGetter.TryGetRow<TerritoryType>(preset.Zone, out var zoneData))
-            {
-                var zoneName    = zoneData.PlaceName.Value.Name.ExtractText()              ?? "未知区域";
-                var contentName = zoneData.ContentFinderCondition.Value.Name.ExtractText() ?? "未知副本";
-                ImGui.Text($"({zoneName} / {contentName})");
-            }
-        }
-
-        ImGui.TableNextRow();
-        ImGui.TableSetColumnIndex(0);
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("退出延迟:");
-        ImGui.TableSetColumnIndex(1);
+        
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "退出延迟 (毫秒)");
+        ImGuiOm.HelpMarker("副本完成时, 等待多长时间后自动离开副本");
+        
         var dutyDelay = preset.DutyDelay;
-        ImGui.SetNextItemWidth(350f * GlobalUIScale);
+        ImGui.SetNextItemWidth(-1f);
         if (ImGui.InputInt("(ms)###PresetLeaveDutyDelayInput", ref dutyDelay))
             preset.DutyDelay = Math.Max(0, dutyDelay);
-
-        ImGui.TableNextRow();
-        ImGui.TableSetColumnIndex(0);
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("自动开启:");
-        ImGui.TableSetColumnIndex(1);
+        
         var autoOpenTreasure = preset.AutoOpenTreasures;
-        if (ImGui.Checkbox("副本结束时, 自动开启宝箱", ref autoOpenTreasure))
+        ImGui.SetNextItemWidth(-1f);
+        if (ImGui.Checkbox("自动开启宝箱", ref autoOpenTreasure))
             preset.AutoOpenTreasures = autoOpenTreasure;
-
-        ImGui.TableNextRow();
-        ImGui.TableSetColumnIndex(0);
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("备注:");
-        ImGui.TableSetColumnIndex(1);
+        ImGuiOm.HelpMarker("副本进行时, 会自动记录所有宝箱位置, 并在副本结束时, 挨个瞬移至记录位置并尝试开启宝箱");
+        
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "备注");
+        
         var remark = preset.Remark;
-        if (ImGui.InputTextMultiline("###RemarkInput", ref remark, 4096, new(-1f, 120f * GlobalUIScale)))
+        if (ImGui.InputTextMultiline("###RemarkInput", ref remark, 4096, new(-1f)))
             preset.Remark = remark;
     }
 
@@ -180,13 +144,13 @@ internal static class PresetEditorPanel
 
         if (state.CurrentStep < 0 || state.CurrentStep >= preset.Steps.Count)
         {
-            ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1f), "请选择一个步骤进行编辑");
+            ImGui.TextDisabled("请选择一个步骤进行编辑");
             return;
         }
 
         var currentStep      = preset.Steps[state.CurrentStep];
         var currentStepIndex = state.CurrentStep;
-        PresetStepEditor.Draw(currentStep, ref currentStepIndex, preset.Steps, state.SharedState);
+        StepEditor.Draw(currentStep, ref currentStepIndex, preset.Steps, state.SharedState);
         state.CurrentStep = currentStepIndex;
     }
 

@@ -10,7 +10,7 @@ using UntarnishedHeart.Windows.Helpers;
 
 namespace UntarnishedHeart.Windows.Components;
 
-internal static class PresetStepEditor
+internal static class StepEditor
 {
     private static readonly ConditionalWeakTable<PresetStep, EditorState> EditorStates = [];
 
@@ -154,7 +154,7 @@ internal static class PresetStepEditor
 
         if (selectedIndex < 0 || selectedIndex >= actions.Count)
         {
-            ImGui.TextDisabled("请选择一个动作进行编辑");
+            ImGui.TextDisabled("请选择一个执行动作进行编辑");
             return;
         }
 
