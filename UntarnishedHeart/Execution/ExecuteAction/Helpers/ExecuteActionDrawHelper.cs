@@ -1,5 +1,6 @@
 using System.Numerics;
 using OmenTools.OmenService;
+using UntarnishedHeart.Execution.ExecuteAction.Models;
 using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.Models;
 using UntarnishedHeart.Execution.Preset.Enums;
@@ -84,4 +85,92 @@ internal static class ExecuteActionDrawHelper
 
     public static void DrawNoExtraParametersHint() =>
         ImGui.TextDisabled("此动作无需额外参数");
+
+    public static void DrawAtkValueParameters(List<AtkValueParameter> parameters, string idSuffix)
+    {
+        if (ImGui.Button($"新增参数###{idSuffix}"))
+            parameters.Add(new AtkValueParameter());
+
+        if (parameters.Count == 0)
+        {
+            ImGui.TextDisabled("当前没有参数");
+            return;
+        }
+
+        for (var i = 0; i < parameters.Count; i++)
+        {
+            var parameter = parameters[i];
+
+            using var id = ImRaii.PushId($"{idSuffix}-{i}");
+            using var group = ImRaii.Group();
+
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text($"参数 {i}");
+            ImGui.SameLine();
+
+            if (i > 0 && ImGui.ArrowButton("###MoveUp", ImGuiDir.Up))
+                (parameters[i - 1], parameters[i]) = (parameters[i], parameters[i - 1]);
+
+            if (i > 0)
+                ImGui.SameLine();
+
+            if (i < parameters.Count - 1 && ImGui.ArrowButton("###MoveDown", ImGuiDir.Down))
+                (parameters[i + 1], parameters[i]) = (parameters[i], parameters[i + 1]);
+
+            if (i < parameters.Count - 1 || i > 0)
+                ImGui.SameLine();
+
+            if (ImGui.Button("删除"))
+            {
+                parameters.RemoveAt(i);
+                i--;
+                continue;
+            }
+
+            ImGui.SetNextItemWidth(200f * GlobalUIScale);
+            parameter.Type = ConditionBase.DrawEnumCombo("参数类型###Type", parameter.Type);
+            DrawAtkValueParameterValue(parameter);
+            ImGui.Separator();
+        }
+    }
+
+    private static void DrawAtkValueParameterValue(AtkValueParameter parameter)
+    {
+        switch (parameter.Type)
+        {
+            case Enums.AtkValueParameterType.Int:
+                var intValue = parameter.IntValue;
+                ImGui.SetNextItemWidth(200f * GlobalUIScale);
+                if (ImGui.InputInt("参数值###IntValue", ref intValue))
+                    parameter.IntValue = intValue;
+                break;
+
+            case Enums.AtkValueParameterType.UInt:
+                var uintValue = parameter.UIntValue;
+                ImGui.SetNextItemWidth(200f * GlobalUIScale);
+                if (ImGui.InputUInt("参数值###UIntValue", ref uintValue))
+                    parameter.UIntValue = uintValue;
+                break;
+
+            case Enums.AtkValueParameterType.Float:
+                var floatValue = parameter.FloatValue;
+                ImGui.SetNextItemWidth(200f * GlobalUIScale);
+                if (ImGui.InputFloat("参数值###FloatValue", ref floatValue))
+                    parameter.FloatValue = floatValue;
+                break;
+
+            case Enums.AtkValueParameterType.Bool:
+                var boolValue = parameter.BoolValue;
+                if (ImGui.Checkbox("参数值###BoolValue", ref boolValue))
+                    parameter.BoolValue = boolValue;
+                break;
+
+            case Enums.AtkValueParameterType.String:
+                var stringValue = parameter.StringValue;
+                ImGui.SetNextItemWidth(240f * GlobalUIScale);
+                if (ImGui.InputText("参数值###StringValue", ref stringValue, 1024))
+                    parameter.StringValue = stringValue;
+                break;
+        }
+    }
 }

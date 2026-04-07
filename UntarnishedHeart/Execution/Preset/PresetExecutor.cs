@@ -20,6 +20,7 @@ using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.ExecuteAction;
 using UntarnishedHeart.Execution.ExecuteAction.Implementations;
+using UntarnishedHeart.Execution.ExecuteAction.Models;
 using UntarnishedHeart.Execution.Preset.Enums;
 using UntarnishedHeart.Execution.Preset.Helpers;
 
@@ -593,6 +594,33 @@ public class PresetExecutor : IDisposable
             case MoveToPositionAction moveToPosition:
                 await ExecuteMovementActionAsync(moveToPosition, actionLabel, cancellationToken);
                 return ActionFlowResult.Continue();
+
+            case AddonCallbackAction addonCallback:
+            {
+                SetRunningMessage(actionLabel);
+                unsafe
+                {
+                    if (!AddonHelper.TryGetByName(addonCallback.AddonName, out var addon))
+                        return ActionFlowResult.Continue();
+
+                    using var atkValues = AtkValueParameter.CreateValueArray(addonCallback.Parameters);
+                    addon->Callback(atkValues);
+                }
+
+                return ActionFlowResult.Continue();
+            }
+
+            case AgentReceiveEventAction agentReceiveEvent:
+            {
+                SetRunningMessage(actionLabel);
+                unsafe
+                {
+                    using var atkValues = AtkValueParameter.CreateValueArray(agentReceiveEvent.Parameters);
+                    agentReceiveEvent.AgentID.SendEvent(agentReceiveEvent.EventKind, atkValues);
+                }
+
+                return ActionFlowResult.Continue();
+            }
 
             default:
                 throw new InvalidOperationException($"不支持的执行动作类型: {action.Kind}");

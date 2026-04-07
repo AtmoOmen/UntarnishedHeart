@@ -41,5 +41,11 @@ public enum ExecuteActionKind
     UseAction,
 
     [Description("移动到指定位置")]
-    MoveToPosition
+    MoveToPosition,
+
+    [Description("界面回调")]
+    AddonCallback,
+
+    [Description("代理事件")]
+    AgentReceiveEvent
 }
