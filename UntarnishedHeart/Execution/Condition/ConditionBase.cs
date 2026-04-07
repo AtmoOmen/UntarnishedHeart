@@ -1,5 +1,6 @@
 using System.Numerics;
 using Newtonsoft.Json;
+using UntarnishedHeart.Execution.Condition.Configuration;
 using UntarnishedHeart.Execution.Condition.Configuration.Migrators;
 using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Condition.Legacy;
@@ -8,7 +9,7 @@ using UntarnishedHeart.Execution.Preset.Helpers;
 
 namespace UntarnishedHeart.Execution.Condition;
 
-[JsonConverter(typeof(ConditionJsonConverter))]
+[JsonConverter(typeof(ConditionJSONConverter))]
 public abstract class ConditionBase : IEquatable<ConditionBase>
 {
     protected const float EQUALITY_TOLERANCE = 0.01f;

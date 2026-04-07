@@ -5,9 +5,9 @@ using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Models;
 using UntarnishedHeart.Execution.Preset.Helpers;
 
-namespace UntarnishedHeart.Execution.Condition.Configuration.Migrators;
+namespace UntarnishedHeart.Execution.Condition.Configuration;
 
-public sealed class ConditionJsonConverter : JsonConverter<ConditionBase>
+public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
 {
     public override void WriteJson(JsonWriter writer, ConditionBase? value, JsonSerializer serializer)
     {

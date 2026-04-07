@@ -53,11 +53,11 @@ public sealed class ConditionCollectionJSONConverter : JsonConverter<ConditionCo
     internal static ConditionCollection DeserializeCurrent(JObject jsonObject, JsonSerializer serializer) =>
         new()
         {
-            Conditions      = ConditionJsonConverter.ReadObject(jsonObject["Conditions"], serializer, new List<ConditionBase>()),
-            RelationType    = ConditionJsonConverter.ReadEnum(jsonObject["RelationType"], ConditionRelationType.And),
-            ExecuteType     = ConditionJsonConverter.ReadEnum(jsonObject["ExecuteType"],  ConditionExecuteType.Wait),
-            MinExecuteCount = (int)ConditionJsonConverter.ReadUInt(jsonObject["MinExecuteCount"] ?? new JValue(1)),
-            MaxExecuteCount = ConditionJsonConverter.ReadInt(jsonObject["MaxExecuteCount"], 1),
-            IntervalMs      = ConditionJsonConverter.ReadInt(jsonObject["IntervalMs"])
+            Conditions      = ConditionJSONConverter.ReadObject(jsonObject["Conditions"], serializer, new List<ConditionBase>()),
+            RelationType    = ConditionJSONConverter.ReadEnum(jsonObject["RelationType"], ConditionRelationType.And),
+            ExecuteType     = ConditionJSONConverter.ReadEnum(jsonObject["ExecuteType"],  ConditionExecuteType.Wait),
+            MinExecuteCount = (int)ConditionJSONConverter.ReadUInt(jsonObject["MinExecuteCount"] ?? new JValue(1)),
+            MaxExecuteCount = ConditionJSONConverter.ReadInt(jsonObject["MaxExecuteCount"], 1),
+            IntervalMs      = ConditionJSONConverter.ReadInt(jsonObject["IntervalMs"])
         };
 }

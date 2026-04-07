@@ -16,12 +16,12 @@ internal sealed class ConditionV1ToV2Migrator : JsonObjectMigratorBase
     {
         var migrated = ConditionBase.MigrateLegacyV1ToV2
         (
-            ConditionJsonConverter.ReadEnum(jsonObject["DetectType"],     ConditionDetectType.Health),
-            ConditionJsonConverter.ReadEnum(jsonObject["ComparisonType"], ConditionComparisonType.LessThan),
-            ConditionJsonConverter.ReadEnum(jsonObject["TargetType"],     ConditionTargetType.Target),
-            ConditionJsonConverter.ReadFloat(jsonObject["Value"])
+            ConditionJSONConverter.ReadEnum(jsonObject["DetectType"],     ConditionDetectType.Health),
+            ConditionJSONConverter.ReadEnum(jsonObject["ComparisonType"], ConditionComparisonType.LessThan),
+            ConditionJSONConverter.ReadEnum(jsonObject["TargetType"],     ConditionTargetType.Target),
+            ConditionJSONConverter.ReadFloat(jsonObject["Value"])
         );
 
-        return ConditionJsonConverter.SerializeToJObject(migrated, JsonSerializer.CreateDefault());
+        return ConditionJSONConverter.SerializeToJObject(migrated, JsonSerializer.CreateDefault());
     }
 }
