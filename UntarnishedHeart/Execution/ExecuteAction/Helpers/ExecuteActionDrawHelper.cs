@@ -75,12 +75,17 @@ internal static class ExecuteActionDrawHelper
         }
     }
 
-    public static void DrawPositionSelector(string buttonID, Action<Vector3> setPosition)
+    public static unsafe void DrawPositionSelector(string buttonID, Action<Vector3> setPosition)
     {
         ImGui.SameLine();
-        if (ImGuiOm.ButtonIcon(buttonID, FontAwesomeIcon.Bullseye, "取当前位置", true) &&
-            DService.Instance().ObjectTable.LocalPlayer is { } localPlayer)
-            setPosition(localPlayer.Position);
+        if (ImGuiOm.ButtonIcon($"{buttonID}_GetCurrent", FontAwesomeIcon.Bullseye, "取当前位置", true) &&
+            DService.Instance().ObjectTable.LocalPlayer is { } localPlayer0)
+            setPosition(localPlayer0.Position);
+        
+        ImGui.SameLine();
+        if (ImGuiOm.ButtonIcon($"{buttonID}_ToCurrent", FontAwesomeIcon.WheelchairMove, "瞬移至设置坐标", true) &&
+            DService.Instance().ObjectTable.LocalPlayer is { } localPlayer1)
+            localPlayer1.ToStruct()->SetPosition(localPlayer1.Position.X, localPlayer1.Position.Y, localPlayer1.Position.Z);
     }
 
     public static void DrawNoExtraParametersHint() =>
