@@ -1,16 +1,17 @@
 {
     "Author": "AtmoOmen",
     "Name": "Untarnished Heart",
-    "Punchline": "自动化 T 职副本场次成就刷取工具",
-    "Description": "自动化 T 职副本场次成就刷取工具\n注意: 副本战斗需要自行使用其他插件解决",
+    "Punchline": "自动化副本完成、奖励循环刷取插件",
+    "Description": "原本是自动化防护职业副本场次成就刷取工具\n注: 副本战斗需要自行使用其他插件解决, 硬要用本插件写也不是不行",
     "IconUrl": "https://raw.githubusercontent.com/AtmoOmen/UntarnishedHeart/main/Resources/icon.png",
-    "RepoUrl": "https://github.com/AtmoOmen/DalamudPlugins",
+    "RepoUrl": "https://github.com/AtmoOmen/UntarnishedHeart",
     "ApplicableVersion": "any",
     "Tags": [
         "自动",
         "T 职",
         "坦克",
         "成就",
-        "心之长明"
+        "心之长明",
+        "副本"
     ]
 }
