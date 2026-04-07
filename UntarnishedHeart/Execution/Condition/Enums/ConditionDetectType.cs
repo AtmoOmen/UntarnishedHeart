@@ -37,13 +37,13 @@ public enum ConditionDetectType
     [Description("自身是否有特定目标")]
     HasSpecificTarget,
 
-    [Description("当前是否队友均处于无法战斗状态")]
+    [Description("当前全部队友是否均处于无法战斗状态")]
     PartyAllDead,
 
     [Description("当前是否已打开指定界面")]
     AddonOpened,
 
-    [Description("当前队友等级")]
+    [Description("当前全部队友等级")]
     PartyMembersLevel,
 
     [Description("当前目标的目标是否为自身")]
