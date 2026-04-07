@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace UntarnishedHeart.Execution.Route.Enums;
+namespace UntarnishedHeart.Execution.Route.Legacy.Enums;
 
 /// <summary>
 ///     执行逻辑类型

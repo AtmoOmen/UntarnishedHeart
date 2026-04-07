@@ -1,26 +1,33 @@
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using System.Numerics;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using OmenTools.Dalamud;
+using OmenTools.Info.Game.Enums;
+using OmenTools.Interop.Game;
+using OmenTools.Interop.Game.Helpers;
+using OmenTools.Interop.Windows.Helpers;
 using OmenTools.OmenService;
+using UntarnishedHeart.Execution.Common;
+using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.Enums;
+using UntarnishedHeart.Execution.ExecuteAction;
+using UntarnishedHeart.Execution.ExecuteAction.Implementations;
 using UntarnishedHeart.Execution.Preset;
+using UntarnishedHeart.Execution.Preset.Enums;
 using UntarnishedHeart.Execution.Route.Enums;
 using UntarnishedHeart.Internal;
 
 namespace UntarnishedHeart.Execution.Route;
 
-/// <summary>
-///     路线执行器
-/// </summary>
-public class RouteExecutor
-(
-    Route route
-) : IDisposable
+public sealed class RouteExecutor(Route route) : ExecuteActionExecutionHost, IDisposable
 {
     private CancellationTokenSource? cancelToken;
     private Task?                    executionTask;
+    private CancellationTokenSource? movementCancellationSource;
+    private Task?                    movementTask;
+    private string                   currentPresetName = string.Empty;
+    private string                   routeRunningMessage = string.Empty;
 
-    public List<RouteStep> Steps { get; set; } = route.Steps;
+    public List<PresetStep> Steps { get; } = route.Steps;
 
     public int CurrentStepIndex { get; private set; }
 
@@ -40,21 +47,20 @@ public class RouteExecutor
     {
         get
         {
-            if (!IsRunning) return "路线未运行";
-            if (IsFinished) return "路线已完成";
-            if (CurrentStepIndex >= Steps.Count) return "路线索引超出范围";
+            if (CurrentExecutor is { Completion.IsCompleted: false })
+                return $"步骤 {CurrentStepIndex}: {GetCurrentStepName()} - {CurrentExecutor.Progress.RunningMessage}";
 
-            var currentStep = Steps[CurrentStepIndex];
-            var stepInfo    = $"步骤 {CurrentStepIndex}: {currentStep.Name}";
+            if (!string.IsNullOrWhiteSpace(routeRunningMessage))
+                return routeRunningMessage;
 
-            if (CurrentExecutor != null)
+            return State switch
             {
-                var executorMessage = CurrentExecutor.Progress.RunningMessage;
-                if (!string.IsNullOrEmpty(executorMessage))
-                    stepInfo += $" - {executorMessage}";
-            }
-
-            return stepInfo;
+                RouteExecutorState.NotStarted => "路线未运行",
+                RouteExecutorState.Completed  => "路线已完成",
+                RouteExecutorState.Stopped    => "路线已停止",
+                RouteExecutorState.Error      => "路线执行出错",
+                _                             => $"步骤 {CurrentStepIndex}: {GetCurrentStepName()}"
+            };
         }
     }
 
@@ -72,26 +78,28 @@ public class RouteExecutor
         }
         catch (AggregateException)
         {
-            // 忽略取消异常
         }
+
+        movementCancellationSource?.Dispose();
+        movementCancellationSource = null;
+        movementTask               = null;
 
         cancelToken?.Dispose();
         cancelToken   = null;
         executionTask = null;
 
         DisposeCurrentExecutor();
-
         IsDisposed = true;
     }
 
     public async Task StartAsync()
     {
-        if (IsRunning || Steps.Count == 0) return;
+        if (IsRunning || Steps.Count == 0 || IsDisposed) return;
 
+        ResetRouteProgress();
         State                              = RouteExecutorState.Running;
-        CurrentStepIndex                   = 0;
-        CompletedDutyCount                 = 0;
         IsStopAfterDutyCompletionRequested = false;
+        routeRunningMessage                = string.Empty;
 
         cancelToken?.Dispose();
         cancelToken = new CancellationTokenSource();
@@ -124,6 +132,7 @@ public class RouteExecutor
         cancelToken?.Cancel();
         State = RouteExecutorState.Stopped;
 
+        CancelMovement();
         DisposeCurrentExecutor();
     }
 
@@ -149,12 +158,34 @@ public class RouteExecutor
 
     private async Task ExecuteRouteAsync(CancellationToken cancellationToken)
     {
-        while (CurrentStepIndex < Steps.Count && !cancellationToken.IsCancellationRequested)
+        while (CurrentStepIndex < Steps.Count &&
+               !cancellationToken.IsCancellationRequested &&
+               State is RouteExecutorState.Running or RouteExecutorState.WaitingForExecutor)
         {
-            await ExecuteCurrentStepAsync(cancellationToken);
+            var step       = Steps[CurrentStepIndex];
+            var stepResult = await ExecuteStepAsync(step, CurrentStepIndex, cancellationToken);
 
-            if (State == RouteExecutorState.Error)
-                break;
+            switch (stepResult.Kind)
+            {
+                case ActionFlowKind.Continue:
+                    CurrentStepIndex++;
+                    break;
+                case ActionFlowKind.JumpToStep:
+                    CurrentStepIndex = stepResult.Index;
+                    break;
+                case ActionFlowKind.RestartCurrentStep:
+                    break;
+                case ActionFlowKind.LeaveAndEnd:
+                    State = RouteExecutorState.Completed;
+                    NotifyHelper.Instance().Chat("路线执行完成");
+                    return;
+                case ActionFlowKind.LeaveAndRestart:
+                    ResetRouteProgress();
+                    State = RouteExecutorState.Running;
+                    break;
+                default:
+                    throw new InvalidOperationException($"不支持的步骤跳转结果: {stepResult.Kind}");
+            }
         }
 
         if (CurrentStepIndex >= Steps.Count && State == RouteExecutorState.Running)
@@ -164,216 +195,381 @@ public class RouteExecutor
         }
     }
 
-    private async Task ExecuteCurrentStepAsync(CancellationToken cancellationToken)
+    protected override async Task<ActionFlowResult?> ExecuteCustomActionCoreAsync
+    (
+        int               stepIndex,
+        PresetStep        step,
+        PresetStepPhase   phase,
+        int               actionIndex,
+        ExecuteActionBase action,
+        int               currentPhaseActionCount,
+        string            actionLabel,
+        CancellationToken cancellationToken
+    )
     {
-        if (CurrentStepIndex >= Steps.Count)
-            return;
+        if (action is not ExecutePresetAction executePresetAction)
+            return null;
 
-        var currentStep = Steps[CurrentStepIndex];
-
-        try
-        {
-            switch (currentStep.StepType)
-            {
-                case RouteStepType.SwitchPreset:
-                    await ExecuteSwitchPresetStepAsync(currentStep, cancellationToken);
-                    break;
-                case RouteStepType.ConditionCheck:
-                    ExecuteConditionCheckStep(currentStep);
-                    break;
-                default:
-                    NotifyHelper.Instance().Chat($"未知的步骤类型: {currentStep.StepType}");
-                    MoveToNextStep();
-                    break;
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            State = RouteExecutorState.Error;
-            NotifyHelper.Instance().Chat($"执行步骤时出错: {ex.Message}");
-        }
+        return await ExecutePresetActionAsync(actionLabel, executePresetAction, cancellationToken);
     }
 
-    private async Task ExecuteSwitchPresetStepAsync(RouteStep step, CancellationToken cancellationToken)
+    private async Task<ActionFlowResult> ExecutePresetActionAsync
+    (
+        string             actionLabel,
+        ExecutePresetAction action,
+        CancellationToken  cancellationToken
+    )
     {
-        if (string.IsNullOrEmpty(step.PresetName))
-        {
-            NotifyHelper.Instance().Chat("预设名称为空，跳过此步骤");
-            MoveToNextStep();
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(action.PresetName))
+            throw new InvalidOperationException("执行预设动作缺少目标预设名称");
 
-        var currentPresetName = CurrentExecutor?.ExecutorPreset?.Name ?? string.Empty;
-        var preset            = PluginConfig.Instance().Presets.FirstOrDefault(p => p.Name == step.PresetName);
-
+        var preset = PluginConfig.Instance().Presets.FirstOrDefault(candidate => string.Equals(candidate.Name, action.PresetName, StringComparison.Ordinal));
         if (preset is not { IsValid: true })
-        {
-            DisposeCurrentExecutor();
-            NotifyHelper.Instance().Chat($"无法找到有效预设: {step.PresetName}");
-            MoveToNextStep();
-            return;
-        }
+            throw new InvalidOperationException($"无法找到有效预设: {action.PresetName}");
 
-        if (!string.Equals(step.PresetName, currentPresetName, StringComparison.Ordinal))
+        if (!string.Equals(currentPresetName, action.PresetName, StringComparison.Ordinal))
         {
-            DLog.Debug("预设发生变化, 重置副本计数");
+            DLog.Debug("路线执行预设发生变化，重置副本计数");
             CompletedDutyCount = 0;
+            currentPresetName  = action.PresetName;
         }
 
         DisposeCurrentExecutor();
 
-        NotifyHelper.Instance().Chat($"开始执行预设: {preset.Name}");
-
-        CurrentExecutor = new PresetExecutor(preset, step.DutyOptions.ToRunOptions());
+        SetRunningMessage($"{actionLabel} - 开始执行预设: {preset.Name}");
+        CurrentExecutor = new PresetExecutor(preset, action.DutyOptions.ToRunOptions());
         if (IsStopAfterDutyCompletionRequested)
             CurrentExecutor.RequestStopAfterDutyCompletion();
 
         CurrentExecutor.Start();
-
         State = RouteExecutorState.WaitingForExecutor;
 
         var result = await CurrentExecutor.Completion.WaitAsync(cancellationToken);
+        DisposeCurrentExecutor();
 
         switch (result.EndReason)
         {
             case ExecutorEndReason.Error:
-                State = RouteExecutorState.Error;
-                NotifyHelper.Instance().Chat($"预设执行出错: {result.ErrorMessage}");
-                return;
+                throw new InvalidOperationException($"预设执行出错: {result.ErrorMessage}");
+            case ExecutorEndReason.InvalidPreset:
+                throw new InvalidOperationException($"预设无效: {action.PresetName}");
             case ExecutorEndReason.Stopped:
                 State = RouteExecutorState.Stopped;
-                return;
+                return ActionFlowResult.Continue();
             case ExecutorEndReason.CompletedAfterDuty:
                 State = RouteExecutorState.Stopped;
                 NotifyHelper.Instance().Chat("已在副本完成并退出后停止路线执行");
-                return;
-            case ExecutorEndReason.InvalidPreset:
-                NotifyHelper.Instance().Chat($"预设无效，跳过此步骤: {step.PresetName}");
-                State = RouteExecutorState.Running;
-                MoveToNextStep();
-                return;
+                return ActionFlowResult.Continue();
         }
 
-        var condition = DService.Instance().Condition;
-        while ((condition.IsBoundByDuty  ||
-                condition.IsBetweenAreas ||
-                !UIModule.IsScreenReady()) &&
-               !cancellationToken.IsCancellationRequested)
-            await Task.Delay(100, cancellationToken);
+        await WaitForAreaReadyAsync(cancellationToken);
 
         CompletedDutyCount += (int)result.CompletedRounds;
-        State              =  RouteExecutorState.Running;
-
-        var jumpIndex = step.AfterPresetAction == RouteStepActionType.JumpToStep ? step.AfterPresetJumpIndex : 0;
-        ExecuteAction(step.AfterPresetAction, jumpIndex);
+        State              = RouteExecutorState.Running;
+        return ActionFlowResult.Continue();
     }
 
-    private void ExecuteConditionCheckStep(RouteStep step)
+    protected override ConditionContext CreateConditionContext() => ConditionContext.Create(CompletedDutyCount);
+
+    protected override void SetRunningMessage(string message) => routeRunningMessage = message;
+
+    protected override void ValidateStepIndex(int stepIndex)
     {
-        NotifyHelper.Instance().Chat($"检查条件: {step.ConditionType.GetDescription()}");
-
-        var conditionMet = CheckCondition(step);
-        var actionType   = conditionMet ? step.TrueAction : step.FalseAction;
-        var jumpIndex    = conditionMet ? step.TrueJumpIndex : step.FalseJumpIndex;
-
-        NotifyHelper.Instance().Chat($"条件{(conditionMet ? "满足" : "不满足")}，执行动作: {actionType.GetDescription()}");
-
-        ExecuteAction(actionType, jumpIndex);
+        if (stepIndex < 0 || stepIndex >= Steps.Count)
+            throw new InvalidOperationException($"无效的步骤索引: {stepIndex}");
     }
 
-    private bool CheckCondition(RouteStep step) => EvaluateCondition(step);
-
-    private void ExecuteAction(RouteStepActionType actionType, int jumpIndex)
+    protected override void ValidateActionIndex(int actionIndex, int actionCount)
     {
-        switch (actionType)
+        if (actionIndex < 0 || actionIndex >= actionCount)
+            throw new InvalidOperationException($"无效的执行动作索引: {actionIndex}");
+    }
+
+    protected override void LeaveDuty() =>
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.LeaveDuty, DService.Instance().Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.InCombat] ? 1U : 0);
+
+    protected override async Task LeaveDutyAndRestartAsync(string message, CancellationToken cancellationToken)
+    {
+        SetRunningMessage(message);
+        LeaveDuty();
+        await WaitForDutyExitAsync(cancellationToken);
+    }
+
+    protected override async Task RunCommandsAsync(string commands, string actionLabel, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(commands))
+            return;
+
+        foreach (var command in commands.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
-            case RouteStepActionType.RepeatCurrentStep:
-                NotifyHelper.Instance().Chat("重复当前步骤");
-                break;
+            if (command.StartsWith("/wait", StringComparison.OrdinalIgnoreCase))
+            {
+                var split = command.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-            case RouteStepActionType.JumpToStep:
-                if (jumpIndex >= 0 && jumpIndex < Steps.Count)
+                if (split.Length == 2 && int.TryParse(split[1], out var waitTime))
                 {
-                    CurrentStepIndex = jumpIndex;
-                    NotifyHelper.Instance().Chat($"跳转到步骤 {jumpIndex}: {Steps[jumpIndex].Name}");
+                    await DelayAsync(waitTime, $"{actionLabel} - 特殊文本等待", cancellationToken);
+                    continue;
                 }
-                else
-                    NotifyHelper.Instance().Chat($"无效的跳转索引: {jumpIndex}");
+            }
 
-                break;
-
-            case RouteStepActionType.EndRoute:
-                NotifyHelper.Instance().Chat("结束路线执行");
-                Stop();
-                break;
-
-            case RouteStepActionType.GoToPreviousStep:
-                if (CurrentStepIndex > 0)
-                {
-                    CurrentStepIndex--;
-                    NotifyHelper.Instance().Chat($"回到上一步: {Steps[CurrentStepIndex].Name}");
-                }
-                else
-                    NotifyHelper.Instance().Chat("已经是第一步，无法回到上一步");
-
-                break;
-
-            case RouteStepActionType.GoToNextStep:
-                if (CurrentStepIndex < Steps.Count - 1)
-                {
-                    CurrentStepIndex++;
-                    NotifyHelper.Instance().Chat($"顺延到下一步: {Steps[CurrentStepIndex].Name}");
-                }
-                else
-                {
-                    NotifyHelper.Instance().Chat("已经是最后一步，路线执行完成");
-                    State = RouteExecutorState.Completed;
-                }
-
-                break;
+            SetRunningMessage($"{actionLabel} - {command}");
+            ChatManager.Instance().SendCommand(command);
+            await Task.Delay(100, cancellationToken);
         }
     }
 
-    private bool EvaluateCondition(RouteStep step)
+    protected override async Task ExecuteNearestInteractAsync(string sourceName, CancellationToken cancellationToken)
     {
-        var actualValue   = GetConditionValue(step.ConditionType, step.ExtraID);
-        var expectedValue = step.ConditionValue;
-
-        return step.ComparisonType switch
+        var target = Preset.Helpers.PresetTargetResolver.FindNearestInteractableObject();
+        if (target == null)
         {
-            ComparisonType.GreaterThan        => actualValue > expectedValue,
-            ComparisonType.LessThan           => actualValue < expectedValue,
-            ComparisonType.Equal              => actualValue == expectedValue,
-            ComparisonType.GreaterThanOrEqual => actualValue >= expectedValue,
-            ComparisonType.LessThanOrEqual    => actualValue <= expectedValue,
-            ComparisonType.NotEqual           => actualValue != expectedValue,
-            _                                 => false
-        };
+            SetRunningMessage($"未找到可交互物体: {sourceName}");
+            return;
+        }
+
+        await WaitUntilAsync
+        (
+            () => !DService.Instance().Condition.IsOnMount         &&
+                  !DService.Instance().Condition.IsOccupiedInEvent &&
+                  UIModule.IsScreenReady()                         &&
+                  target.TargetInteract(),
+            $"交互最近可交互物体: {sourceName}",
+            cancellationToken
+        );
+
+        Preset.Helpers.PresetTargetResolver.OpenObjectInteraction(target);
     }
 
-    private unsafe int GetConditionValue(RouteConditionType conditionType, int extraID) =>
-        conditionType switch
-        {
-            RouteConditionType.PlayerLevel                => LocalPlayerState.CurrentLevel,
-            RouteConditionType.OptimalPartyRecommendation => PlayerState.Instance()->PlayerCommendations,
-            RouteConditionType.CompletedDutyCount         => CompletedDutyCount,
-            RouteConditionType.AchievementCount => (int)(AchievementManager.Instance().TryGetAchievement((uint)extraID, out var achievementInfo)
-                                                             ? achievementInfo.Current
-                                                             : 0),
-            RouteConditionType.ItemCount => (int)LocalPlayerState.GetItemCount((uint)extraID),
-            _                            => 0
-        };
+    protected override async Task ExecuteMovementActionAsync(MoveToPositionAction action, string actionLabel, CancellationToken cancellationToken)
+    {
+        if (action.Position == default)
+            return;
 
-    private void MoveToNextStep() =>
-        CurrentStepIndex++;
+        switch (action.MoveType)
+        {
+            case MoveType.简单移动:
+                SetRunningMessage(actionLabel);
+                StartPathfindMovement(action.Position, cancellationToken);
+                break;
+            case MoveType.寻路:
+                SetRunningMessage(actionLabel);
+                StartVnavmeshMovement(action.Position, cancellationToken);
+                break;
+            case MoveType.无:
+            case MoveType.传送:
+            default:
+                SetRunningMessage(actionLabel);
+                Teleport(action.Position);
+                break;
+        }
+
+        await Task.CompletedTask;
+    }
+
+    protected override async Task WaitUntilAsync(Func<bool> predicate, string message, CancellationToken cancellationToken, int intervalMs = 100)
+    {
+        SetRunningMessage(message);
+        while (!predicate())
+            await Task.Delay(intervalMs, cancellationToken);
+    }
+
+    protected override async Task DelayAsync(int delayMs, string message, CancellationToken cancellationToken)
+    {
+        SetRunningMessage(message);
+        await Task.Delay(delayMs, cancellationToken);
+    }
+
+    private async Task WaitForAreaReadyAsync(CancellationToken cancellationToken)
+    {
+        await WaitUntilAsync
+        (
+            () =>
+            {
+                var condition = DService.Instance().Condition;
+                return !condition.IsBoundByDuty && !condition.IsBetweenAreas && UIModule.IsScreenReady();
+            },
+            "等待区域加载结束",
+            cancellationToken
+        );
+    }
+
+    private async Task WaitForDutyExitAsync(CancellationToken cancellationToken)
+    {
+        await WaitUntilAsync
+        (
+            () =>
+            {
+                var condition = DService.Instance().Condition;
+                return !DService.Instance().DutyState.IsDutyStarted &&
+                       !condition.IsBoundByDuty                    &&
+                       !condition.IsBetweenAreas                   &&
+                       UIModule.IsScreenReady();
+            },
+            "等待退出副本",
+            cancellationToken
+        );
+    }
+
+    private void ResetRouteProgress()
+    {
+        CompletedDutyCount  = 0;
+        CurrentStepIndex    = 0;
+        currentPresetName   = string.Empty;
+        routeRunningMessage = string.Empty;
+    }
+
+    private string GetCurrentStepName() =>
+        CurrentStepIndex >= 0 && CurrentStepIndex < Steps.Count ? Steps[CurrentStepIndex].Name : "未知步骤";
 
     private void DisposeCurrentExecutor()
     {
         CurrentExecutor?.Dispose();
         CurrentExecutor = null;
+    }
+
+    private static unsafe void Teleport(Vector3 position)
+    {
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
+            return;
+
+        localPlayer.ToStruct()->SetPosition(position.X, position.Y, position.Z);
+        KeyEmulationHelper.SendKeypress(Keys.W);
+    }
+
+    private void StartPathfindMovement(Vector3 position, CancellationToken parentToken) =>
+        StartMovement
+        (
+            async token =>
+            {
+                using var movementController = new MovementInputController();
+                movementController.DesiredPosition = position;
+                movementController.Enabled         = true;
+
+                try
+                {
+                    while (!token.IsCancellationRequested)
+                    {
+                        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
+                        {
+                            await Task.Delay(100, token);
+                            continue;
+                        }
+
+                        if (Vector3.DistanceSquared(localPlayer.Position, position) <= 2f)
+                            break;
+
+                        await Task.Delay(500, token);
+                    }
+                }
+                finally
+                {
+                    movementController.Enabled         = false;
+                    movementController.DesiredPosition = default;
+                }
+            },
+            parentToken
+        );
+
+    private void StartVnavmeshMovement(Vector3 position, CancellationToken parentToken) =>
+        StartMovement(token => RunVnavmeshMovementAsync(position, false, token), parentToken);
+
+    private void StartMovement(Func<CancellationToken, Task> workFactory, CancellationToken parentToken)
+    {
+        CancelMovement();
+
+        var movementCts = CancellationTokenSource.CreateLinkedTokenSource(parentToken);
+        movementCancellationSource = movementCts;
+
+        movementTask = DService.Instance().Framework.Run
+        (
+            async () =>
+            {
+                try
+                {
+                    await workFactory(movementCts.Token);
+                }
+                catch (OperationCanceledException) when (movementCts.IsCancellationRequested)
+                {
+                }
+                catch (Exception ex)
+                {
+                    NotifyHelper.Instance().Chat($"移动执行失败: {ex.Message}");
+                }
+                finally
+                {
+                    if (ReferenceEquals(movementCancellationSource, movementCts))
+                    {
+                        movementCancellationSource = null;
+                        movementTask               = null;
+                    }
+
+                    movementCts.Dispose();
+                }
+            },
+            movementCts.Token
+        );
+    }
+
+    private async Task RunVnavmeshMovementAsync(Vector3 position, bool fly, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var timeout = DateTime.Now.AddSeconds(10);
+            while (!vnavmeshIPC.GetIsNavReady() && DateTime.Now < timeout)
+                await Task.Delay(100, cancellationToken);
+
+            if (!vnavmeshIPC.GetIsNavReady())
+            {
+                NotifyHelper.Instance().ChatError("vnavmesh 未准备就绪");
+                return;
+            }
+
+            if (!vnavmeshIPC.PathfindAndMoveTo(position, fly))
+            {
+                NotifyHelper.Instance().ChatError("vnavmesh 寻路启动失败");
+                return;
+            }
+
+            await Task.Delay(500, cancellationToken);
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
+                {
+                    await Task.Delay(100, cancellationToken);
+                    continue;
+                }
+
+                var distance = Vector3.Distance(localPlayer.Position, position);
+                if (distance <= 2f)
+                    break;
+
+                if (!vnavmeshIPC.GetIsPathfindRunning() && !vnavmeshIPC.GetIsNavPathfindInProgress())
+                {
+                    await Task.Delay(500, cancellationToken);
+                    distance = Vector3.Distance(localPlayer.Position, position);
+
+                    if (distance > 2f)
+                        NotifyHelper.Instance().Chat($"vnavmesh 寻路结束但未到达目标，距离: {distance:F2} 米");
+
+                    break;
+                }
+
+                await Task.Delay(100, cancellationToken);
+            }
+        }
+        finally
+        {
+            vnavmeshIPC.StopPathfind();
+        }
+    }
+
+    private void CancelMovement()
+    {
+        if (movementCancellationSource is not { IsCancellationRequested: false } movementCts)
+            return;
+
+        movementCts.Cancel();
     }
 }

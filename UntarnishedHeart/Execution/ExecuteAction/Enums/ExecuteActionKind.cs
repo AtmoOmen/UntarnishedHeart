@@ -47,5 +47,8 @@ public enum ExecuteActionKind
     AddonCallback,
 
     [Description("代理事件")]
-    AgentReceiveEvent
+    AgentReceiveEvent,
+
+    [Description("执行预设")]
+    ExecutePreset
 }

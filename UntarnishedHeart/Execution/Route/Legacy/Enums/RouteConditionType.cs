@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace UntarnishedHeart.Execution.Route.Enums;
+namespace UntarnishedHeart.Execution.Route.Legacy.Enums;
 
 /// <summary>
 ///     路线条件判断类型

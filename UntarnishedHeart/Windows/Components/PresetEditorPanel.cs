@@ -186,7 +186,7 @@ internal static class PresetEditorPanel
 
         var currentStep      = preset.Steps[state.CurrentStep];
         var currentStepIndex = state.CurrentStep;
-        PresetStepEditor.Draw(currentStep, ref currentStepIndex, preset.Steps, state);
+        PresetStepEditor.Draw(currentStep, ref currentStepIndex, preset.Steps, state.SharedState);
         state.CurrentStep = currentStepIndex;
     }
 
@@ -204,9 +204,9 @@ internal static class PresetEditorPanel
         ImGui.Separator();
 
         if (ImGui.MenuItem("复制"))
-            state.StepToCopy = PresetStep.Copy(step);
+            state.SharedState.StepToCopy = PresetStep.Copy(step);
 
-        if (state.StepToCopy != null)
+        if (state.SharedState.StepToCopy != null)
         {
             if (ImGui.MenuItem("粘贴至本步"))
                 contextOperation = StepOperationType.Paste;
@@ -247,7 +247,7 @@ internal static class PresetEditorPanel
             contextOperation,
             state.CurrentStep,
             () => new PresetStep { Name = $"步骤 {preset.Steps.Count}" },
-            state.StepToCopy == null ? null : () => PresetStep.Copy(state.StepToCopy),
+            state.SharedState.StepToCopy == null ? null : () => PresetStep.Copy(state.SharedState.StepToCopy),
             () => PresetStep.Copy(step)
         );
     }
@@ -272,9 +272,8 @@ internal static class PresetEditorPanel
 
     internal sealed class PresetEditorState
     {
-        public int                CurrentStep  { get; set; } = -1;
-        public PresetStep?        StepToCopy   { get; set; }
-        public ExecuteActionBase? ActionToCopy { get; set; }
+        public int                   CurrentStep { get; set; } = -1;
+        public StepEditorSharedState SharedState { get; } = new();
         public ContentSelectCombo ContentCombo { get; }
 
         public PresetEditorState(Preset preset)

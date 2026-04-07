@@ -2,9 +2,9 @@ using Newtonsoft.Json;
 using OmenTools.Interop.Game.Helpers;
 using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.Preset;
-using UntarnishedHeart.Execution.Route.Enums;
+using UntarnishedHeart.Execution.Route.Legacy.Enums;
 
-namespace UntarnishedHeart.Execution.Route;
+namespace UntarnishedHeart.Execution.Route.Legacy;
 
 /// <summary>
 ///     路线步骤

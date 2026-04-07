@@ -15,6 +15,7 @@ using OmenTools.Interop.Game.Lumina;
 using OmenTools.Interop.Windows.Helpers;
 using OmenTools.OmenService;
 using OmenTools.Threading;
+using UntarnishedHeart.Execution.Common;
 using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Enums;
@@ -26,7 +27,7 @@ using UntarnishedHeart.Execution.Preset.Helpers;
 
 namespace UntarnishedHeart.Execution.Preset;
 
-public class PresetExecutor : IDisposable
+public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
 {
     private readonly SemaphoreSlim                              manualInteractGate = new(1, 1);
     private readonly TaskCompletionSource<PresetExecutorResult> completionSource   = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -150,7 +151,7 @@ public class PresetExecutor : IDisposable
         if (Completion.IsCompleted || ExecutorPreset is not { IsValid: true })
             return;
 
-        ReplaceCurrentWork(token => LeaveDutyAndAdvanceRoundAsync("手动退出副本开启新一局", token));
+        ReplaceCurrentWork(token => LeaveDutyAndRestartAsync("手动退出副本开启新一局", token));
     }
 
     public bool RequestNearestInteract()
@@ -178,38 +179,6 @@ public class PresetExecutor : IDisposable
 
         IsStopAfterDutyCompletionRequested = false;
         return true;
-    }
-
-    private enum ActionFlowKind
-    {
-        Continue,
-        JumpToStep,
-        RestartCurrentStep,
-        JumpToAction,
-        RestartCurrentAction,
-        LeaveAndEndPreset,
-        LeaveAndRestartPreset
-    }
-
-    private readonly record struct ActionFlowResult
-    (
-        ActionFlowKind Kind,
-        int            Index = -1
-    )
-    {
-        public static ActionFlowResult Continue() => new(ActionFlowKind.Continue);
-
-        public static ActionFlowResult JumpToStep(int stepIndex) => new(ActionFlowKind.JumpToStep, stepIndex);
-
-        public static ActionFlowResult RestartStep() => new(ActionFlowKind.RestartCurrentStep);
-
-        public static ActionFlowResult JumpToAction(int actionIndex) => new(ActionFlowKind.JumpToAction, actionIndex);
-
-        public static ActionFlowResult RestartAction() => new(ActionFlowKind.RestartCurrentAction);
-
-        public static ActionFlowResult LeaveAndEndPreset() => new(ActionFlowKind.LeaveAndEndPreset);
-
-        public static ActionFlowResult LeaveAndRestartPreset() => new(ActionFlowKind.LeaveAndRestartPreset);
     }
 
     private async Task RunManualNearestInteractAsync()
@@ -369,7 +338,7 @@ public class PresetExecutor : IDisposable
                     break;
                 case ActionFlowKind.RestartCurrentStep:
                     break;
-                case ActionFlowKind.LeaveAndEndPreset:
+                case ActionFlowKind.LeaveAndEnd:
                     Finish
                     (
                         new PresetExecutorResult
@@ -380,7 +349,7 @@ public class PresetExecutor : IDisposable
                         false
                     );
                     return;
-                case ActionFlowKind.LeaveAndRestartPreset:
+                case ActionFlowKind.LeaveAndRestart:
                     return;
                 default:
                     throw new InvalidOperationException($"不支持的步骤跳转结果: {stepResult.Kind}");
@@ -390,244 +359,7 @@ public class PresetExecutor : IDisposable
         SetRunningMessage("等待副本完成");
     }
 
-    private async Task<ActionFlowResult> ExecuteStepAsync(PresetStep step, int stepIndex, CancellationToken cancellationToken)
-    {
-        foreach (var phase in Enum.GetValues<PresetStepPhase>())
-        {
-            var actions     = GetActions(step, phase);
-            var phaseResult = await ExecutePhaseAsync(stepIndex, step, phase, actions, cancellationToken);
-            if (phaseResult.Kind != ActionFlowKind.Continue)
-                return phaseResult;
-        }
-
-        return ActionFlowResult.Continue();
-    }
-
-    private async Task<ActionFlowResult> ExecutePhaseAsync
-    (
-        int                     stepIndex,
-        PresetStep              step,
-        PresetStepPhase         phase,
-        List<ExecuteActionBase> actions,
-        CancellationToken       cancellationToken
-    )
-    {
-        for (var actionIndex = 0; actionIndex < actions.Count;)
-        {
-            var action = actions[actionIndex];
-            var result = await ExecuteActionAsync(stepIndex, step, phase, actionIndex, action, actions.Count, cancellationToken);
-
-            switch (result.Kind)
-            {
-                case ActionFlowKind.Continue:
-                    actionIndex++;
-                    break;
-                case ActionFlowKind.JumpToAction:
-                    actionIndex = result.Index;
-                    break;
-                case ActionFlowKind.RestartCurrentAction:
-                    break;
-                case ActionFlowKind.JumpToStep:
-                case ActionFlowKind.RestartCurrentStep:
-                case ActionFlowKind.LeaveAndEndPreset:
-                case ActionFlowKind.LeaveAndRestartPreset:
-                    return result;
-                default:
-                    throw new InvalidOperationException($"不支持的动作跳转结果: {result.Kind}");
-            }
-        }
-
-        return ActionFlowResult.Continue();
-    }
-
-    private async Task<ActionFlowResult> ExecuteActionAsync
-    (
-        int               stepIndex,
-        PresetStep        step,
-        PresetStepPhase   phase,
-        int               actionIndex,
-        ExecuteActionBase action,
-        int               currentPhaseActionCount,
-        CancellationToken cancellationToken
-    )
-    {
-        var conditionCollection = action.Condition ?? new ConditionCollection();
-        var executedCount       = 0;
-
-        switch (conditionCollection.ExecuteType)
-        {
-            case ConditionExecuteType.Wait:
-                await WaitUntilAsync
-                (
-                    () => conditionCollection.Evaluate(CreateConditionContext()),
-                    BuildActionMessage(stepIndex, step, phase, actionIndex, "等待条件满足"),
-                    cancellationToken
-                );
-                return await ExecuteActionCoreAsync(stepIndex, step, phase, actionIndex, action, currentPhaseActionCount, cancellationToken);
-
-            case ConditionExecuteType.Skip:
-                if (!conditionCollection.Evaluate(CreateConditionContext()))
-                    return ActionFlowResult.Continue();
-
-                return await ExecuteActionCoreAsync(stepIndex, step, phase, actionIndex, action, currentPhaseActionCount, cancellationToken);
-
-            case ConditionExecuteType.Repeat:
-                while (ShouldRepeat(conditionCollection, executedCount))
-                {
-                    var result = await ExecuteActionCoreAsync(stepIndex, step, phase, actionIndex, action, currentPhaseActionCount, cancellationToken);
-                    executedCount++;
-                    if (result.Kind != ActionFlowKind.Continue)
-                        return result;
-
-                    if (ShouldRepeat(conditionCollection, executedCount) && conditionCollection.IntervalMs > 0)
-                        await DelayAsync(conditionCollection.IntervalMs, BuildActionMessage(stepIndex, step, phase, actionIndex, "等待重复间隔"), cancellationToken);
-                }
-
-                return ActionFlowResult.Continue();
-
-            case ConditionExecuteType.Sustain:
-                while (ShouldSustain(conditionCollection, executedCount))
-                {
-                    var result = await ExecuteActionCoreAsync(stepIndex, step, phase, actionIndex, action, currentPhaseActionCount, cancellationToken);
-                    executedCount++;
-                    if (result.Kind != ActionFlowKind.Continue)
-                        return result;
-
-                    if (ShouldSustain(conditionCollection, executedCount) && conditionCollection.IntervalMs > 0)
-                        await DelayAsync(conditionCollection.IntervalMs, BuildActionMessage(stepIndex, step, phase, actionIndex, "等待持续间隔"), cancellationToken);
-                }
-
-                return ActionFlowResult.Continue();
-
-            default:
-                throw new InvalidOperationException($"不支持的条件执行类型: {conditionCollection.ExecuteType}");
-        }
-    }
-
-    private async Task<ActionFlowResult> ExecuteActionCoreAsync
-    (
-        int               stepIndex,
-        PresetStep        step,
-        PresetStepPhase   phase,
-        int               actionIndex,
-        ExecuteActionBase action,
-        int               currentPhaseActionCount,
-        CancellationToken cancellationToken
-    )
-    {
-        var actionLabel = BuildActionMessage(stepIndex, step, phase, actionIndex, action.Name);
-
-        switch (action)
-        {
-            case WaitMillisecondsAction waitMilliseconds:
-                if (waitMilliseconds.Milliseconds > 0)
-                    await DelayAsync(waitMilliseconds.Milliseconds, actionLabel, cancellationToken);
-                return ActionFlowResult.Continue();
-
-            case JumpToStepAction jumpToStep:
-                ValidateStepIndex(jumpToStep.StepIndex);
-                SetRunningMessage(actionLabel);
-                return ActionFlowResult.JumpToStep(jumpToStep.StepIndex);
-
-            case RestartCurrentStepAction:
-                SetRunningMessage(actionLabel);
-                return ActionFlowResult.RestartStep();
-
-            case JumpToActionAction jumpToAction:
-                ValidateActionIndex(jumpToAction.ActionIndex, currentPhaseActionCount);
-                SetRunningMessage(actionLabel);
-                return ActionFlowResult.JumpToAction(jumpToAction.ActionIndex);
-
-            case RestartCurrentActionAction:
-                SetRunningMessage(actionLabel);
-                return ActionFlowResult.RestartAction();
-
-            case LeaveDutyAndEndAction:
-                SetRunningMessage(actionLabel);
-                LeaveDuty();
-                return ActionFlowResult.LeaveAndEndPreset();
-
-            case LeaveDutyAndRestartAction:
-                await LeaveDutyAndAdvanceRoundAsync(actionLabel, cancellationToken);
-                return ActionFlowResult.LeaveAndRestartPreset();
-
-            case TextCommandAction textCommand:
-                await RunCommandsAsync(textCommand.Commands, actionLabel, cancellationToken);
-                return ActionFlowResult.Continue();
-
-            case SelectTargetAction selectTarget:
-                SetRunningMessage(actionLabel);
-                PresetTargetResolver.SelectTarget(PresetTargetResolver.Resolve(selectTarget.Selector));
-                return ActionFlowResult.Continue();
-
-            case InteractTargetAction interactTarget:
-            {
-                SetRunningMessage(actionLabel);
-                var gameObject = PresetTargetResolver.Resolve(interactTarget.Selector);
-                if (gameObject == null)
-                    return ActionFlowResult.Continue();
-
-                gameObject.TargetInteract();
-                if (interactTarget.OpenObjectInteraction)
-                    PresetTargetResolver.OpenObjectInteraction(gameObject);
-
-                return ActionFlowResult.Continue();
-            }
-
-            case InteractNearestObjectAction:
-                await ExecuteNearestInteractAsync(actionLabel, cancellationToken);
-                return ActionFlowResult.Continue();
-
-            case UseActionExecuteAction useAction:
-            {
-                SetRunningMessage(actionLabel);
-                var targetID = PresetTargetResolver.Resolve(useAction.TargetSelector)?.GameObjectID ?? 0xE000_0000UL;
-
-                if (useAction.UseLocation)
-                    UseActionManager.Instance().UseActionLocation(useAction.Action.ActionType, useAction.Action.ActionID, targetID, useAction.Location);
-                else
-                    UseActionManager.Instance().UseAction(useAction.Action.ActionType, useAction.Action.ActionID, targetID);
-
-                return ActionFlowResult.Continue();
-            }
-
-            case MoveToPositionAction moveToPosition:
-                await ExecuteMovementActionAsync(moveToPosition, actionLabel, cancellationToken);
-                return ActionFlowResult.Continue();
-
-            case AddonCallbackAction addonCallback:
-            {
-                SetRunningMessage(actionLabel);
-                unsafe
-                {
-                    if (!AddonHelper.TryGetByName(addonCallback.AddonName, out var addon))
-                        return ActionFlowResult.Continue();
-
-                    using var atkValues = AtkValueParameter.CreateValueArray(addonCallback.Parameters);
-                    addon->Callback(atkValues);
-                }
-
-                return ActionFlowResult.Continue();
-            }
-
-            case AgentReceiveEventAction agentReceiveEvent:
-            {
-                SetRunningMessage(actionLabel);
-                unsafe
-                {
-                    using var atkValues = AtkValueParameter.CreateValueArray(agentReceiveEvent.Parameters);
-                    agentReceiveEvent.AgentID.SendEvent(agentReceiveEvent.EventKind, atkValues);
-                }
-
-                return ActionFlowResult.Continue();
-            }
-
-            default:
-                throw new InvalidOperationException($"不支持的执行动作类型: {action.Kind}");
-        }
-    }
-
-    private async Task ExecuteMovementActionAsync(MoveToPositionAction action, string actionLabel, CancellationToken cancellationToken)
+    protected override async Task ExecuteMovementActionAsync(MoveToPositionAction action, string actionLabel, CancellationToken cancellationToken)
     {
         if (action.Position == default)
             return;
@@ -660,14 +392,14 @@ public class PresetExecutor : IDisposable
         if (ExecutorPreset.DutyDelay > 0)
             await DelayAsync(ExecutorPreset.DutyDelay, $"等待退出延迟: {ExecutorPreset.DutyDelay} ms", cancellationToken);
 
-        await LeaveDutyAndAdvanceRoundAsync
+        await LeaveDutyAndRestartAsync
         (
             IsStopAfterDutyCompletionRequested ? "副本完成, 离开副本后结束执行" : "副本完成, 离开副本, 进入下一局",
             cancellationToken
         );
     }
 
-    private async Task RunCommandsAsync(string commands, string actionLabel, CancellationToken cancellationToken)
+    protected override async Task RunCommandsAsync(string commands, string actionLabel, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(commands))
             return;
@@ -691,7 +423,7 @@ public class PresetExecutor : IDisposable
         }
     }
 
-    private async Task ExecuteNearestInteractAsync(string sourceName, CancellationToken cancellationToken)
+    protected override async Task ExecuteNearestInteractAsync(string sourceName, CancellationToken cancellationToken)
     {
         var target = PresetTargetResolver.FindNearestInteractableObject();
 
@@ -714,14 +446,14 @@ public class PresetExecutor : IDisposable
         PresetTargetResolver.OpenObjectInteraction(target);
     }
 
-    private async Task WaitUntilAsync(Func<bool> predicate, string message, CancellationToken cancellationToken, int intervalMs = 100)
+    protected override async Task WaitUntilAsync(Func<bool> predicate, string message, CancellationToken cancellationToken, int intervalMs = 100)
     {
         SetRunningMessage(message);
         while (!predicate())
             await Task.Delay(intervalMs, cancellationToken);
     }
 
-    private async Task DelayAsync(int delayMs, string message, CancellationToken cancellationToken)
+    protected override async Task DelayAsync(int delayMs, string message, CancellationToken cancellationToken)
     {
         SetRunningMessage(message);
         await Task.Delay(delayMs, cancellationToken);
@@ -741,7 +473,7 @@ public class PresetExecutor : IDisposable
         await Task.Delay(100, cancellationToken);
     }
 
-    private async Task LeaveDutyAndAdvanceRoundAsync(string message, CancellationToken cancellationToken)
+    protected override async Task LeaveDutyAndRestartAsync(string message, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -1038,10 +770,10 @@ public class PresetExecutor : IDisposable
         }
     }
 
-    private static void LeaveDuty() =>
+    protected override void LeaveDuty() =>
         ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.LeaveDuty, DService.Instance().Condition[ConditionFlag.InCombat] ? 1U : 0);
 
-    private void SetRunningMessage(string message) => RunningMessage = message;
+    protected override void SetRunningMessage(string message) => RunningMessage = message;
 
     private void AbortPrevious()
     {
@@ -1079,53 +811,17 @@ public class PresetExecutor : IDisposable
         completionSource.TrySetResult(result);
     }
 
-    private ConditionContext CreateConditionContext() => ConditionContext.Create((int)CurrentRound);
+    protected override ConditionContext CreateConditionContext() => ConditionContext.Create((int)CurrentRound);
 
-    private static List<ExecuteActionBase> GetActions(PresetStep step, PresetStepPhase phase) =>
-        phase switch
-        {
-            PresetStepPhase.Enter => step.EnterActions,
-            PresetStepPhase.Body  => step.BodyActions,
-            PresetStepPhase.Exit  => step.ExitActions,
-            _                     => throw new InvalidOperationException($"不支持的阶段: {phase}")
-        };
-
-    private bool ShouldRepeat(ConditionCollection conditionCollection, int executedCount)
-    {
-        if (conditionCollection.MaxExecuteCount > 0 && executedCount >= conditionCollection.MaxExecuteCount)
-            return false;
-
-        if (executedCount < conditionCollection.MinExecuteCount)
-            return true;
-
-        return !conditionCollection.Evaluate(CreateConditionContext());
-    }
-
-    private bool ShouldSustain(ConditionCollection conditionCollection, int executedCount)
-    {
-        if (conditionCollection.MaxExecuteCount > 0 && executedCount >= conditionCollection.MaxExecuteCount)
-            return false;
-
-        if (executedCount < conditionCollection.MinExecuteCount)
-            return true;
-
-        return conditionCollection.Evaluate(CreateConditionContext());
-    }
-
-    private void ValidateStepIndex(int stepIndex)
+    protected override void ValidateStepIndex(int stepIndex)
     {
         if (ExecutorPreset == null || stepIndex < 0 || stepIndex >= ExecutorPreset.Steps.Count)
             throw new InvalidOperationException($"无效的步骤索引: {stepIndex}");
     }
 
-    private static void ValidateActionIndex(int actionIndex, int actionCount)
+    protected override void ValidateActionIndex(int actionIndex, int actionCount)
     {
         if (actionIndex < 0 || actionIndex >= actionCount)
             throw new InvalidOperationException($"无效的执行动作索引: {actionIndex}");
     }
-
-    private static string BuildActionMessage(int stepIndex, PresetStep step, PresetStepPhase phase, int actionIndex, string suffix) =>
-        string.IsNullOrEmpty(suffix)
-            ? $"步骤 {stepIndex} [{phase.GetDescription()} #{actionIndex}] {step.Name}"
-            : $"步骤 {stepIndex} [{phase.GetDescription()} #{actionIndex}] {step.Name}: {suffix}";
 }

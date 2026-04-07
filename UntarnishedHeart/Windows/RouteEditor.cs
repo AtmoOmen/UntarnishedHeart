@@ -1,28 +1,22 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Dalamud.Interface.Windowing;
-using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
-using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 using UntarnishedHeart.Execution.Enums;
+using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Execution.Route;
-using UntarnishedHeart.Execution.Route.Enums;
 using UntarnishedHeart.Internal;
 using UntarnishedHeart.Windows.Components;
 using UntarnishedHeart.Windows.Helpers;
-using Achievement = Lumina.Excel.Sheets.Achievement;
 
 namespace UntarnishedHeart.Windows;
 
 public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-RouteEditor", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
 {
-    private static int        SelectedRouteIndex;
-    private static int        DraggedStepIndex = -1;
-    private static RouteStep? CopiedStep;
-    private        int        selectedStepIndex = -1;
+    private static readonly ConditionalWeakTable<Route, RouteEditorState> EditorStates = [];
 
-    // Tab状态管理
-    private int selectedTabIndex;
+    private static int SelectedRouteIndex;
 
     public override void Draw()
     {
@@ -33,19 +27,18 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
         ImGui.TableNextRow();
         ImGui.TableSetColumnIndex(0);
 
-        // 控制栏
         DrawControlBar();
 
         ImGui.Separator();
 
-        // 主体内容 - Tab布局
-        if (PluginConfig.Instance().Routes.Count > 0)
+        SelectedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(SelectedRouteIndex, PluginConfig.Instance().Routes.Count);
+        if (SelectedRouteIndex < 0)
         {
-            var selectedRoute = PluginConfig.Instance().Routes[SelectedRouteIndex];
-            DrawTabContent(selectedRoute);
-        }
-        else
             ImGui.Text("请选择一个路线进行编辑");
+            return;
+        }
+
+        DrawTabContent(PluginConfig.Instance().Routes[SelectedRouteIndex]);
     }
 
     private static void DrawControlBar()
@@ -70,7 +63,7 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
             "AddNewRoute",
             () =>
             {
-                PluginConfig.Instance().Routes.Add(new() { Name = $"新路线 {PluginConfig.Instance().Routes.Count + 1}" });
+                PluginConfig.Instance().Routes.Add(new Route { Name = $"新路线 {PluginConfig.Instance().Routes.Count + 1}" });
                 SelectedRouteIndex = PluginConfig.Instance().Routes.Count - 1;
             },
             "ImportNewRoute",
@@ -95,29 +88,23 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
         );
     }
 
-    private void DrawTabContent(Route route)
+    private static void DrawTabContent(Route route)
     {
+        var state = EditorStates.GetValue(route, static _ => new RouteEditorState());
+
         using var tabBar = ImRaii.TabBar("RouteEditorTabs");
         if (!tabBar) return;
 
-        // 基本信息Tab
         using (var basicInfoTab = ImRaii.TabItem("基本信息"))
         {
             if (basicInfoTab)
-            {
-                selectedTabIndex = 0;
                 DrawBasicInfoTab(route);
-            }
         }
 
-        // 步骤Tab
         using (var stepsTab = ImRaii.TabItem("步骤"))
         {
             if (stepsTab)
-            {
-                selectedTabIndex = 1;
-                DrawStepsTab(route);
-            }
+                DrawStepsTab(route, state);
         }
     }
 
@@ -125,466 +112,176 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
     {
         ImGui.Spacing();
 
-        // 路线名称
         ImGui.AlignTextToFramePadding();
         ImGui.Text("名称:");
-
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(-1);
+        ImGui.SetNextItemWidth(-1f);
+
         var routeName = route.Name;
         if (ImGui.InputText("###RouteName", ref routeName, 100))
             route.Name = routeName;
 
         ImGui.Spacing();
 
-        // 路线备注
         ImGui.AlignTextToFramePadding();
         ImGui.Text("备注:");
 
-        var routeNote = route.Note;
-        if (ImGui.InputTextMultiline("###RouteNote", ref routeNote, 1000, new(-1f)))
-            route.Note = routeNote;
+        var routeRemark = route.Remark;
+        if (ImGui.InputTextMultiline("###RouteRemark", ref routeRemark, 2000, new(-1f)))
+            route.Remark = routeRemark;
     }
 
-    private void DrawStepsTab(Route route)
+    private static unsafe void DrawStepsTab(Route route, RouteEditorState state)
     {
-        using var table = ImRaii.Table("StepsTable", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV);
+        state.CurrentStep = NormalizeCurrentStep(state.CurrentStep, route.Steps.Count);
+
+        using var table = ImRaii.Table("RouteStepsTable", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV);
         if (!table) return;
 
-        ImGui.TableSetupColumn("StepsList",   ImGuiTableColumnFlags.WidthFixed, 300f * GlobalUIScale);
+        ImGui.TableSetupColumn("StepsList",   ImGuiTableColumnFlags.WidthFixed, 200f * GlobalUIScale);
         ImGui.TableSetupColumn("StepDetails", ImGuiTableColumnFlags.WidthStretch);
-
         ImGui.TableNextRow();
 
         ImGui.TableSetColumnIndex(0);
-        DrawStepsList(route);
-
-        ImGui.TableSetColumnIndex(1);
-        DrawStepDetails(route);
-    }
-
-    private void DrawStepsList(Route route)
-    {
         if (ImGuiOm.ButtonStretch("添加步骤"))
-        {
-            route.Steps.Add(new RouteStep { Name = $"步骤 {route.Steps.Count}" });
-            selectedStepIndex = route.Steps.Count - 1; // 选中新添加的步骤
-        }
+            route.Steps.Add(new PresetStep { Name = $"步骤 {route.Steps.Count}" });
 
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
 
-        // 绘制步骤列表
-        using var child = ImRaii.Child("StepsListChild", new Vector2(0, 0), true);
-
-        if (child)
+        using (var child = ImRaii.Child("RouteStepsSelectChild", ImGui.GetContentRegionAvail(), true))
         {
-            for (var i = 0; i < route.Steps.Count; i++)
-                DrawStepListItem(route, i);
-        }
-    }
-
-    private unsafe void DrawStepListItem(Route route, int index)
-    {
-        var step     = route.Steps[index];
-        var stepName = $"{index}. {step.Name}";
-
-        // 判断是否为选中状态
-        var isSelected = selectedStepIndex == index;
-
-        ImGui.PushID(index);
-
-        // 可选择的步骤项
-        if (ImGui.Selectable(stepName, isSelected, ImGuiSelectableFlags.AllowDoubleClick))
-            selectedStepIndex = index;
-
-        // 开始拖拽
-        if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
-        {
-            ImGui.SetDragDropPayload("STEP_REORDER", BitConverter.GetBytes(index));
-            ImGui.Text($"步骤: {stepName}");
-
-            ImGui.EndDragDropSource();
-        }
-
-        // 拖拽目标
-        if (ImGui.BeginDragDropTarget())
-        {
-            var payload = ImGui.AcceptDragDropPayload("STEP_REORDER");
-
-            if (!payload.IsNull && payload.Data != null)
+            if (child)
             {
-                var sourceIndex = *(int*)payload.Data;
-
-                if (sourceIndex != index && sourceIndex >= 0 && sourceIndex < route.Steps.Count)
+                for (var i = 0; i < route.Steps.Count; i++)
                 {
-                    // 执行拖拽排序 - 直接交换两个步骤的位置
-                    (route.Steps[sourceIndex], route.Steps[index]) = (route.Steps[index], route.Steps[sourceIndex]);
+                    var step        = route.Steps[i];
+                    var actionCount = step.EnterActions.Count + step.BodyActions.Count + step.ExitActions.Count;
+                    var stepName    = $"{i}. {step.Name} ({actionCount} 个动作)";
 
-                    // 更新当前选中步骤
-                    if (selectedStepIndex == sourceIndex)
-                        selectedStepIndex = index;
-                    else if (selectedStepIndex == index)
-                        selectedStepIndex = sourceIndex;
+                    if (ImGui.Selectable(stepName, i == state.CurrentStep, ImGuiSelectableFlags.AllowDoubleClick))
+                        state.CurrentStep = i;
+
+                    if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
+                    {
+                        ImGui.SetDragDropPayload("STEP_REORDER", BitConverter.GetBytes(i));
+                        ImGui.Text($"步骤: {stepName}");
+                        ImGui.EndDragDropSource();
+                    }
+
+                    if (ImGui.BeginDragDropTarget())
+                    {
+                        var payload = ImGui.AcceptDragDropPayload("STEP_REORDER");
+
+                        if (!payload.IsNull && payload.Data != null)
+                        {
+                            var sourceIndex = *(int*)payload.Data;
+
+                            if (sourceIndex != i && sourceIndex >= 0 && sourceIndex < route.Steps.Count)
+                            {
+                                (route.Steps[sourceIndex], route.Steps[i]) = (route.Steps[i], route.Steps[sourceIndex]);
+
+                                if (state.CurrentStep == sourceIndex)
+                                    state.CurrentStep = i;
+                                else if (state.CurrentStep == i)
+                                    state.CurrentStep = sourceIndex;
+                            }
+                        }
+
+                        ImGui.EndDragDropTarget();
+                    }
+
+                    DrawStepContextMenu(route, state, i, step);
                 }
             }
-
-            ImGui.EndDragDropTarget();
         }
 
-        // 右键菜单
-        using var popup = ImRaii.ContextPopupItem($"StepContextPopup{index}");
+        ImGui.TableSetColumnIndex(1);
 
-        if (popup)
+        using var detailsChild = ImRaii.Child("RouteStepsDrawChild", ImGui.GetContentRegionAvail(), true, ImGuiWindowFlags.NoBackground);
+        if (!detailsChild) return;
+
+        if (state.CurrentStep < 0 || state.CurrentStep >= route.Steps.Count)
         {
-            var contextOperation = StepOperationType.Pass;
-
-            if (ImGui.MenuItem("复制"))
-                CopiedStep = RouteStep.Copy(step);
-
-            if (CopiedStep != null)
-            {
-                using (ImRaii.Group())
-                {
-                    if (ImGui.MenuItem("粘贴至本步"))
-                        contextOperation = StepOperationType.Paste;
-
-                    if (ImGui.MenuItem("向上插入粘贴"))
-                        contextOperation = StepOperationType.PasteUp;
-
-                    if (ImGui.MenuItem("向下插入粘贴"))
-                        contextOperation = StepOperationType.PasteDown;
-                }
-            }
-
-            if (ImGui.MenuItem("删除"))
-                contextOperation = StepOperationType.Delete;
-
-            ImGui.Separator();
-
-            if (index > 0 && ImGui.MenuItem("上移"))
-                contextOperation = StepOperationType.MoveUp;
-
-            if (index < route.Steps.Count - 1 && ImGui.MenuItem("下移"))
-                contextOperation = StepOperationType.MoveDown;
-
-            ImGui.Separator();
-
-            if (ImGui.MenuItem("向上插入新步骤"))
-                contextOperation = StepOperationType.InsertUp;
-
-            if (ImGui.MenuItem("向下插入新步骤"))
-                contextOperation = StepOperationType.InsertDown;
-
-            ImGui.Separator();
-
-            if (ImGui.MenuItem("复制并插入本步骤"))
-                contextOperation = StepOperationType.PasteCurrent;
-
-            selectedStepIndex = CollectionOperationHelper.Apply
-            (
-                route.Steps,
-                index,
-                contextOperation,
-                selectedStepIndex,
-                () => new RouteStep { Name = $"步骤 {route.Steps.Count}" },
-                CopiedStep == null ? null : () => RouteStep.Copy(CopiedStep),
-                () => RouteStep.Copy(step)
-            );
-        }
-
-        ImGui.PopID();
-    }
-
-    private void DrawStepDetails(Route route)
-    {
-        if (selectedStepIndex < 0 || selectedStepIndex >= route.Steps.Count)
-        {
-            ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1.0f), "请选择一个步骤进行编辑");
+            ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1f), "请选择一个步骤进行编辑");
             return;
         }
 
-        var step = route.Steps[selectedStepIndex];
-
-        DrawStepDetailsContent(step);
+        var currentStep      = route.Steps[state.CurrentStep];
+        var currentStepIndex = state.CurrentStep;
+        PresetStepEditor.Draw(currentStep, ref currentStepIndex, route.Steps, state.SharedState);
+        state.CurrentStep = currentStepIndex;
     }
 
-    private static void DrawStepDetailsContent(RouteStep step)
+    private static void DrawStepContextMenu(Route route, RouteEditorState state, int index, PresetStep step)
     {
-        // 基本信息
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("名称:");
+        var contextOperation = StepOperationType.Pass;
 
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(-1f);
-        var stepName = step.Name;
-        if (ImGui.InputText("###StepName", ref stepName, 100))
-            step.Name = stepName;
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+            ImGui.OpenPopup($"RouteStepContentMenu_{index}");
 
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("备注:");
+        using var context = ImRaii.ContextPopupItem($"RouteStepContentMenu_{index}");
+        if (!context) return;
 
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(-1f);
-        var stepRemark = step.Remark;
-        if (ImGui.InputText("###StepRemark", ref stepRemark, 500))
-            step.Remark = stepRemark;
+        ImGui.Text($"第 {index} 步: {step.Name}");
+        ImGui.Separator();
 
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("类型:");
+        if (ImGui.MenuItem("复制"))
+            state.SharedState.StepToCopy = PresetStep.Copy(step);
 
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(-1f);
-
-        if (ImGui.BeginCombo("###StepType", step.StepType.GetDescription()))
+        if (state.SharedState.StepToCopy != null)
         {
-            foreach (var stepType in Enum.GetValues<RouteStepType>())
-            {
-                if (ImGui.Selectable(stepType.GetDescription(), step.StepType == stepType))
-                    step.StepType = stepType;
-            }
+            if (ImGui.MenuItem("粘贴至本步"))
+                contextOperation = StepOperationType.Paste;
 
-            ImGui.EndCombo();
+            if (ImGui.MenuItem("向上插入粘贴"))
+                contextOperation = StepOperationType.PasteUp;
+
+            if (ImGui.MenuItem("向下插入粘贴"))
+                contextOperation = StepOperationType.PasteDown;
         }
 
-        ImGui.NewLine();
+        if (ImGui.MenuItem("删除"))
+            contextOperation = StepOperationType.Delete;
 
-        // 根据步骤类型绘制不同的配置
-        switch (step.StepType)
-        {
-            case RouteStepType.SwitchPreset:
-                DrawSwitchPresetConfig(step);
-                break;
-            case RouteStepType.ConditionCheck:
-                DrawConditionCheckConfig(step);
-                break;
-        }
-    }
+        if (index > 0 && ImGui.MenuItem("上移"))
+            contextOperation = StepOperationType.MoveUp;
 
-    private static void DrawSwitchPresetConfig(RouteStep step)
-    {
-        var presets             = PluginConfig.Instance().Presets;
-        var selectedPresetIndex = -1;
+        if (index < route.Steps.Count - 1 && ImGui.MenuItem("下移"))
+            contextOperation = StepOperationType.MoveDown;
 
-        for (var i = 0; i < presets.Count; i++)
-        {
-            if (presets[i].Name != step.PresetName)
-                continue;
+        ImGui.Separator();
 
-            selectedPresetIndex = i;
-            break;
-        }
+        if (ImGui.MenuItem("向上插入新步骤"))
+            contextOperation = StepOperationType.InsertUp;
 
-        CollectionToolbar.DrawSelector
+        if (ImGui.MenuItem("向下插入新步骤"))
+            contextOperation = StepOperationType.InsertDown;
+
+        ImGui.Separator();
+
+        if (ImGui.MenuItem("复制并插入本步骤"))
+            contextOperation = StepOperationType.PasteCurrent;
+
+        state.CurrentStep = CollectionOperationHelper.Apply
         (
-            "预设:",
-            "###TargetPresetSelectCombo",
-            presets,
-            ref selectedPresetIndex,
-            preset => preset.Name,
-            emptyText: "暂无预设",
-            itemWidth: 250f
+            route.Steps,
+            index,
+            contextOperation,
+            state.CurrentStep,
+            () => new PresetStep { Name = $"步骤 {route.Steps.Count}" },
+            state.SharedState.StepToCopy == null ? null : () => PresetStep.Copy(state.SharedState.StepToCopy),
+            () => PresetStep.Copy(step)
         );
-
-        step.PresetName = selectedPresetIndex >= 0 ? presets[selectedPresetIndex].Name : string.Empty;
-
-        // 副本选项配置
-        DrawDutyOptions(step.DutyOptions);
-
-        ImGui.NewLine();
-
-        // 预设执行结束后的动作配置
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "预设执行结束后");
-
-        using (ImRaii.PushIndent())
-        {
-            ImGui.SetNextItemWidth(250f * GlobalUIScale);
-
-            using (var combo = ImRaii.Combo("执行动作###AfterPresetAction", step.AfterPresetAction.GetDescription()))
-            {
-                if (combo)
-                {
-                    foreach (var action in Enum.GetValues<RouteStepActionType>())
-                    {
-                        var actionName = action.GetDescription();
-                        if (ImGui.Selectable(actionName, step.AfterPresetAction == action))
-                            step.AfterPresetAction = action;
-                    }
-                }
-            }
-
-            // 如果是跳转动作，显示跳转索引输入
-            if (step.AfterPresetAction == RouteStepActionType.JumpToStep)
-            {
-                ImGui.SameLine();
-                ImGui.Text("目标步骤:");
-
-                ImGui.SameLine();
-                ImGui.SetNextItemWidth(150f * GlobalUIScale);
-                var tempJumpIndex = step.AfterPresetJumpIndex;
-                if (ImGui.InputInt("###AfterPresetJumpIndex", ref tempJumpIndex))
-                    step.AfterPresetJumpIndex = tempJumpIndex;
-            }
-        }
     }
 
-    private static void DrawConditionCheckConfig(RouteStep step)
+    private static int NormalizeCurrentStep(int currentStep, int count)
     {
-        using (var table = ImRaii.Table("ConditionConfigTable", 2, ImGuiTableFlags.SizingFixedFit))
-        {
-            if (table)
-            {
-                ImGui.TableSetupColumn("Label",   ImGuiTableColumnFlags.WidthFixed, 100f * GlobalUIScale);
-                ImGui.TableSetupColumn("Control", ImGuiTableColumnFlags.WidthStretch);
+        if (count == 0)
+            return -1;
 
-                // 条件类型
-                ImGui.TableNextRow();
-                ImGui.TableSetColumnIndex(0);
-                ImGui.AlignTextToFramePadding();
-                ImGui.Text("条件类型:");
-
-                ImGui.TableSetColumnIndex(1);
-                ImGui.SetNextItemWidth(-1f);
-
-                if (ImGui.BeginCombo("###ConditionType", step.ConditionType.GetDescription()))
-                {
-                    foreach (var conditionType in Enum.GetValues<RouteConditionType>())
-                    {
-                        var conditionName = conditionType.GetDescription();
-                        if (ImGui.Selectable(conditionName, step.ConditionType == conditionType))
-                            step.ConditionType = conditionType;
-                    }
-
-                    ImGui.EndCombo();
-                }
-
-                // 额外ID（成就ID或物品ID）
-                if (step.ConditionType is RouteConditionType.AchievementCount or RouteConditionType.ItemCount)
-                {
-                    ImGui.TableNextRow();
-                    ImGui.TableSetColumnIndex(0);
-                    ImGui.AlignTextToFramePadding();
-                    ImGui.Text(step.ConditionType == RouteConditionType.AchievementCount ? "成就 ID:" : "物品 ID:");
-
-                    ImGui.TableSetColumnIndex(1);
-                    ImGui.SetNextItemWidth(200f * GlobalUIScale);
-                    var extraID = step.ExtraID;
-                    if (ImGui.InputInt("###ExtraId", ref extraID))
-                        step.ExtraID = extraID;
-
-                    if (extraID != 0)
-                    {
-                        switch (step.ConditionType)
-                        {
-                            case RouteConditionType.AchievementCount when LuminaGetter.TryGetRow((uint)extraID, out Achievement achievementRow):
-                                ImGui.SameLine();
-                                ImGui.TextUnformatted($"{achievementRow.Name}");
-                                ImGuiOm.TooltipHover($"{achievementRow.Description}");
-                                break;
-
-                            case RouteConditionType.ItemCount when LuminaGetter.TryGetRow((uint)extraID, out Item itemRow):
-                                ImGui.SameLine();
-                                ImGui.TextUnformatted($"{itemRow.Name}");
-                                ImGuiOm.TooltipHover($"{itemRow.Description}");
-                                break;
-                        }
-                    }
-                }
-
-                // 比较类型和条件值
-                ImGui.TableNextRow();
-                ImGui.TableSetColumnIndex(0);
-                ImGui.AlignTextToFramePadding();
-                ImGui.Text("比较条件:");
-
-                ImGui.TableSetColumnIndex(1);
-                ImGui.SetNextItemWidth(100f * GlobalUIScale);
-
-                if (ImGui.BeginCombo("###ComparisonType", step.ComparisonType.GetDescription()))
-                {
-                    foreach (var comparisonType in Enum.GetValues<ComparisonType>())
-                    {
-                        var comparisonName = comparisonType.GetDescription();
-                        if (ImGui.Selectable(comparisonName, step.ComparisonType == comparisonType))
-                            step.ComparisonType = comparisonType;
-                    }
-
-                    ImGui.EndCombo();
-                }
-
-                ImGui.SameLine();
-                ImGui.SetNextItemWidth(150f * GlobalUIScale);
-                var conditionValue = step.ConditionValue;
-                if (ImGui.InputInt("###ConditionValue", ref conditionValue))
-                    step.ConditionValue = conditionValue;
-            }
-        }
-
-        ImGui.Spacing();
-
-        // 条件满足时的动作
-        ImGui.TextColored(KnownColor.LightGreen.ToVector4(), "条件满足时:");
-
-        var trueAction    = step.TrueAction;
-        var trueJumpIndex = step.TrueJumpIndex;
-        DrawActionConfig("True", ref trueAction, ref trueJumpIndex);
-        step.TrueAction    = trueAction;
-        step.TrueJumpIndex = trueJumpIndex;
-
-        ImGui.Spacing();
-
-        // 条件不满足时的动作
-        ImGui.TextColored(KnownColor.DarkRed.ToVector4(), "条件不满足时:");
-
-        var falseAction    = step.FalseAction;
-        var falseJumpIndex = step.FalseJumpIndex;
-        DrawActionConfig("False", ref falseAction, ref falseJumpIndex);
-        step.FalseAction    = falseAction;
-        step.FalseJumpIndex = falseJumpIndex;
-    }
-
-    private static void DrawActionConfig(string prefix, ref RouteStepActionType actionType, ref int jumpIndex)
-    {
-        using var indent = ImRaii.PushIndent();
-
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("执行动作:");
-
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(150f * GlobalUIScale);
-
-        if (ImGui.BeginCombo($"###ActionType{prefix}", actionType.GetDescription()))
-        {
-            foreach (var action in Enum.GetValues<RouteStepActionType>())
-            {
-                var actionName = action.GetDescription();
-                if (ImGui.Selectable(actionName, actionType == action))
-                    actionType = action;
-            }
-
-            ImGui.EndCombo();
-        }
-
-        // 如果是跳转动作，显示跳转索引输入
-        if (actionType == RouteStepActionType.JumpToStep)
-        {
-            ImGui.SameLine();
-            ImGui.Text("目标步骤:");
-
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(150f * GlobalUIScale);
-            var tempJumpIndex = jumpIndex;
-            if (ImGui.InputInt($"###JumpIndex{prefix}", ref tempJumpIndex))
-                jumpIndex = tempJumpIndex;
-        }
-    }
-
-    private static void DrawDutyOptions(DutyOptions dutyOptions)
-    {
-        using var group = ImRaii.Group();
-        DutyOptionsEditor.Draw(dutyOptions);
+        return Math.Clamp(currentStep, 0, count - 1);
     }
 
     private static Route? ImportRouteFromClipboard()
@@ -616,6 +313,12 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
         {
             NotifyHelper.Instance().Chat($"导出路线失败: {ex.Message}");
         }
+    }
+
+    private sealed class RouteEditorState
+    {
+        public int                   CurrentStep { get; set; } = -1;
+        public StepEditorSharedState SharedState { get; } = new();
     }
 
     public void Dispose() { }

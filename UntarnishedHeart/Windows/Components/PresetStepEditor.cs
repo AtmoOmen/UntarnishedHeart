@@ -14,7 +14,7 @@ internal static class PresetStepEditor
 {
     private static readonly ConditionalWeakTable<PresetStep, EditorState> EditorStates = [];
 
-    public static void Draw(PresetStep step, ref int i, List<PresetStep> steps, PresetEditorPanel.PresetEditorState sharedState)
+    public static void Draw(PresetStep step, ref int i, List<PresetStep> steps, StepEditorSharedState sharedState)
     {
         var state = EditorStates.GetValue(step, static _ => new EditorState());
 
@@ -70,7 +70,7 @@ internal static class PresetStepEditor
         PresetStepPhase                     phase,
         ref int                             selectedIndex,
         EditorState                         state,
-        PresetEditorPanel.PresetEditorState sharedState
+        StepEditorSharedState               sharedState
     )
     {
         using var tab = ImRaii.TabItem(title);
@@ -172,7 +172,7 @@ internal static class PresetStepEditor
     private static void DrawActionContextMenu
     (
         List<ExecuteActionBase>             actions,
-        PresetEditorPanel.PresetEditorState sharedState,
+        StepEditorSharedState               sharedState,
         ref int                             selectedIndex,
         int                                 actionIndex,
         ExecuteActionBase                   action,

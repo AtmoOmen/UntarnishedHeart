@@ -1,59 +1,43 @@
+using Newtonsoft.Json;
+using UntarnishedHeart.Execution.Preset;
+using UntarnishedHeart.Execution.Route.Configuration;
+
 namespace UntarnishedHeart.Execution.Route;
 
-/// <summary>
-///     运行路线
-/// </summary>
-[Serializable]
-public class Route
+[JsonConverter(typeof(RouteJsonConverter))]
+public sealed class Route : IEquatable<Route>
 {
-    /// <summary>
-    ///     路线名称
-    /// </summary>
+    public int Version { get; set; } = RouteJSONMigrator.CurrentJSONVersion;
+
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>
-    ///     路线备注
-    /// </summary>
-    public string Note { get; set; } = string.Empty;
+    public string Remark { get; set; } = string.Empty;
 
-    /// <summary>
-    ///     路线步骤列表
-    /// </summary>
-    public List<RouteStep> Steps { get; set; } = new();
+    public List<PresetStep> Steps { get; set; } = [];
 
-    /// <summary>
-    ///     路线是否有效
-    /// </summary>
-    public bool IsValid => !string.IsNullOrWhiteSpace(Name) && Steps.Any(s => s.IsValid);
+    [JsonIgnore]
+    public bool IsValid => !string.IsNullOrWhiteSpace(Name) && Steps.Count > 0;
 
-    /// <summary>
-    ///     复制路线
-    /// </summary>
-    public Route Copy()
-    {
-        return new Route
+    public Route Copy() =>
+        new()
         {
-            Name  = Name,
-            Note  = Note,
-            Steps = Steps.Select(s => RouteStep.Copy(s)).ToList()
+            Version = Version,
+            Name    = Name,
+            Remark  = Remark,
+            Steps   = Steps.Select(PresetStep.Copy).ToList()
         };
-    }
 
-    /// <summary>
-    ///     判断路线是否相等
-    /// </summary>
-    public override bool Equals(object? obj)
+    public bool Equals(Route? other)
     {
-        if (obj is not Route other) return false;
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
 
-        return Name == other.Name &&
-               Note == other.Note &&
+        return Name   == other.Name   &&
+               Remark == other.Remark &&
                Steps.SequenceEqual(other.Steps);
     }
 
-    /// <summary>
-    ///     获取哈希码
-    /// </summary>
-    public override int GetHashCode() =>
-        HashCode.Combine(Name, Note, Steps.Count);
+    public override bool Equals(object? obj) => Equals(obj as Route);
+
+    public override int GetHashCode() => HashCode.Combine(Name, Remark, Steps.Count);
 }
