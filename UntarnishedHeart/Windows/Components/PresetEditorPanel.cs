@@ -233,17 +233,15 @@ internal static class PresetEditorPanel
     }
 
     internal sealed class PresetEditorState
+    (
+        Preset preset
+    )
     {
         public int                   CurrentStep  { get; set; } = -1;
         public StepEditorSharedState SharedState  { get; }      = new();
-        public ContentSelectCombo    ContentCombo { get; }
-
-        public PresetEditorState(Preset preset)
+        public ContentSelectCombo    ContentCombo { get; }      = new(preset.ToString())
         {
-            ContentCombo = new(preset.ToString())
-            {
-                SelectedID = GetContentFinderConditionID(preset.Zone)
-            };
-        }
+            SelectedID = GetContentFinderConditionID(preset.Zone)
+        };
     }
 }
