@@ -5,7 +5,7 @@ using UntarnishedHeart.Execution.ExecuteAction.Enums;
 
 namespace UntarnishedHeart.Execution.ExecuteAction;
 
-[JsonConverter(typeof(ExecuteActionJsonConverter))]
+[JsonConverter(typeof(ExecuteActionJSONConverter))]
 public abstract class ExecuteActionBase : IEquatable<ExecuteActionBase>
 {
     public string Name { get; set; } = string.Empty;

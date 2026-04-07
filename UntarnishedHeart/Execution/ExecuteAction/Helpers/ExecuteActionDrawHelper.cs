@@ -11,9 +11,8 @@ internal static class ExecuteActionDrawHelper
 {
     public static void DrawActionReference(ActionReference reference, string idSuffix = "")
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "技能类型:");
-        ImGui.SameLine();
-        reference.ActionType = ConditionBase.DrawEnumCombo($"###ActionTypeCombo{idSuffix}", reference.ActionType);
+        ImGui.SetNextItemWidth(240f * GlobalUIScale);
+        reference.ActionType = ConditionBase.DrawEnumCombo($"技能类型###ActionTypeCombo{idSuffix}", reference.ActionType);
 
         var actionID = reference.ActionID;
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
@@ -32,6 +31,7 @@ internal static class ExecuteActionDrawHelper
 
                 using (ImRaii.Group())
                 {
+                    ImGui.SetNextItemWidth(240f * GlobalUIScale);
                     selector.ObjectKind = ConditionBase.DrawEnumCombo($"对象类型###TargetObjectKind{idSuffix}", selector.ObjectKind);
 
                     var dataID = selector.DataID;
@@ -71,7 +71,7 @@ internal static class ExecuteActionDrawHelper
         }
     }
 
-    public static void DrawCurrentPositionButton(string buttonID, Action<Vector3> setPosition)
+    public static void DrawPositionSelector(string buttonID, Action<Vector3> setPosition)
     {
         ImGui.SameLine();
         if (ImGuiOm.ButtonIcon(buttonID, FontAwesomeIcon.Bullseye, "取当前位置", true) &&
@@ -79,5 +79,6 @@ internal static class ExecuteActionDrawHelper
             setPosition(localPlayer.Position);
     }
 
-    public static void DrawNoExtraParametersHint() => ImGui.TextDisabled("此动作无需额外参数");
+    public static void DrawNoExtraParametersHint() => 
+        ImGui.TextDisabled("此动作无需额外参数");
 }

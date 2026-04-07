@@ -119,8 +119,12 @@ internal static class PresetEditorPanel
         ImGui.TableNextRow();
 
         ImGui.TableSetColumnIndex(0);
-        if (ImGuiOm.ButtonSelectable("添加步骤"))
+        if (ImGuiOm.ButtonStretch("添加步骤"))
             preset.Steps.Add(new PresetStep { Name = $"步骤 {preset.Steps.Count}" });
+        
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
 
         using (var child = ImRaii.Child("StepsSelectChild", ImGui.GetContentRegionAvail(), true))
         {

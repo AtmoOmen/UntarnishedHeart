@@ -1,4 +1,3 @@
-using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
@@ -17,9 +16,11 @@ public sealed class JumpToStepAction : ExecuteActionBase
             StepIndex = stepIndex;
     }
 
-    protected override bool EqualsCore(ExecuteActionBase other) => other is JumpToStepAction action && StepIndex == action.StepIndex;
+    protected override bool EqualsCore(ExecuteActionBase other) =>
+        other is JumpToStepAction action && StepIndex == action.StepIndex;
 
-    protected override int GetCoreHashCode() => StepIndex;
+    protected override int GetCoreHashCode() =>
+        StepIndex;
 
     public override ExecuteActionBase DeepCopy() =>
         CopyBasePropertiesTo(new JumpToStepAction { StepIndex = StepIndex });

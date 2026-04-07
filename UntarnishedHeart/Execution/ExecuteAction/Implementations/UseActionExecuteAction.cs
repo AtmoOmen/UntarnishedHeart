@@ -1,5 +1,4 @@
 using System.Numerics;
-using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.ExecuteAction.Helpers;
 using UntarnishedHeart.Execution.Models;
@@ -23,9 +22,8 @@ public sealed class UseActionExecuteAction : ExecuteActionBase
     {
         ExecuteActionDrawHelper.DrawActionReference(Action, "UseAction");
 
-        ImGui.Separator();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "目标:");
-        ExecuteActionDrawHelper.DrawTargetSelector(TargetSelector, "UseActionTarget");
+        using (ImRaii.Disabled(UseLocation))
+            ExecuteActionDrawHelper.DrawTargetSelector(TargetSelector, "UseActionTarget");
 
         var useLocation = UseLocation;
         if (ImGui.Checkbox("按地面坐标释放###UseLocation", ref useLocation))
@@ -38,7 +36,7 @@ public sealed class UseActionExecuteAction : ExecuteActionBase
         if (ImGui.InputFloat3("地面坐标###UseActionLocation", ref location))
             Location = location;
 
-        ExecuteActionDrawHelper.DrawCurrentPositionButton("UseActionGetCurrentPosition", position => Location = position);
+        ExecuteActionDrawHelper.DrawPositionSelector("UseActionGetCurrentPosition", position => Location = position);
     }
 
     protected override bool EqualsCore(ExecuteActionBase other) =>

@@ -1,4 +1,3 @@
-using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
@@ -7,13 +6,13 @@ public sealed class WaitMillisecondsAction : ExecuteActionBase
 {
     public int Milliseconds { get; set; }
 
-    public override ExecuteActionKind Kind => ExecuteActionKind.WaitMilliseconds;
+    public override ExecuteActionKind Kind => ExecuteActionKind.Wait;
 
     public override void Draw()
     {
         var milliseconds = Milliseconds;
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
-        if (ImGui.InputInt("等待毫秒###WaitMillisecondsInput", ref milliseconds))
+        if (ImGui.InputInt("等待时间 (毫秒)###WaitMillisecondsInput", ref milliseconds))
             Milliseconds = Math.Max(0, milliseconds);
     }
 

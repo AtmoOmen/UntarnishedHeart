@@ -607,11 +607,11 @@ public class PresetExecutor : IDisposable
 
         switch (action.MoveType)
         {
-            case MoveType.寻路:
+            case MoveType.简单移动:
                 SetRunningMessage(actionLabel);
                 StartPathfindMovement(action.Position, cancellationToken);
                 break;
-            case MoveType.vnavmesh:
+            case MoveType.寻路:
                 SetRunningMessage(actionLabel);
                 StartVnavmeshMovement(action.Position, cancellationToken);
                 break;

@@ -1,4 +1,3 @@
-using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
@@ -17,7 +16,8 @@ public sealed class JumpToActionAction : ExecuteActionBase
             ActionIndex = actionIndex;
     }
 
-    protected override bool EqualsCore(ExecuteActionBase other) => other is JumpToActionAction action && ActionIndex == action.ActionIndex;
+    protected override bool EqualsCore(ExecuteActionBase other) =>
+        other is JumpToActionAction action && ActionIndex == action.ActionIndex;
 
     protected override int GetCoreHashCode() => ActionIndex;
 

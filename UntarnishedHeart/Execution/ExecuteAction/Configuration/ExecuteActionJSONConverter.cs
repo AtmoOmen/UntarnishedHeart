@@ -11,7 +11,7 @@ using UntarnishedHeart.Execution.Preset.Helpers;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Configuration;
 
-public sealed class ExecuteActionJsonConverter : JsonConverter<ExecuteActionBase>
+public sealed class ExecuteActionJSONConverter : JsonConverter<ExecuteActionBase>
 {
     public override void WriteJson(JsonWriter writer, ExecuteActionBase? value, JsonSerializer serializer)
     {
@@ -93,14 +93,14 @@ public sealed class ExecuteActionJsonConverter : JsonConverter<ExecuteActionBase
 
     internal static ExecuteActionBase DeserializeCurrent(JObject obj, JsonSerializer serializer)
     {
-        var kind      = PresetStepJsonConverter.ReadEnum(obj["Kind"], ExecuteActionKind.WaitMilliseconds);
+        var kind      = PresetStepJsonConverter.ReadEnum(obj["Kind"], ExecuteActionKind.Wait);
         var condition = PresetStepJsonConverter.ReadObject(obj["Condition"], serializer, new ConditionCollection());
         var name      = PresetStepJsonConverter.ReadString(obj["Name"], kind.GetDescription());
         var remark    = PresetStepJsonConverter.ReadString(obj["Remark"]);
 
         return kind switch
         {
-            ExecuteActionKind.WaitMilliseconds => PopulateCommonFields
+            ExecuteActionKind.Wait => PopulateCommonFields
             (
                 new WaitMillisecondsAction
                 {

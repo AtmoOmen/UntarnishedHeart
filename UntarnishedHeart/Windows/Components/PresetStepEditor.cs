@@ -83,14 +83,18 @@ internal static class PresetStepEditor
 
         using var table = ImRaii.Table($"{phase}ActionsTable", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV);
         if (!table) return;
-
+        
         ImGui.TableSetupColumn("ActionsList",   ImGuiTableColumnFlags.WidthFixed, 200f * GlobalUIScale);
         ImGui.TableSetupColumn("ActionDetails", ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableNextRow();
 
         ImGui.TableSetColumnIndex(0);
-        if (ImGuiOm.ButtonSelectable($"添加动作###{phase}AddAction"))
-            actions.Add(CreateDefaultAction(ExecuteActionKind.WaitMilliseconds));
+        if (ImGuiOm.ButtonStretch($"添加动作###{phase}AddAction"))
+            actions.Add(CreateDefaultAction(ExecuteActionKind.Wait));
+        
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
 
         using (var child = ImRaii.Child
                (
@@ -230,7 +234,7 @@ internal static class PresetStepEditor
             actionIndex,
             contextOperation,
             selectedIndex,
-            () => CreateDefaultAction(ExecuteActionKind.WaitMilliseconds),
+            () => CreateDefaultAction(ExecuteActionKind.Wait),
             sharedState.ActionToCopy == null ? null : () => ExecuteActionBase.Copy(sharedState.ActionToCopy),
             () => ExecuteActionBase.Copy(action)
         );
@@ -309,7 +313,7 @@ internal static class PresetStepEditor
         (
             kind switch
             {
-                ExecuteActionKind.WaitMilliseconds          => new WaitMillisecondsAction(),
+                ExecuteActionKind.Wait          => new WaitMillisecondsAction(),
                 ExecuteActionKind.JumpToStep                => new JumpToStepAction(),
                 ExecuteActionKind.RestartCurrentStep        => new RestartCurrentStepAction(),
                 ExecuteActionKind.JumpToAction              => new JumpToActionAction(),

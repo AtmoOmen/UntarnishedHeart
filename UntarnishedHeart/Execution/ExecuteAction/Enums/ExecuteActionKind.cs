@@ -4,8 +4,8 @@ namespace UntarnishedHeart.Execution.ExecuteAction.Enums;
 
 public enum ExecuteActionKind
 {
-    [Description("等待毫秒")]
-    WaitMilliseconds,
+    [Description("等待固定时间")]
+    Wait,
 
     [Description("跳转步骤")]
     JumpToStep,

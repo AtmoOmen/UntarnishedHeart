@@ -16,21 +16,21 @@ public sealed class MoveToPositionAction : ExecuteActionBase
 
     public override void Draw()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "移动方式:");
-        ImGui.SameLine();
-        MoveType = ConditionBase.DrawEnumCombo("###MoveTypeCombo", MoveType);
+        ImGui.SetNextItemWidth(240f * GlobalUIScale);
+        MoveType = ConditionBase.DrawEnumCombo("移动方式###MoveTypeCombo", MoveType);
 
         var position = Position;
+        ImGui.SetNextItemWidth(240f * GlobalUIScale);
         if (ImGui.InputFloat3("位置###MovePositionInput", ref position))
             Position = position;
 
-        ExecuteActionDrawHelper.DrawCurrentPositionButton("MoveGetPosition", currentPosition => Position = currentPosition);
+        ExecuteActionDrawHelper.DrawPositionSelector("MoveGetPosition", currentPosition => Position = currentPosition);
     }
 
     protected override bool EqualsCore(ExecuteActionBase other) =>
         other is MoveToPositionAction action &&
         Position.Equals(action.Position)     &&
-        MoveType       == action.MoveType;
+        MoveType == action.MoveType;
 
     protected override int GetCoreHashCode() => HashCode.Combine(Position, (int)MoveType);
 

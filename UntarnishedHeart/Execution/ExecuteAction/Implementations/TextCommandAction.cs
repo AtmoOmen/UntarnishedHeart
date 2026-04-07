@@ -1,4 +1,3 @@
-using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
@@ -11,9 +10,8 @@ public sealed class TextCommandAction : ExecuteActionBase
 
     public override void Draw()
     {
-        var commands    = Commands;
-        var inputHeight = Math.Max(ImGui.GetTextLineHeightWithSpacing() * 6f, 120f * GlobalUIScale);
-        if (ImGui.InputTextMultiline("###CommandsInput", ref commands, 4096, new(-1f, inputHeight)))
+        var commands = Commands;
+        if (ImGui.InputTextMultiline("###CommandsInput", ref commands, 4096, new(-1f, ImGui.GetTextLineHeightWithSpacing() * 6f)))
             Commands = commands;
     }
 

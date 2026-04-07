@@ -203,7 +203,7 @@ internal sealed class PresetStepV2ToV3Migrator : JsonObjectMigratorBase
 
         var delay = PresetStepJsonConverter.ReadInt(jsonObject["Delay"], 5000);
         if (delay > 0)
-            exitActions.Add(CreateAction(ExecuteActionKind.WaitMilliseconds, new JObject { ["Milliseconds"] = delay }));
+            exitActions.Add(CreateAction(ExecuteActionKind.Wait, new JObject { ["Milliseconds"] = delay }));
 
         var jumpToIndex = PresetStepJsonConverter.ReadInt(jsonObject["JumpToIndex"], -1);
         if (jumpToIndex >= 0)
@@ -291,7 +291,7 @@ internal sealed class PresetStepV2ToV3Migrator : JsonObjectMigratorBase
         };
 
     private static JObject CreateWaitGateAction(JObject conditionCollection) =>
-        CreateAction(ExecuteActionKind.WaitMilliseconds, new JObject { ["Milliseconds"] = 0, ["Condition"] = conditionCollection });
+        CreateAction(ExecuteActionKind.Wait, new JObject { ["Milliseconds"] = 0, ["Condition"] = conditionCollection });
 
     private static JObject CreateSingleCondition(string kind, JObject payload) =>
         new()

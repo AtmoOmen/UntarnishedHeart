@@ -49,7 +49,7 @@ internal sealed class PresetStepV3ToV4Migrator : JsonObjectMigratorBase
 
     private static IEnumerable<JObject> ExpandAction(JObject actionObject)
     {
-        if (PresetStepJsonConverter.ReadEnum(actionObject["Kind"], ExecuteActionKind.WaitMilliseconds) != ExecuteActionKind.MoveToPosition)
+        if (PresetStepJsonConverter.ReadEnum(actionObject["Kind"], ExecuteActionKind.Wait) != ExecuteActionKind.MoveToPosition)
         {
             yield return (JObject)actionObject.DeepClone();
             yield break;
@@ -74,7 +74,7 @@ internal sealed class PresetStepV3ToV4Migrator : JsonObjectMigratorBase
         new()
         {
             ["Version"]      = ExecuteActionJSONMigrator.CurrentJSONVersion,
-            ["Kind"]         = ExecuteActionKind.WaitMilliseconds.ToString(),
+            ["Kind"]         = ExecuteActionKind.Wait.ToString(),
             ["Milliseconds"] = 0,
             ["Condition"]    = CreatePositionRangeConditionCollection(position)
         };

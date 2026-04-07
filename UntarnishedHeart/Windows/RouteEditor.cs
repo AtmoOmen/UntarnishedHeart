@@ -165,11 +165,15 @@ public class RouteEditor() : Window($"路线编辑器###{Plugin.PLUGIN_NAME}-Rou
 
     private void DrawStepsList(Route route)
     {
-        if (ImGuiOm.ButtonSelectable("添加步骤"))
+        if (ImGuiOm.ButtonStretch("添加步骤"))
         {
             route.Steps.Add(new RouteStep { Name = $"步骤 {route.Steps.Count}" });
             selectedStepIndex = route.Steps.Count - 1; // 选中新添加的步骤
         }
+        
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
 
         // 绘制步骤列表
         using var child = ImRaii.Child("StepsListChild", new Vector2(0, 0), true);
