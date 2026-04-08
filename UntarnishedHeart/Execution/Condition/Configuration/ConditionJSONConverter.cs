@@ -99,8 +99,13 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
         var runtimeType        = ConditionJsonTypeRegistry.Instance.GetRuntimeType(typeID);
         var concreteSerializer = PolymorphicJsonSerializerFactory.CreateConcreteTypeSerializer<ConditionBase>();
 
-        return obj.ToObject(runtimeType, concreteSerializer) as ConditionBase ??
-               throw new InvalidOperationException($"无法反序列化条件 TypeId: {typeID}");
+        var condition = obj.ToObject(runtimeType, concreteSerializer) as ConditionBase ??
+                        throw new InvalidOperationException($"无法反序列化条件 TypeId: {typeID}");
+
+        if (string.IsNullOrEmpty(condition.Name))
+            condition.Name = condition.GetDefaultName();
+
+        return condition;
     }
 
     internal static ConditionDetectType ReadConditionKind(JToken? token)

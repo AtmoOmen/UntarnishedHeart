@@ -60,6 +60,8 @@ internal sealed class PresetStepV3ToV4Migrator : JsonObjectMigratorBase
         var waitForArrival     = PresetStepJsonConverter.ReadBool(migratedMoveAction["WaitForArrival"]);
         var position           = PresetStepJsonConverter.ReadObject(migratedMoveAction["Position"], JsonSerializer.CreateDefault(), default(Vector3));
 
+        migratedMoveAction["TypeId"] = ExecuteActionJsonTypeRegistry.Instance.GetTypeID(ExecuteActionKind.MoveToPosition);
+        migratedMoveAction.Remove("Kind");
         migratedMoveAction["Version"] = ExecuteActionJSONMigrator.CurrentJSONVersion;
         migratedMoveAction.Remove("WaitForArrival");
 
