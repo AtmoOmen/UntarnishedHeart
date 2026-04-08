@@ -59,7 +59,12 @@ public sealed class ExecuteActionJSONConverter : JsonConverter<ExecuteActionBase
         var runtimeType        = ExecuteActionJsonTypeRegistry.Instance.GetRuntimeType(typeID);
         var concreteSerializer = PolymorphicJsonSerializerFactory.CreateConcreteTypeSerializer<ExecuteActionBase>();
 
-        return obj.ToObject(runtimeType, concreteSerializer) as ExecuteActionBase ??
-               throw new InvalidOperationException($"无法反序列化执行动作 TypeId: {typeID}");
+        var action = obj.ToObject(runtimeType, concreteSerializer) as ExecuteActionBase ??
+                     throw new InvalidOperationException($"无法反序列化执行动作 TypeId: {typeID}");
+
+        if (string.IsNullOrEmpty(action.Name))
+            action.Name = action.GetDefaultName();
+
+        return action;
     }
 }
