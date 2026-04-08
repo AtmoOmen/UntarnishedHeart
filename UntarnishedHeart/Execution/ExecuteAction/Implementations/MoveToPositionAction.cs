@@ -30,7 +30,7 @@ public sealed class MoveToPositionAction : ExecuteActionBase
         if (ImGui.InputFloat3("位置###MovePositionInput", ref position))
             Position = position;
 
-        ExecuteActionDrawHelper.DrawPositionSelector("MoveGetPosition", currentPosition => Position = currentPosition);
+        ExecuteActionDrawHelper.DrawPositionSelector("MoveGetPosition", currentPosition => Position = currentPosition, () => Position);
     }
 
     protected override bool EqualsCore(ExecuteActionBase other) =>

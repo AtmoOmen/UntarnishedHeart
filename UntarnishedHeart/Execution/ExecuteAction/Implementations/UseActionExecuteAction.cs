@@ -44,7 +44,7 @@ public sealed class UseActionExecuteAction : ExecuteActionBase
         if (ImGui.InputFloat3("地面坐标###UseActionLocation", ref location))
             Location = location;
 
-        ExecuteActionDrawHelper.DrawPositionSelector("UseActionGetCurrentPosition", position => Location = position);
+        ExecuteActionDrawHelper.DrawPositionSelector("UseActionGetCurrentPosition", position => Location = position, () => Location);
     }
 
     protected override bool EqualsCore(ExecuteActionBase other) =>
