@@ -62,5 +62,8 @@ public enum ConditionDetectType
     AchievementCount,
 
     [Description("物品个数")]
-    ItemCount
+    ItemCount,
+
+    [Description("当前职业")]
+    CurrentClassJob
 }

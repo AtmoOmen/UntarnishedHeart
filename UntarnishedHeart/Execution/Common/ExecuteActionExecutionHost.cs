@@ -250,6 +250,35 @@ public abstract class ExecuteActionExecutionHost
                 await ExecuteMovementActionAsync(moveToPosition, actionLabel, cancellationToken);
                 return ActionFlowResult.Continue();
 
+            case SwitchClassJobAction switchClassJob:
+            {
+                SetRunningMessage(actionLabel);
+
+                switch (switchClassJob.Mode)
+                {
+                    case ExecuteAction.Enums.SwitchClassJobMode.ByClassJob:
+                        if (switchClassJob.JobID == 0)
+                            throw new InvalidOperationException("切换职业动作缺少目标职业");
+
+                        if (!LocalPlayerState.SwitchGearset(switchClassJob.JobID))
+                            throw new InvalidOperationException($"切换职业失败: {switchClassJob.JobID}");
+
+                        return ActionFlowResult.Continue();
+
+                    case ExecuteAction.Enums.SwitchClassJobMode.ByGearsetID:
+                        if (switchClassJob.GearsetID is < 0 or > 99)
+                            throw new InvalidOperationException($"切换职业动作的套装编号无效: {switchClassJob.GearsetID}");
+
+                        if (!LocalPlayerState.SwitchGearset((byte)switchClassJob.GearsetID))
+                            throw new InvalidOperationException($"切换套装失败: {switchClassJob.GearsetID}");
+
+                        return ActionFlowResult.Continue();
+
+                    default:
+                        throw new InvalidOperationException($"不支持的切换职业方式: {switchClassJob.Mode}");
+                }
+            }
+
             case AddonCallbackAction addonCallback:
             {
                 SetRunningMessage(actionLabel);

@@ -50,5 +50,8 @@ public enum ExecuteActionKind
     AgentReceiveEvent,
 
     [Description("执行预设")]
-    ExecutePreset
+    ExecutePreset,
+
+    [Description("切换职业")]
+    SwitchClassJob
 }
