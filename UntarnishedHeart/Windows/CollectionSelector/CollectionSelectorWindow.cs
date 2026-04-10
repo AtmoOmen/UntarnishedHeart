@@ -6,9 +6,11 @@ namespace UntarnishedHeart.Windows;
 
 internal class CollectionSelectorWindow : Window
 {
-    private CollectionSelectorRequest?                      currentRequest;
-    private TaskCompletionSource<CollectionSelectorResult>? completionSource;
-    
+    private CollectionSelectorRequest? currentRequest;
+    private Action<int>?              onSelected;
+    private Action<int>?              onDelete;
+    private Action?                   onCancel;
+
     private string searchText       = string.Empty;
     private int    highlightedIndex = -1;
     private bool   focusSearchOnOpen;
@@ -23,35 +25,34 @@ internal class CollectionSelectorWindow : Window
         };
     }
 
-    internal static Task<CollectionSelectorResult> OpenAsync(CollectionSelectorRequest request)
+    internal static void Open(CollectionSelectorRequest request, Action<int> onSelected, Action<int>? onDelete = null, Action? onCancel = null)
     {
         var window = WindowManager.Instance().Get<CollectionSelectorWindow>() ?? throw new InvalidOperationException("集合选择窗口尚未注册");
-
-        return window.OpenInternal(request);
+        window.OpenInternal(request, onSelected, onDelete, onCancel);
     }
 
-    private Task<CollectionSelectorResult> OpenInternal(CollectionSelectorRequest request)
+    private void OpenInternal(CollectionSelectorRequest request, Action<int> selectedCallback, Action<int>? deleteCallback, Action? cancelCallback)
     {
-        Complete(CollectionSelectorResult.Cancelled());
+        CancelPendingRequest();
 
         currentRequest = request with
         {
             SelectedIndex = Math.Clamp(request.SelectedIndex, request.Items.Count > 0 ? 0 : -1, request.Items.Count - 1)
         };
 
-        completionSource    = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        onSelected          = selectedCallback;
+        onDelete            = deleteCallback;
+        onCancel            = cancelCallback;
         searchText          = string.Empty;
         highlightedIndex    = currentRequest.SelectedIndex;
         focusSearchOnOpen   = true;
         scrollToHighlighted = true;
         IsOpen              = true;
-
-        return completionSource.Task;
     }
 
     public override void Draw()
     {
-        if (currentRequest == null || completionSource == null)
+        if (currentRequest == null || onSelected == null)
         {
             IsOpen = false;
             return;
@@ -90,10 +91,10 @@ internal class CollectionSelectorWindow : Window
 
         HandleKeyboard(filteredIndices, hasVisibleSelection);
 
-        if (ImGui.Button("取消", new Vector2(-1f, 0f))) Complete(CollectionSelectorResult.Cancelled());
+        if (ImGui.Button("取消", new Vector2(-1f, 0f))) CancelPendingRequest();
     }
 
-    public override void OnClose() => Complete(CollectionSelectorResult.Cancelled());
+    public override void OnClose() => CancelPendingRequest();
 
     private void DrawItemList(CollectionSelectorRequest request, IReadOnlyList<int> filteredIndices)
     {
@@ -128,7 +129,7 @@ internal class CollectionSelectorWindow : Window
             if (ImGui.Selectable($"{item.Text}###CollectionSelectorItem-{index}", isSelected, ImGuiSelectableFlags.SpanAllColumns))
             {
                 highlightedIndex = index;
-                Complete(CollectionSelectorResult.Selected(index));
+                CompleteSelection(index);
                 return;
             }
 
@@ -154,7 +155,7 @@ internal class CollectionSelectorWindow : Window
 
             if (ImGui.MenuItem($"删除##CollectionSelectorDelete-{index}"))
             {
-                Complete(CollectionSelectorResult.DeleteRequested(index));
+                CompleteDelete(index);
                 return;
             }
         }
@@ -167,7 +168,7 @@ internal class CollectionSelectorWindow : Window
 
         if (ImGui.IsKeyPressed(ImGuiKey.Escape))
         {
-            Complete(CollectionSelectorResult.Cancelled());
+            CancelPendingRequest();
             return;
         }
 
@@ -194,7 +195,7 @@ internal class CollectionSelectorWindow : Window
         }
 
         if (hasVisibleSelection && ImGui.IsKeyPressed(ImGuiKey.Enter))
-            Complete(CollectionSelectorResult.Selected(highlightedIndex));
+            CompleteSelection(highlightedIndex);
     }
 
     private static List<int> BuildFilteredIndices(CollectionSelectorRequest request, string searchText)
@@ -221,20 +222,49 @@ internal class CollectionSelectorWindow : Window
         return indices;
     }
 
-    private void Complete(CollectionSelectorResult result)
+    private void CompleteSelection(int index)
     {
-        if (completionSource == null)
+        var callback = onSelected;
+        if (callback == null)
             return;
 
-        var source = completionSource;
-        completionSource    = null;
+        ResetState();
+        callback(index);
+    }
+
+    private void CompleteDelete(int index)
+    {
+        var callback = onDelete;
+        if (callback == null)
+        {
+            CancelPendingRequest();
+            return;
+        }
+
+        ResetState();
+        callback(index);
+    }
+
+    private void CancelPendingRequest()
+    {
+        var callback = onCancel;
+        if (currentRequest == null && callback == null)
+            return;
+
+        ResetState();
+        callback?.Invoke();
+    }
+
+    private void ResetState()
+    {
         currentRequest      = null;
+        onSelected          = null;
+        onDelete            = null;
+        onCancel            = null;
         searchText          = string.Empty;
         highlightedIndex    = -1;
         focusSearchOnOpen   = false;
         scrollToHighlighted = false;
         IsOpen              = false;
-
-        source.TrySetResult(result);
     }
 }

@@ -59,7 +59,8 @@ internal abstract class CollectionEditorWindowBase<TItem>(string title, ImGuiWin
             SelectorLabel,
             $"###{CollectionID}SelectCombo",
             Items,
-            ref selectedIndex,
+            selectedIndex,
+            value => selectedIndex = value,
             GetItemName,
             item => Items.Remove(item),
             EmptyCollectionText

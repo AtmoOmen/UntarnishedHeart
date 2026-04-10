@@ -47,12 +47,13 @@ public sealed class GameConditionStateCondition : ConditionBase
         ComparisonType = DrawEnumCombo("###ComparisonTypeCombo", ComparisonType);
 
         DrawLabel("状态标记", KnownColor.LightSkyBlue.ToVector4());
-        Flag = DrawEnumLocalizedSelector
+        DrawEnumLocalizedSelector
         (
             "###ConditionFlagCombo",
             "选择状态标记",
             "暂无可选状态标记",
             Flag,
+            value => Flag = value,
             GetConditionFlagDisplayText,
             GetConditionFlagDescription,
             [ConditionFlag.None]

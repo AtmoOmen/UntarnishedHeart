@@ -109,18 +109,17 @@ public class MainWindow : Window
             return;
         }
 
-        var selectedPresetIndex = config.SelectedPresetIndex;
         CollectionToolbar.DrawSelector
         (
             string.Empty,
             "###MainPresetSelectCombo",
             config.Presets,
-            ref selectedPresetIndex,
+            config.SelectedPresetIndex,
+            PersistSelectedPresetIndex,
             preset => preset.Name,
             emptyText: "暂无预设",
             itemWidth: CalculateSelectorWidth(72f)
         );
-        PersistSelectedPresetIndex(selectedPresetIndex);
 
         ImGui.SameLine();
         if (ImGui.Button("编辑##EditPreset", new(72f * GlobalUIScale, 0f)))
@@ -140,18 +139,17 @@ public class MainWindow : Window
             return;
         }
 
-        var selectedRouteIndex = config.SelectedRouteIndex;
         CollectionToolbar.DrawSelector
         (
             string.Empty,
             "###MainRouteSelectCombo",
             config.Routes,
-            ref selectedRouteIndex,
+            config.SelectedRouteIndex,
+            PersistSelectedRouteIndex,
             route => route.Name,
             emptyText: "暂无路线",
             itemWidth: CalculateSelectorWidth(72f)
         );
-        PersistSelectedRouteIndex(selectedRouteIndex);
 
         ImGui.SameLine();
 

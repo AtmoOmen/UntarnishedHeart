@@ -2,8 +2,6 @@ namespace UntarnishedHeart.Windows.Components;
 
 internal static class CollectionToolbar
 {
-    private static readonly Dictionary<string, SelectorTaskState> SelectorTasks = [];
-
     public static int NormalizeSelectedIndex(int selectedIndex, int count)
     {
         if (count <= 0) return -1;
@@ -15,7 +13,8 @@ internal static class CollectionToolbar
         string          label,
         string          comboID,
         IList<T>        items,
-        ref int         selectedIndex,
+        int             selectedIndex,
+        Action<int>     setSelectedIndex,
         Func<T, string> getName,
         Action<T>?      onDelete  = null,
         string          emptyText = "暂无数据",
@@ -23,7 +22,6 @@ internal static class CollectionToolbar
     )
     {
         selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
-        ConsumePendingResult(comboID, items, ref selectedIndex, onDelete);
 
         if (!string.IsNullOrEmpty(label))
         {
@@ -46,7 +44,7 @@ internal static class CollectionToolbar
         if (!string.IsNullOrEmpty(label))
             ImGui.SameLine();
 
-        DrawSelectorCombo(label, comboID, items, selectedIndex, getName, onDelete != null, emptyText, itemWidth, previewValue);
+        DrawSelectorCombo(label, comboID, items, selectedIndex, setSelectedIndex, getName, onDelete != null, onDelete, emptyText, itemWidth, previewValue);
     }
 
     public static void DrawActionButtons
@@ -82,50 +80,16 @@ internal static class CollectionToolbar
             onExport();
     }
 
-    private static void ConsumePendingResult<T>(string comboID, IList<T> items, ref int selectedIndex, Action<T>? onDelete)
-    {
-        if (!SelectorTasks.TryGetValue(comboID, out var state) || state.Task == null || !state.Task.IsCompleted)
-            return;
-
-        var result = state.Task.GetAwaiter().GetResult();
-        state.Task = null;
-
-        if (result.Kind == CollectionSelectorResultKind.Cancelled)
-        {
-            CleanupState(comboID, state);
-            return;
-        }
-
-        if (result.Index < 0 || result.Index >= items.Count)
-        {
-            selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
-            CleanupState(comboID, state);
-            return;
-        }
-
-        switch (result.Kind)
-        {
-            case CollectionSelectorResultKind.Selected:
-                selectedIndex = result.Index;
-                break;
-
-            case CollectionSelectorResultKind.DeleteRequested when onDelete != null:
-                onDelete(items[result.Index]);
-                selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
-                break;
-        }
-
-        CleanupState(comboID, state);
-    }
-
     private static void DrawSelectorCombo<T>
     (
         string          label,
         string          comboID,
         IList<T>        items,
         int             selectedIndex,
+        Action<int>     setSelectedIndex,
         Func<T, string> getName,
         bool            allowDelete,
+        Action<T>?      onDelete,
         string          emptyText,
         float           itemWidth,
         string          previewValue
@@ -147,17 +111,28 @@ internal static class CollectionToolbar
             items.Select(item => new CollectionSelectorItem(getName(item))).ToArray(),
             allowDelete
         );
+        
+        CollectionSelectorWindow.Open
+        (
+            request,
+            index =>
+            {
+                if ((uint)index >= (uint)items.Count)
+                    return;
 
-        var state = SelectorTasks.GetValueOrDefault(comboID);
+                setSelectedIndex(index);
+            },
+            allowDelete && onDelete != null
+                ? index =>
+                {
+                    if ((uint)index >= (uint)items.Count)
+                        return;
 
-        if (state == null)
-        {
-            state                  = new();
-            SelectorTasks[comboID] = state;
-        }
-
-        state.Title = request.Title;
-        state.Task  = CollectionSelectorWindow.OpenAsync(request);
+                    onDelete(items[index]);
+                    setSelectedIndex(NormalizeSelectedIndex(selectedIndex, items.Count));
+                }
+                : null
+        );
     }
 
     private static string BuildWindowTitle(string label)
@@ -167,20 +142,5 @@ internal static class CollectionToolbar
             return "选择项目";
 
         return trimmed.StartsWith("选择", StringComparison.Ordinal) ? trimmed : $"选择{trimmed}";
-    }
-
-    private static void CleanupState(string comboID, SelectorTaskState state)
-    {
-        if (state.Task != null)
-            return;
-
-        SelectorTasks.Remove(comboID);
-    }
-
-    private sealed class SelectorTaskState
-    {
-        public Task<CollectionSelectorResult>? Task { get; set; }
-
-        public string Title { get; set; } = string.Empty;
     }
 }
