@@ -64,8 +64,6 @@ public sealed class ExecutePresetAction : ExecuteActionBase
             );
         }
 
-        PresetName = selectedPresetIndex >= 0 ? presets[selectedPresetIndex].Name : string.Empty;
-
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();

@@ -59,17 +59,64 @@ internal abstract class CollectionEditorWindowBase<TItem>
 
     private void DrawToolbar()
     {
-        CollectionToolbar.DrawSelector
-        (
-            SelectorLabel,
-            $"###{CollectionID}SelectCombo",
-            Items,
-            selectedIndex,
-            value => selectedIndex = value,
-            GetItemName,
-            item => Items.Remove(item),
-            EmptyCollectionText
-        );
+        selectedIndex = CollectionToolbar.NormalizeSelectedIndex(selectedIndex, Items.Count);
+
+        if (!string.IsNullOrEmpty(SelectorLabel))
+        {
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text(SelectorLabel);
+            ImGui.SameLine();
+        }
+
+        if (Items.Count == 0)
+            ImGui.TextDisabled(EmptyCollectionText);
+        else
+        {
+            var previewValue = selectedIndex >= 0 ? GetItemName(Items[selectedIndex]) : "请选择";
+
+            ImGui.SetNextItemWidth(280f * GlobalUIScale);
+            using (var combo = ImRaii.Combo($"###{CollectionID}SelectCombo", previewValue, ImGuiComboFlags.HeightLarge))
+            {
+                if (combo)
+                    ImGui.CloseCurrentPopup();
+            }
+
+            if (ImGui.IsItemClicked())
+            {
+                var trimmed = SelectorLabel.Trim().TrimEnd(':', '：');
+                var title = string.IsNullOrWhiteSpace(trimmed)
+                                ? "选择项目"
+                                : trimmed.StartsWith("选择", StringComparison.Ordinal) ? trimmed : $"选择{trimmed}";
+                var request = new CollectionSelectorRequest
+                (
+                    title,
+                    EmptyCollectionText,
+                    selectedIndex,
+                    Items.Select(item => new CollectionSelectorItem(GetItemName(item))).ToArray(),
+                    true
+                );
+
+                CollectionSelectorWindow.Open
+                (
+                    request,
+                    index =>
+                    {
+                        if ((uint)index >= (uint)Items.Count)
+                            return;
+
+                        selectedIndex = index;
+                    },
+                    index =>
+                    {
+                        if ((uint)index >= (uint)Items.Count)
+                            return;
+
+                        Items.RemoveAt(index);
+                        selectedIndex = CollectionToolbar.NormalizeSelectedIndex(selectedIndex, Items.Count);
+                    }
+                );
+            }
+        }
 
         ImGui.SameLine();
 

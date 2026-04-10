@@ -8,45 +8,6 @@ internal static class CollectionToolbar
         return Math.Clamp(selectedIndex, 0, count - 1);
     }
 
-    public static void DrawSelector<T>
-    (
-        string          label,
-        string          comboID,
-        IList<T>        items,
-        int             selectedIndex,
-        Action<int>     setSelectedIndex,
-        Func<T, string> getName,
-        Action<T>?      onDelete  = null,
-        string          emptyText = "暂无数据",
-        float           itemWidth = 280f
-    )
-    {
-        selectedIndex = NormalizeSelectedIndex(selectedIndex, items.Count);
-
-        if (!string.IsNullOrEmpty(label))
-        {
-            ImGui.AlignTextToFramePadding();
-            ImGui.Text(label);
-        }
-
-        if (items.Count == 0)
-        {
-            if (!string.IsNullOrEmpty(label))
-                ImGui.SameLine();
-
-            ImGui.TextDisabled(emptyText);
-            return;
-        }
-
-        var selectedItem = selectedIndex >= 0 ? items[selectedIndex] : items[0];
-        var previewValue = selectedIndex >= 0 ? getName(selectedItem) : "请选择";
-
-        if (!string.IsNullOrEmpty(label))
-            ImGui.SameLine();
-
-        DrawSelectorCombo(label, comboID, items, selectedIndex, setSelectedIndex, getName, onDelete != null, onDelete, emptyText, itemWidth, previewValue);
-    }
-
     public static void DrawActionButtons
     (
         string saveID,
@@ -80,67 +41,4 @@ internal static class CollectionToolbar
             onExport();
     }
 
-    private static void DrawSelectorCombo<T>
-    (
-        string          label,
-        string          comboID,
-        IList<T>        items,
-        int             selectedIndex,
-        Action<int>     setSelectedIndex,
-        Func<T, string> getName,
-        bool            allowDelete,
-        Action<T>?      onDelete,
-        string          emptyText,
-        float           itemWidth,
-        string          previewValue
-    )
-    {
-        ImGui.SetNextItemWidth(itemWidth <= 0f ? itemWidth : itemWidth * GlobalUIScale);
-        using var combo = ImRaii.Combo(comboID, previewValue, ImGuiComboFlags.HeightLarge);
-        if (combo)
-            ImGui.CloseCurrentPopup();
-
-        if (!ImGui.IsItemClicked())
-            return;
-
-        var request = new CollectionSelectorRequest
-        (
-            BuildWindowTitle(label),
-            emptyText,
-            selectedIndex,
-            items.Select(item => new CollectionSelectorItem(getName(item))).ToArray(),
-            allowDelete
-        );
-
-        CollectionSelectorWindow.Open
-        (
-            request,
-            index =>
-            {
-                if ((uint)index >= (uint)items.Count)
-                    return;
-
-                setSelectedIndex(index);
-            },
-            allowDelete && onDelete != null
-                ? index =>
-                {
-                    if ((uint)index >= (uint)items.Count)
-                        return;
-
-                    onDelete(items[index]);
-                    setSelectedIndex(NormalizeSelectedIndex(selectedIndex, items.Count));
-                }
-                : null
-        );
-    }
-
-    private static string BuildWindowTitle(string label)
-    {
-        var trimmed = label.Trim().TrimEnd(':', '：');
-        if (string.IsNullOrWhiteSpace(trimmed))
-            return "选择项目";
-
-        return trimmed.StartsWith("选择", StringComparison.Ordinal) ? trimmed : $"选择{trimmed}";
-    }
 }

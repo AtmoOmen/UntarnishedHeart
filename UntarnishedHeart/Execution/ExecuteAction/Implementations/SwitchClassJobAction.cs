@@ -3,6 +3,7 @@ using OmenTools.ImGuiOm.Widgets.Combos;
 using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
+using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
 
@@ -26,7 +27,35 @@ public sealed class SwitchClassJobAction : ExecuteActionBase
     public override void Draw()
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
-        Mode = ConditionBase.DrawEnumCombo("切换方式###SwitchClassJobModeCombo", Mode);
+        var modeCandidates = Enum.GetValues<SwitchClassJobMode>();
+        using (var combo = ImRaii.Combo("切换方式###SwitchClassJobModeCombo", Mode.GetDescription(), ImGuiComboFlags.HeightLargest))
+        {
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            var request = new CollectionSelectorRequest
+            (
+                "选择切换方式",
+                "暂无可选切换方式",
+                Array.IndexOf(modeCandidates, Mode),
+                modeCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                request,
+                index =>
+                {
+                    if ((uint)index >= (uint)modeCandidates.Length)
+                        return;
+
+                    Mode = modeCandidates[index];
+                }
+            );
+        }
 
         switch (Mode)
         {

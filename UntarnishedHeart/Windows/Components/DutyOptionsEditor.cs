@@ -1,22 +1,15 @@
+using System.Collections.Frozen;
+using OmenTools.Dalamud;
 using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.Route;
 using UntarnishedHeart.Internal;
-using UntarnishedHeart.Execution.Condition;
-using UntarnishedHeart.Windows;
 using ContentsFinder = FFXIVClientStructs.FFXIV.Client.Game.UI.ContentsFinder;
 
 namespace UntarnishedHeart.Windows.Components;
 
 internal static class DutyOptionsEditor
 {
-    private static readonly Dictionary<ContentsFinder.LootRule, string> LootRuleNames = new()
-    {
-        [ContentsFinder.LootRule.Normal]     = "通常",
-        [ContentsFinder.LootRule.GreedOnly]  = "仅限贪婪",
-        [ContentsFinder.LootRule.Lootmaster] = "队长分配"
-    };
-
-    public static bool Draw(DutyOptions dutyOptions)
+    public static bool Draw(DutyOptions dutyOptions, Action? onChanged = null)
     {
         var changed = false;
 
@@ -26,12 +19,33 @@ internal static class DutyOptionsEditor
         ImGui.Separator();
         ImGui.Spacing();
 
-        changed |= DrawFinderSection(dutyOptions);
+        changed |= DrawFinderSection(dutyOptions, onChanged);
 
         return changed;
     }
+    
+    public static void DrawAndSaveToConfig()
+    {
+        var dutyOptions = CreateFromConfig();
 
-    public static DutyOptions CreateFromConfig()
+        if (!Draw(dutyOptions, Persist))
+            return;
+
+        Persist();
+        return;
+
+        void Persist()
+        {
+            PluginConfig.Instance().LeaderMode           = dutyOptions.LeaderMode;
+            PluginConfig.Instance().AutoRecommendGear    = dutyOptions.AutoRecommendGear;
+            PluginConfig.Instance().RunTimes             = dutyOptions.RunTimes;
+            PluginConfig.Instance().ContentEntryType     = dutyOptions.ContentEntryType;
+            PluginConfig.Instance().ContentsFinderOption = dutyOptions.ContentsFinderOption.Clone();
+            PluginConfig.Instance().Save();
+        }
+    }
+    
+    private static DutyOptions CreateFromConfig()
     {
         var config = PluginConfig.Instance();
         return new DutyOptions
@@ -93,7 +107,7 @@ internal static class DutyOptionsEditor
         return changed;
     }
 
-    private static bool DrawFinderSection(DutyOptions dutyOptions)
+    private static bool DrawFinderSection(DutyOptions dutyOptions, Action? onChanged)
     {
         var changed = false;
         var option  = dutyOptions.ContentsFinderOption;
@@ -124,104 +138,78 @@ internal static class DutyOptionsEditor
         }
 
         var lootRule = option.LootRules;
-
-        DrawLootRuleSelector(lootRule, loot =>
+        ImGui.SetNextItemWidth(240f * GlobalUIScale);
+        using (var combo = ImRaii.Combo("战利品分配###DutyOptionsLootRule", LootRuleNames[lootRule], ImGuiComboFlags.HeightLargest))
         {
-            option.LootRules = loot;
-            changed          = true;
-        });
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
 
-        ConditionBase.DrawEnumLocalizedSelector
-        (
-            "副本入口###DutyOptionsContentEntryCombo",
-            "选择副本入口",
-            "暂无可选副本入口",
-            dutyOptions.ContentEntryType,
-            entryType =>
-            {
-                dutyOptions.ContentEntryType = entryType;
-                changed                      = true;
-            },
-            static value => value.GetDescription()
-        );
+        if (ImGui.IsItemClicked())
+        {
+            var lootRuleItems = LootRuleNames.ToArray();
+            var request = new CollectionSelectorRequest
+            (
+                "选择战利品分配",
+                "暂无可选战利品分配",
+                Array.FindIndex(lootRuleItems, item => item.Key == lootRule),
+                lootRuleItems.Select(item => new CollectionSelectorItem(item.Value)).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                request,
+                index =>
+                {
+                    if ((uint)index >= (uint)lootRuleItems.Length)
+                        return;
+
+                    DLog.Debug("测试");
+                    option.LootRules = lootRuleItems[index].Key;
+                    dutyOptions.ContentsFinderOption = option;
+                    onChanged?.Invoke();
+                }
+            );
+        }
+
+        ImGui.SetNextItemWidth(240f * GlobalUIScale);
+        var contentEntryCandidates = Enum.GetValues<ContentEntryType>();
+        using (var combo = ImRaii.Combo("副本入口###DutyOptionsContentEntryCombo", dutyOptions.ContentEntryType.GetDescription(), ImGuiComboFlags.HeightLargest))
+        {
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            var request = new CollectionSelectorRequest
+            (
+                "选择副本入口",
+                "暂无可选副本入口",
+                Array.IndexOf(contentEntryCandidates, dutyOptions.ContentEntryType),
+                contentEntryCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                request,
+                index =>
+                {
+                    if ((uint)index >= (uint)contentEntryCandidates.Length)
+                        return;
+
+                    dutyOptions.ContentEntryType = contentEntryCandidates[index];
+                    onChanged?.Invoke();
+                }
+            );
+        }
 
         if (changed)
             dutyOptions.ContentsFinderOption = option;
 
         return changed;
     }
-
-    private static bool DrawEntrySection(DutyOptions dutyOptions)
-    {
-        var changed = false;
-        var option  = dutyOptions.ContentsFinderOption;
-
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "掉落与入口");
-        ImGui.Spacing();
-
-        var lootRule = option.LootRules;
-
-        DrawLootRuleSelector(lootRule, loot =>
-        {
-            option.LootRules = loot;
-            changed          = true;
-        });
-
-        ImGui.SetNextItemWidth(220f * GlobalUIScale);
-
-        ConditionBase.DrawEnumLocalizedSelector
-        (
-            "副本入口###DutyOptionsContentEntryCombo",
-            "选择副本入口",
-            "暂无可选副本入口",
-            dutyOptions.ContentEntryType,
-            entryType =>
-            {
-                dutyOptions.ContentEntryType = entryType;
-                changed                      = true;
-            },
-            static value => value.GetDescription()
-        );
-
-        if (changed)
-            dutyOptions.ContentsFinderOption = option;
-
-        return changed;
-    }
-
-    private static void DrawLootRuleSelector(ContentsFinder.LootRule current, Action<ContentsFinder.LootRule> setCurrent)
-    {
-        ImGui.SetNextItemWidth(220f * GlobalUIScale);
-
-        using var combo = ImRaii.Combo("战利品分配###DutyOptionsLootRule", LootRuleNames[current]);
-        if (combo)
-            ImGui.CloseCurrentPopup();
-
-        if (!ImGui.IsItemClicked())
-            return;
-
-        var items = LootRuleNames.ToArray();
-        var request = new CollectionSelectorRequest
-        (
-            "选择战利品分配",
-            "暂无可选战利品分配",
-            Array.FindIndex(items, item => item.Key == current),
-            items.Select(item => new CollectionSelectorItem(item.Value)).ToArray()
-        );
-
-        CollectionSelectorWindow.Open
-        (
-            request,
-            index =>
-            {
-                if ((uint)index >= (uint)items.Length)
-                    return;
-
-                setCurrent(items[index].Key);
-            }
-        );
-    }
-
+    
     private static bool DrawFinderOptionCell(int columnIndex, string label, bool currentValue, Action<bool> assign)
     {
         ImGui.TableSetColumnIndex(columnIndex);
@@ -233,18 +221,11 @@ internal static class DutyOptionsEditor
 
         return changed;
     }
-
-    public static void DrawAndSaveToConfig()
+    
+    private static readonly FrozenDictionary<ContentsFinder.LootRule, string> LootRuleNames = new Dictionary<ContentsFinder.LootRule, string>
     {
-        var dutyOptions = CreateFromConfig();
-        if (!Draw(dutyOptions))
-            return;
-
-        PluginConfig.Instance().LeaderMode           = dutyOptions.LeaderMode;
-        PluginConfig.Instance().AutoRecommendGear    = dutyOptions.AutoRecommendGear;
-        PluginConfig.Instance().RunTimes             = dutyOptions.RunTimes;
-        PluginConfig.Instance().ContentEntryType     = dutyOptions.ContentEntryType;
-        PluginConfig.Instance().ContentsFinderOption = dutyOptions.ContentsFinderOption.Clone();
-        PluginConfig.Instance().Save();
-    }
+        [ContentsFinder.LootRule.Normal]     = "通常",
+        [ContentsFinder.LootRule.GreedOnly]  = "仅限贪婪",
+        [ContentsFinder.LootRule.Lootmaster] = "队长分配"
+    }.ToFrozenDictionary();
 }

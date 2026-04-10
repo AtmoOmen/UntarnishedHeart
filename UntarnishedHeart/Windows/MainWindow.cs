@@ -109,17 +109,39 @@ public class MainWindow : Window
             return;
         }
 
-        CollectionToolbar.DrawSelector
-        (
-            string.Empty,
-            "###MainPresetSelectCombo",
-            config.Presets,
-            config.SelectedPresetIndex,
-            PersistSelectedPresetIndex,
-            preset => preset.Name,
-            emptyText: "暂无预设",
-            itemWidth: CalculateSelectorWidth(72f)
-        );
+        var selectedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(config.SelectedPresetIndex, config.Presets.Count);
+        var previewValue        = selectedPresetIndex >= 0 ? config.Presets[selectedPresetIndex].Name : "请选择";
+        var selectorWidth       = CalculateSelectorWidth(72f);
+
+        ImGui.SetNextItemWidth(selectorWidth * GlobalUIScale);
+        using (var combo = ImRaii.Combo("###MainPresetSelectCombo", previewValue, ImGuiComboFlags.HeightLarge))
+        {
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            var request = new CollectionSelectorRequest
+            (
+                "选择预设",
+                "暂无预设",
+                selectedPresetIndex,
+                config.Presets.Select(preset => new CollectionSelectorItem(preset.Name)).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                request,
+                index =>
+                {
+                    if ((uint)index >= (uint)config.Presets.Count)
+                        return;
+
+                    PersistSelectedPresetIndex(index);
+                }
+            );
+        }
 
         ImGui.SameLine();
         if (ImGui.Button("编辑##EditPreset", new(72f * GlobalUIScale, 0f)))
@@ -139,17 +161,39 @@ public class MainWindow : Window
             return;
         }
 
-        CollectionToolbar.DrawSelector
-        (
-            string.Empty,
-            "###MainRouteSelectCombo",
-            config.Routes,
-            config.SelectedRouteIndex,
-            PersistSelectedRouteIndex,
-            route => route.Name,
-            emptyText: "暂无路线",
-            itemWidth: CalculateSelectorWidth(72f)
-        );
+        var selectedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(config.SelectedRouteIndex, config.Routes.Count);
+        var previewValue       = selectedRouteIndex >= 0 ? config.Routes[selectedRouteIndex].Name : "请选择";
+        var selectorWidth      = CalculateSelectorWidth(72f);
+
+        ImGui.SetNextItemWidth(selectorWidth * GlobalUIScale);
+        using (var combo = ImRaii.Combo("###MainRouteSelectCombo", previewValue, ImGuiComboFlags.HeightLarge))
+        {
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            var request = new CollectionSelectorRequest
+            (
+                "选择路线",
+                "暂无路线",
+                selectedRouteIndex,
+                config.Routes.Select(route => new CollectionSelectorItem(route.Name)).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                request,
+                index =>
+                {
+                    if ((uint)index >= (uint)config.Routes.Count)
+                        return;
+
+                    PersistSelectedRouteIndex(index);
+                }
+            );
+        }
 
         ImGui.SameLine();
 

@@ -1,4 +1,6 @@
 using System.Numerics;
+using Dalamud.Game.ClientState.Objects.Enums;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using OmenTools.OmenService;
 using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
@@ -6,6 +8,7 @@ using UntarnishedHeart.Execution.ExecuteAction.Models;
 using UntarnishedHeart.Execution.Models;
 using UntarnishedHeart.Execution.Preset.Enums;
 using UntarnishedHeart.Execution.Preset.Helpers;
+using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Helpers;
 
@@ -14,7 +17,35 @@ internal static class ExecuteActionDrawHelper
     public static void DrawActionReference(ActionReference reference, string idSuffix = "")
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
-        reference.ActionType = ConditionBase.DrawEnumCombo($"技能类型###ActionTypeCombo{idSuffix}", reference.ActionType);
+        var actionTypeCandidates = Enum.GetValues<ActionType>();
+        using (var combo = ImRaii.Combo($"技能类型###ActionTypeCombo{idSuffix}", reference.ActionType.GetDescription(), ImGuiComboFlags.HeightLargest))
+        {
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            var request = new CollectionSelectorRequest
+            (
+                "选择技能类型",
+                "暂无可选技能类型",
+                Array.IndexOf(actionTypeCandidates, reference.ActionType),
+                actionTypeCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                request,
+                index =>
+                {
+                    if ((uint)index >= (uint)actionTypeCandidates.Length)
+                        return;
+
+                    reference.ActionType = actionTypeCandidates[index];
+                }
+            );
+        }
 
         var actionID = reference.ActionID;
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
@@ -25,7 +56,35 @@ internal static class ExecuteActionDrawHelper
     public static void DrawTargetSelector(TargetSelector selector, string idSuffix)
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
-        selector.Kind = ConditionBase.DrawEnumCombo($"目标选择方式###TargetSelectorKind{idSuffix}", selector.Kind);
+        var selectorKindCandidates = Enum.GetValues<TargetSelectorKind>();
+        using (var combo = ImRaii.Combo($"目标选择方式###TargetSelectorKind{idSuffix}", selector.Kind.GetDescription(), ImGuiComboFlags.HeightLargest))
+        {
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            var request = new CollectionSelectorRequest
+            (
+                "选择目标选择方式",
+                "暂无可选目标选择方式",
+                Array.IndexOf(selectorKindCandidates, selector.Kind),
+                selectorKindCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                request,
+                index =>
+                {
+                    if ((uint)index >= (uint)selectorKindCandidates.Length)
+                        return;
+
+                    selector.Kind = selectorKindCandidates[index];
+                }
+            );
+        }
 
         switch (selector.Kind)
         {
@@ -34,7 +93,35 @@ internal static class ExecuteActionDrawHelper
                 using (ImRaii.Group())
                 {
                     ImGui.SetNextItemWidth(240f * GlobalUIScale);
-                    selector.ObjectKind = ConditionBase.DrawEnumCombo($"对象类型###TargetObjectKind{idSuffix}", selector.ObjectKind);
+                    var objectKindCandidates = Enum.GetValues<ObjectKind>();
+                    using (var combo = ImRaii.Combo($"对象类型###TargetObjectKind{idSuffix}", selector.ObjectKind.GetDescription(), ImGuiComboFlags.HeightLargest))
+                    {
+                        if (combo)
+                            ImGui.CloseCurrentPopup();
+                    }
+
+                    if (ImGui.IsItemClicked())
+                    {
+                        var request = new CollectionSelectorRequest
+                        (
+                            "选择对象类型",
+                            "暂无可选对象类型",
+                            Array.IndexOf(objectKindCandidates, selector.ObjectKind),
+                            objectKindCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+                        );
+
+                        CollectionSelectorWindow.Open
+                        (
+                            request,
+                            index =>
+                            {
+                                if ((uint)index >= (uint)objectKindCandidates.Length)
+                                    return;
+
+                                selector.ObjectKind = objectKindCandidates[index];
+                            }
+                        );
+                    }
 
                     var dataID = selector.DataID;
                     ImGui.SetNextItemWidth(240f * GlobalUIScale);
@@ -141,7 +228,36 @@ internal static class ExecuteActionDrawHelper
             }
 
             ImGui.SetNextItemWidth(200f * GlobalUIScale);
-            parameter.Type = ConditionBase.DrawEnumCombo("参数类型###Type", parameter.Type);
+            var parameterTypeCandidates = Enum.GetValues<AtkValueParameterType>();
+            using (var combo = ImRaii.Combo("参数类型###Type", parameter.Type.GetDescription(), ImGuiComboFlags.HeightLargest))
+            {
+                if (combo)
+                    ImGui.CloseCurrentPopup();
+            }
+
+            if (ImGui.IsItemClicked())
+            {
+                var request = new CollectionSelectorRequest
+                (
+                    "选择参数类型",
+                    "暂无可选参数类型",
+                    Array.IndexOf(parameterTypeCandidates, parameter.Type),
+                    parameterTypeCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+                );
+
+                CollectionSelectorWindow.Open
+                (
+                    request,
+                    index =>
+                    {
+                        if ((uint)index >= (uint)parameterTypeCandidates.Length)
+                            return;
+
+                        parameter.Type = parameterTypeCandidates[index];
+                    }
+                );
+            }
+
             DrawAtkValueParameterValue(parameter);
             ImGui.Separator();
         }

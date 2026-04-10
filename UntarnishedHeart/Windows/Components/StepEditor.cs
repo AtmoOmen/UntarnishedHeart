@@ -5,6 +5,7 @@ using UntarnishedHeart.Execution.ExecuteAction;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Execution.Preset.Enums;
+using UntarnishedHeart.Windows;
 using UntarnishedHeart.Windows.Helpers;
 
 namespace UntarnishedHeart.Windows.Components;
@@ -85,8 +86,8 @@ internal static class StepEditor
             return false;
         }
 
-        var currentAction = actions[selectedIndex];
-        actions[selectedIndex] = DrawActionEditor(currentAction, phase, selectedIndex);
+        var currentIndex = selectedIndex;
+        DrawActionEditor(actions[currentIndex], phase, currentIndex, next => actions[currentIndex] = next);
         return true;
     }
 
@@ -205,7 +206,7 @@ internal static class StepEditor
         );
     }
 
-    private static ExecuteActionBase DrawActionEditor(ExecuteActionBase action, PresetStepPhase phase, int actionIndex)
+    private static void DrawActionEditor(ExecuteActionBase action, PresetStepPhase phase, int actionIndex, Action<ExecuteActionBase> replaceCurrent)
     {
         using var id = ImRaii.PushId($"{phase}-Action-{actionIndex}");
 
@@ -221,13 +222,9 @@ internal static class StepEditor
         {
             if (item)
             {
-                var current = DrawActionTypeSelector(action);
-
                 ImGui.Spacing();
-
-                current.Draw();
-
-                action = current;
+                DrawActionTypeSelector(action, replaceCurrent);
+                action.Draw();
             }
         }
 
@@ -236,8 +233,6 @@ internal static class StepEditor
             if (item)
                 action.Condition.Draw();
         }
-
-        return action;
     }
 
     private static void DrawActionMetadataEditor(ExecuteActionBase action)
@@ -253,35 +248,48 @@ internal static class StepEditor
             action.Remark = actionRemark;
     }
 
-    private static ExecuteActionBase DrawActionTypeSelector(ExecuteActionBase current)
+    private static void DrawActionTypeSelector(ExecuteActionBase current, Action<ExecuteActionBase> replaceCurrent)
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
+        var candidates = Enum.GetValues<ExecuteActionKind>();
 
-        var nextAction = current;
+        using var combo = ImRaii.Combo("执行动作###ActionKindCombo", current.Kind.GetDescription(), ImGuiComboFlags.HeightLargest);
+        if (combo)
+            ImGui.CloseCurrentPopup();
 
-        ConditionBase.DrawEnumLocalizedSelector
+        if (!ImGui.IsItemClicked())
+            return;
+
+        var request = new CollectionSelectorRequest
         (
-            "执行动作###ActionKindCombo",
             "选择执行动作",
             "暂无可选执行动作",
-            current.Kind,
-            actionKind =>
+            Array.IndexOf(candidates, current.Kind),
+            candidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+        );
+
+        CollectionSelectorWindow.Open
+        (
+            request,
+            index =>
             {
+                if ((uint)index >= (uint)candidates.Length)
+                    return;
+
+                var actionKind = candidates[index];
                 if (current.Kind == actionKind)
                     return;
 
                 var keepCustomName = !string.IsNullOrEmpty(current.Name) &&
                                      !string.Equals(current.Name, current.GetDefaultName(), StringComparison.Ordinal);
-                nextAction = ExecuteActionBase.CreateDefaultAction(actionKind);
+                var nextAction = ExecuteActionBase.CreateDefaultAction(actionKind);
                 if (keepCustomName)
                     nextAction.Name = current.Name;
 
                 nextAction.Remark    = current.Remark;
                 nextAction.Condition = ConditionCollection.Copy(current.Condition);
-            },
-            static value => value.GetDescription()
+                replaceCurrent(nextAction);
+            }
         );
-
-        return nextAction;
     }
 }

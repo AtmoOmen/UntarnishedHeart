@@ -5,6 +5,7 @@ using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.ExecuteAction.Helpers;
+using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
 
@@ -23,7 +24,35 @@ public sealed class MoveToPositionAction : ExecuteActionBase
     public override void Draw()
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
-        MoveType = ConditionBase.DrawEnumCombo("移动方式###MoveTypeCombo", MoveType);
+        var moveTypeCandidates = Enum.GetValues<MoveType>();
+        using (var combo = ImRaii.Combo("移动方式###MoveTypeCombo", MoveType.GetDescription(), ImGuiComboFlags.HeightLargest))
+        {
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            var request = new CollectionSelectorRequest
+            (
+                "选择移动方式",
+                "暂无可选移动方式",
+                Array.IndexOf(moveTypeCandidates, MoveType),
+                moveTypeCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                request,
+                index =>
+                {
+                    if ((uint)index >= (uint)moveTypeCandidates.Length)
+                        return;
+
+                    MoveType = moveTypeCandidates[index];
+                }
+            );
+        }
 
         var position = Position;
         ImGui.SetNextItemWidth(240f * GlobalUIScale);

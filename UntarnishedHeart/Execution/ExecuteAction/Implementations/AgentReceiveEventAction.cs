@@ -5,6 +5,7 @@ using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.ExecuteAction.Helpers;
 using UntarnishedHeart.Execution.ExecuteAction.Models;
+using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
 
@@ -26,7 +27,35 @@ public sealed class AgentReceiveEventAction : ExecuteActionBase
     public override void Draw()
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
-        AgentID = ConditionBase.DrawEnumCombo("代理类型###AgentID", AgentID);
+        var agentCandidates = Enum.GetValues<AgentId>();
+        using (var combo = ImRaii.Combo("代理类型###AgentID", AgentID.GetDescription(), ImGuiComboFlags.HeightLargest))
+        {
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            var request = new CollectionSelectorRequest
+            (
+                "选择代理类型",
+                "暂无可选代理类型",
+                Array.IndexOf(agentCandidates, AgentID),
+                agentCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                request,
+                index =>
+                {
+                    if ((uint)index >= (uint)agentCandidates.Length)
+                        return;
+
+                    AgentID = agentCandidates[index];
+                }
+            );
+        }
 
         var eventKind = EventKind;
         ImGui.SetNextItemWidth(240f * GlobalUIScale);

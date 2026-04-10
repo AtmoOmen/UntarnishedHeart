@@ -2,6 +2,7 @@ using Newtonsoft.Json;
 using UntarnishedHeart.Execution.Condition.Configuration;
 using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Enums;
+using UntarnishedHeart.Windows;
 using UntarnishedHeart.Windows.Helpers;
 
 namespace UntarnishedHeart.Execution.Condition;
@@ -86,15 +87,35 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
     public void Draw()
     {
         ImGui.SetNextItemWidth(320f * GlobalUIScale);
-        ConditionBase.DrawEnumLocalizedSelector
-        (
-            "处理类型###ExecuteTypeCombo",
-            "选择处理类型",
-            "暂无可选处理类型",
-            ExecuteType,
-            value => ExecuteType = value,
-            static value => value.GetDescription()
-        );
+        var executeTypeCandidates = Enum.GetValues<ConditionExecuteType>();
+        using (var combo = ImRaii.Combo("处理类型###ExecuteTypeCombo", ExecuteType.GetDescription(), ImGuiComboFlags.HeightLargest))
+        {
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            var request = new CollectionSelectorRequest
+            (
+                "选择处理类型",
+                "暂无可选处理类型",
+                Array.IndexOf(executeTypeCandidates, ExecuteType),
+                executeTypeCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                request,
+                index =>
+                {
+                    if ((uint)index >= (uint)executeTypeCandidates.Length)
+                        return;
+
+                    ExecuteType = executeTypeCandidates[index];
+                }
+            );
+        }
 
         switch (ExecuteType)
         {
@@ -111,15 +132,35 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
         }
 
         ImGui.SetNextItemWidth(320f * GlobalUIScale);
-        ConditionBase.DrawEnumLocalizedSelector
-        (
-            "关系类型###RelationTypeCombo",
-            "选择关系类型",
-            "暂无可选关系类型",
-            RelationType,
-            value => RelationType = value,
-            static value => value.GetDescription()
-        );
+        var relationTypeCandidates = Enum.GetValues<ConditionRelationType>();
+        using (var combo = ImRaii.Combo("关系类型###RelationTypeCombo", RelationType.GetDescription(), ImGuiComboFlags.HeightLargest))
+        {
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            var request = new CollectionSelectorRequest
+            (
+                "选择关系类型",
+                "暂无可选关系类型",
+                Array.IndexOf(relationTypeCandidates, RelationType),
+                relationTypeCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                request,
+                index =>
+                {
+                    if ((uint)index >= (uint)relationTypeCandidates.Length)
+                        return;
+
+                    RelationType = relationTypeCandidates[index];
+                }
+            );
+        }
 
         ImGui.NewLine();
 
@@ -136,10 +177,7 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
             using (var node = ImRaii.TreeNode($"{label}###Condition-{i}"))
             {
                 if (node)
-                {
-                    condition     = condition.Draw(i);
-                    Conditions[i] = condition;
-                }
+                    condition.Draw(i, next => Conditions[i] = next);
                 else
                     DrawConditionContextMenu(i, condition);
             }

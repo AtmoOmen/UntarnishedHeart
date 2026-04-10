@@ -14,7 +14,6 @@ namespace UntarnishedHeart.Execution.Condition;
 public abstract class ConditionBase : IEquatable<ConditionBase>
 {
     protected const float EQUALITY_TOLERANCE = 0.01f;
-    private static readonly Dictionary<string, object> PendingEnumSelections = [];
 
     [JsonProperty("Name")]
     public string Name { get; set; } = string.Empty;
@@ -63,22 +62,20 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         return target;
     }
 
-    public ConditionBase Draw(int index)
+    public void Draw(int index, Action<ConditionBase> replaceCurrent)
     {
         using var id    = ImRaii.PushId($"Condition-{index}");
         using var group = ImRaii.Group();
         using var table = ImRaii.Table("SingleConditionTable", 2);
         if (!table)
-            return this;
+            return;
 
         ImGui.TableSetupColumn("名称", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("一二三四五六七八").X);
         ImGui.TableSetupColumn("内容", ImGuiTableColumnFlags.WidthStretch);
 
         DrawMetadataFields();
-
-        var current = DrawKindSelector();
-        current.DrawBody();
-        return current;
+        DrawKindSelector(replaceCurrent);
+        DrawBody();
     }
 
     protected abstract void DrawBody();
@@ -91,113 +88,6 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         ImGui.TextColored(color, $"{text}:");
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
-    }
-
-    internal static TEnum DrawEnumCombo<TEnum>(string id, TEnum current, in HashSet<TEnum>? passedEnums = null)
-        where TEnum : struct, Enum
-    {
-        if (TryConsumePendingEnumSelection(id, out TEnum pendingValue))
-            current = pendingValue;
-
-        var skippedEnums = passedEnums;
-        var candidates = Enum
-                         .GetValues<TEnum>()
-                         .Where(candidate => skippedEnums == null || !skippedEnums.Contains(candidate))
-                         .ToArray();
-
-        if (candidates.Length == 0)
-        {
-            ImGui.TextDisabled("暂无可选项目");
-            return current;
-        }
-
-        using var combo = ImRaii.Combo(id, current.GetDescription(), ImGuiComboFlags.HeightLargest);
-        if (combo)
-            ImGui.CloseCurrentPopup();
-
-        if (!ImGui.IsItemClicked())
-            return current;
-
-        var request = new CollectionSelectorRequest
-        (
-            BuildSelectorTitle(id),
-            "暂无可选项目",
-            Array.IndexOf(candidates, current),
-            candidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-        );
-
-        CollectionSelectorWindow.Open
-        (
-            request,
-            index =>
-            {
-                if ((uint)index >= (uint)candidates.Length)
-                    return;
-
-                PendingEnumSelections[id] = candidates[index];
-            }
-        );
-
-        return current;
-    }
-
-    internal static void DrawEnumLocalizedSelector<TEnum>
-    (
-        string                id,
-        string                title,
-        string                emptyText,
-        TEnum                 current,
-        Action<TEnum>         setCurrent,
-        Func<TEnum, string>   getDisplayText,
-        Func<TEnum, string?>? getDescription = null,
-        in HashSet<TEnum>?    passedEnums    = null
-    )
-        where TEnum : struct, Enum
-    {
-        var skippedEnums = passedEnums;
-        var candidates = Enum
-                         .GetValues<TEnum>()
-                         .Where(candidate => skippedEnums == null || !skippedEnums.Contains(candidate))
-                         .ToArray();
-
-        if (candidates.Length == 0)
-        {
-            ImGui.TextDisabled(emptyText);
-            return;
-        }
-
-        using var combo = ImRaii.Combo(id, getDisplayText(current), ImGuiComboFlags.HeightLarge);
-        if (combo)
-            ImGui.CloseCurrentPopup();
-
-        if (!ImGui.IsItemClicked())
-            return;
-
-        var request = new CollectionSelectorRequest
-        (
-            title,
-            emptyText,
-            Array.IndexOf(candidates, current),
-            candidates.Select(candidate => new CollectionSelectorItem(getDisplayText(candidate), getDescription?.Invoke(candidate))).ToArray()
-        );
-
-        CollectionSelectorWindow.Open
-        (
-            request,
-            index =>
-            {
-                if ((uint)index >= (uint)candidates.Length)
-                    return;
-
-                setCurrent(candidates[index]);
-            }
-        );
-    }
-
-    protected static ConditionTargetType DrawTargetType(string id, ConditionTargetType current)
-    {
-        DrawLabel("目标类型", KnownColor.LightSkyBlue.ToVector4());
-        return DrawEnumCombo(id, current);
     }
 
     protected static IBattleChara? ResolveTarget(in ConditionContext context, ConditionTargetType targetType) =>
@@ -288,44 +178,52 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         return condition;
     }
 
-    private static bool TryConsumePendingEnumSelection<TEnum>(string id, out TEnum value)
-        where TEnum : struct, Enum
-    {
-        if (PendingEnumSelections.Remove(id, out var pendingValue) && pendingValue is TEnum typedValue)
-        {
-            value = typedValue;
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    private static string BuildSelectorTitle(string id)
-    {
-        var label = id.Split("###", StringSplitOptions.None)[0].Trim().TrimEnd(':', '：');
-        if (string.IsNullOrWhiteSpace(label))
-            return "选择项目";
-
-        return label.StartsWith("选择", StringComparison.Ordinal) ? label : $"选择{label}";
-    }
-
-    private ConditionBase DrawKindSelector()
+    private void DrawKindSelector(Action<ConditionBase> replaceCurrent)
     {
         DrawLabel("条件类型", KnownColor.LightSkyBlue.ToVector4());
 
-        var selectedKind = DrawEnumCombo("###ConditionKindCombo", Kind, [ConditionDetectType.ActionCastStart]);
-        if (selectedKind == Kind)
-            return this;
+        var candidates = Enum
+                         .GetValues<ConditionDetectType>()
+                         .Where(static candidate => candidate != ConditionDetectType.ActionCastStart)
+                         .ToArray();
 
-        var keepCustomName = !string.IsNullOrEmpty(Name) &&
-                             !string.Equals(Name, GetDefaultName(), StringComparison.Ordinal);
-        var next = CreateDefault(selectedKind);
-        if (keepCustomName)
-            next.Name = Name;
+        using var combo = ImRaii.Combo("###ConditionKindCombo", Kind.GetDescription(), ImGuiComboFlags.HeightLargest);
+        if (combo)
+            ImGui.CloseCurrentPopup();
 
-        next.Remark = Remark;
-        return next;
+        if (!ImGui.IsItemClicked())
+            return;
+
+        var request = new CollectionSelectorRequest
+        (
+            "选择条件类型",
+            "暂无可选条件类型",
+            Array.IndexOf(candidates, Kind),
+            candidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+        );
+
+        CollectionSelectorWindow.Open
+        (
+            request,
+            index =>
+            {
+                if ((uint)index >= (uint)candidates.Length)
+                    return;
+
+                var selectedKind = candidates[index];
+                if (selectedKind == Kind)
+                    return;
+
+                var keepCustomName = !string.IsNullOrEmpty(Name) &&
+                                     !string.Equals(Name, GetDefaultName(), StringComparison.Ordinal);
+                var next = CreateDefault(selectedKind);
+                if (keepCustomName)
+                    next.Name = Name;
+
+                next.Remark = Remark;
+                replaceCurrent(next);
+            }
+        );
     }
 
     private void DrawMetadataFields()

@@ -1,8 +1,10 @@
 using FFXIVClientStructs.FFXIV.Client.Game;
+using Dalamud.Game.ClientState.Objects.Enums;
 using OmenTools.Interop.Game.Lumina;
 using UntarnishedHeart.Execution.Models;
 using UntarnishedHeart.Execution.Preset.Enums;
 using UntarnishedHeart.Execution.Preset.Helpers;
+using UntarnishedHeart.Windows;
 using Action = Lumina.Excel.Sheets.Action;
 
 namespace UntarnishedHeart.Execution.Condition.Helpers;
@@ -12,7 +14,35 @@ internal static class ConditionDrawHelper
     public static void DrawActionReference(ActionReference reference)
     {
         ConditionBase.DrawLabel("技能类型", KnownColor.LightSkyBlue.ToVector4());
-        reference.ActionType = ConditionBase.DrawEnumCombo("###ActionTypeCombo", reference.ActionType);
+        var actionTypeCandidates = Enum.GetValues<ActionType>();
+        using (var combo = ImRaii.Combo("###ActionTypeCombo", reference.ActionType.GetDescription(), ImGuiComboFlags.HeightLargest))
+        {
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            var request = new CollectionSelectorRequest
+            (
+                "选择技能类型",
+                "暂无可选技能类型",
+                Array.IndexOf(actionTypeCandidates, reference.ActionType),
+                actionTypeCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                request,
+                index =>
+                {
+                    if ((uint)index >= (uint)actionTypeCandidates.Length)
+                        return;
+
+                    reference.ActionType = actionTypeCandidates[index];
+                }
+            );
+        }
 
         ConditionBase.DrawLabel("技能 ID", KnownColor.LightSkyBlue.ToVector4());
         var actionID = reference.ActionID;
@@ -31,7 +61,35 @@ internal static class ConditionDrawHelper
     public static void DrawTargetSelector(TargetSelector selector, string idSuffix = "")
     {
         ConditionBase.DrawLabel("选择方式", KnownColor.LightSkyBlue.ToVector4());
-        selector.Kind = ConditionBase.DrawEnumCombo($"###TargetSelectorKind{idSuffix}", selector.Kind);
+        var selectorKindCandidates = Enum.GetValues<TargetSelectorKind>();
+        using (var combo = ImRaii.Combo($"###TargetSelectorKind{idSuffix}", selector.Kind.GetDescription(), ImGuiComboFlags.HeightLargest))
+        {
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            var request = new CollectionSelectorRequest
+            (
+                "选择目标方式",
+                "暂无可选目标方式",
+                Array.IndexOf(selectorKindCandidates, selector.Kind),
+                selectorKindCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                request,
+                index =>
+                {
+                    if ((uint)index >= (uint)selectorKindCandidates.Length)
+                        return;
+
+                    selector.Kind = selectorKindCandidates[index];
+                }
+            );
+        }
 
         switch (selector.Kind)
         {
@@ -39,7 +97,35 @@ internal static class ConditionDrawHelper
                 ConditionBase.DrawLabel("对象类型", KnownColor.LightSkyBlue.ToVector4());
 
                 ImGui.SetNextItemWidth(240f * GlobalUIScale);
-                selector.ObjectKind = ConditionBase.DrawEnumCombo($"###TargetObjectKind{idSuffix}", selector.ObjectKind);
+                var objectKindCandidates = Enum.GetValues<ObjectKind>();
+                using (var combo = ImRaii.Combo($"###TargetObjectKind{idSuffix}", selector.ObjectKind.GetDescription(), ImGuiComboFlags.HeightLargest))
+                {
+                    if (combo)
+                        ImGui.CloseCurrentPopup();
+                }
+
+                if (ImGui.IsItemClicked())
+                {
+                    var request = new CollectionSelectorRequest
+                    (
+                        "选择对象类型",
+                        "暂无可选对象类型",
+                        Array.IndexOf(objectKindCandidates, selector.ObjectKind),
+                        objectKindCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+                    );
+
+                    CollectionSelectorWindow.Open
+                    (
+                        request,
+                        index =>
+                        {
+                            if ((uint)index >= (uint)objectKindCandidates.Length)
+                                return;
+
+                            selector.ObjectKind = objectKindCandidates[index];
+                        }
+                    );
+                }
 
                 ConditionBase.DrawLabel("Data ID", KnownColor.LightSkyBlue.ToVector4());
 

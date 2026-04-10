@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using UntarnishedHeart.Execution.Condition.Enums;
+using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Execution.Condition;
 
@@ -32,7 +33,35 @@ public abstract class RouteValueConditionBase : ConditionBase
     protected override void DrawBody()
     {
         DrawLabel("比较类型", KnownColor.LightSkyBlue.ToVector4());
-        ComparisonType = DrawEnumCombo("###ComparisonTypeCombo", ComparisonType);
+        var comparisonCandidates = Enum.GetValues<NumericComparisonType>();
+        using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
+        {
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            var request = new CollectionSelectorRequest
+            (
+                "选择比较类型",
+                "暂无可选比较类型",
+                Array.IndexOf(comparisonCandidates, ComparisonType),
+                comparisonCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                request,
+                index =>
+                {
+                    if ((uint)index >= (uint)comparisonCandidates.Length)
+                        return;
+
+                    ComparisonType = comparisonCandidates[index];
+                }
+            );
+        }
 
         DrawExtraFields();
 

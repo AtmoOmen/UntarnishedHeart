@@ -3,6 +3,7 @@ using Dalamud.Game.ClientState.Conditions;
 using Newtonsoft.Json;
 using UntarnishedHeart.Execution.Condition.Configuration;
 using UntarnishedHeart.Execution.Condition.Enums;
+using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Execution.Condition;
 
@@ -44,20 +45,69 @@ public sealed class GameConditionStateCondition : ConditionBase
     protected override void DrawBody()
     {
         DrawLabel("比较类型", KnownColor.LightSkyBlue.ToVector4());
-        ComparisonType = DrawEnumCombo("###ComparisonTypeCombo", ComparisonType);
+        var comparisonCandidates = Enum.GetValues<PresenceComparisonType>();
+        using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
+        {
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            var comparisonRequest = new CollectionSelectorRequest
+            (
+                "选择比较类型",
+                "暂无可选比较类型",
+                Array.IndexOf(comparisonCandidates, ComparisonType),
+                comparisonCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                comparisonRequest,
+                index =>
+                {
+                    if ((uint)index >= (uint)comparisonCandidates.Length)
+                        return;
+
+                    ComparisonType = comparisonCandidates[index];
+                }
+            );
+        }
 
         DrawLabel("状态标记", KnownColor.LightSkyBlue.ToVector4());
-        DrawEnumLocalizedSelector
-        (
-            "###ConditionFlagCombo",
-            "选择状态标记",
-            "暂无可选状态标记",
-            Flag,
-            value => Flag = value,
-            GetConditionFlagDisplayText,
-            GetConditionFlagDescription,
-            [ConditionFlag.None]
-        );
+        var flagCandidates = Enum
+                             .GetValues<ConditionFlag>()
+                             .Where(static value => value != ConditionFlag.None)
+                             .ToArray();
+        using (var combo = ImRaii.Combo("###ConditionFlagCombo", GetConditionFlagDisplayText(Flag), ImGuiComboFlags.HeightLargest))
+        {
+            if (combo)
+                ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            var flagRequest = new CollectionSelectorRequest
+            (
+                "选择状态标记",
+                "暂无可选状态标记",
+                Array.IndexOf(flagCandidates, Flag),
+                flagCandidates.Select(candidate => new CollectionSelectorItem(GetConditionFlagDisplayText(candidate), GetConditionFlagDescription(candidate))).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                flagRequest,
+                index =>
+                {
+                    if ((uint)index >= (uint)flagCandidates.Length)
+                        return;
+
+                    Flag = flagCandidates[index];
+                }
+            );
+        }
     }
 
     private static string GetConditionFlagDisplayText(ConditionFlag flag) =>
