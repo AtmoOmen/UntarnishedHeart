@@ -1,4 +1,3 @@
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.Enums;
@@ -14,13 +13,8 @@ internal static class StepEditor
 {
     private static readonly ConditionalWeakTable<PresetStep, EditorState> EditorStates = [];
 
-    public static void Draw(PresetStep step, ref int i, List<PresetStep> steps, StepEditorSharedState sharedState)
+    public static void DrawStepMetadata(PresetStep step)
     {
-        var state = EditorStates.GetValue(step, static _ => new EditorState());
-
-        using var id    = ImRaii.PushId($"Step-{i}");
-        using var group = ImRaii.Group();
-
         var stepName = step.Name;
         ImGuiOm.CompLabelLeft("名称:", -1f, () => ImGui.InputText("###StepNameInput", ref stepName, 128));
         if (ImGui.IsItemDeactivatedAfterEdit())
@@ -30,143 +24,113 @@ internal static class StepEditor
         ImGuiOm.CompLabelLeft("备注:", -1f, () => ImGui.InputText("###StepRemarkInput", ref stepRemark, 2048));
         if (ImGui.IsItemDeactivatedAfterEdit())
             step.Remark = stepRemark;
-
-        ImGui.Spacing();
-
-        using var child = ImRaii.Child
-        (
-            "StepContentChild",
-            ImGui.GetContentRegionAvail() - ImGui.GetStyle().ItemSpacing,
-            false,
-            ImGuiWindowFlags.NoScrollbar |
-            ImGuiWindowFlags.NoScrollWithMouse
-        );
-        if (!child) return;
-
-        using var color  = ImRaii.PushColor(ImGuiCol.ChildBg, Vector4.Zero);
-        using var tabBar = ImRaii.TabBar("###StepContentTabBar");
-        if (!tabBar) return;
-
-        var enterSelectedIndex = state.EnterSelectedIndex;
-        DrawPhaseTab("进入阶段", "一般用来存储是否要进入该步骤的动作与判断", step.EnterActions, PresetStepPhase.Enter, ref enterSelectedIndex, state, sharedState);
-        state.EnterSelectedIndex = enterSelectedIndex;
-
-        var bodySelectedIndex = state.BodySelectedIndex;
-        DrawPhaseTab("进行阶段", "一般用来存储该步骤的实际逻辑", step.BodyActions, PresetStepPhase.Body, ref bodySelectedIndex, state, sharedState);
-        state.BodySelectedIndex = bodySelectedIndex;
-
-        var exitSelectedIndex = state.ExitSelectedIndex;
-        DrawPhaseTab("离开阶段", "一般用来存储是否要离开该步骤的动作与判断", step.ExitActions, PresetStepPhase.Exit, ref exitSelectedIndex, state, sharedState);
-        state.ExitSelectedIndex = exitSelectedIndex;
-
-        DrawReorderButtons(ref i, steps);
     }
 
-    private static unsafe void DrawPhaseTab
-    (
-        string                  title,
-        string                  decription,
-        List<ExecuteActionBase> actions,
-        PresetStepPhase         phase,
-        ref int                 selectedIndex,
-        EditorState             state,
-        StepEditorSharedState   sharedState
-    )
-    {
-        using var tab = ImRaii.TabItem(title);
-        ImGuiOm.TooltipHover(decription);
-        if (!tab)
-            return;
-
-        selectedIndex = CollectionToolbar.NormalizeSelectedIndex(selectedIndex, actions.Count);
-
-        using var table = ImRaii.Table($"{phase}ActionsTable", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV);
-        if (!table) return;
-
-        ImGui.TableSetupColumn("ActionsList",   ImGuiTableColumnFlags.WidthFixed, 200f * GlobalUIScale);
-        ImGui.TableSetupColumn("ActionDetails", ImGuiTableColumnFlags.WidthStretch);
-        ImGui.TableNextRow();
-
-        ImGui.TableSetColumnIndex(0);
-        if (ImGuiOm.ButtonStretch($"添加动作###{phase}AddAction"))
-            actions.Add(ExecuteActionBase.CreateDefaultAction(ExecuteActionKind.Wait));
-
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
-        using (var child = ImRaii.Child
-               (
-                   $"{phase}ActionsSelectChild",
-                   ImGui.GetContentRegionAvail(),
-                   true,
-                   ImGuiWindowFlags.NoScrollbar |
-                   ImGuiWindowFlags.NoScrollWithMouse
-               ))
+    public static List<ExecuteActionBase> GetPhaseActions(PresetStep step, PresetStepPhase phase) =>
+        phase switch
         {
-            if (child)
-            {
-                for (var actionIndex = 0; actionIndex < actions.Count; actionIndex++)
-                {
-                    var action     = actions[actionIndex];
-                    var actionName = $"{actionIndex}. {action.Name}";
+            PresetStepPhase.Enter => step.EnterActions,
+            PresetStepPhase.Body  => step.BodyActions,
+            PresetStepPhase.Exit  => step.ExitActions,
+            _                     => throw new InvalidOperationException($"不支持的阶段: {phase}")
+        };
 
-                    if (ImGui.Selectable(actionName, actionIndex == selectedIndex, ImGuiSelectableFlags.AllowDoubleClick))
-                        selectedIndex = actionIndex;
+    public static int NormalizeActionSelection(PresetStep step, PresetStepPhase phase)
+    {
+        var state         = EditorStates.GetValue(step, static _ => new EditorState());
+        var actions       = GetPhaseActions(step, phase);
+        var selectedIndex = CollectionToolbar.NormalizeSelectedIndex(state.GetSelectedIndex(phase), actions.Count);
+        state.SetSelectedIndex(phase, selectedIndex);
+        return selectedIndex;
+    }
 
-                    if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
-                    {
-                        ImGui.SetDragDropPayload($"ACTION_REORDER_{phase}", BitConverter.GetBytes(actionIndex));
-                        ImGui.Text(actionName);
-                        ImGui.EndDragDropSource();
-                    }
+    public static int GetActionSelection(PresetStep step, PresetStepPhase phase)
+    {
+        var state = EditorStates.GetValue(step, static _ => new EditorState());
+        return state.GetSelectedIndex(phase);
+    }
 
-                    if (ImGui.BeginDragDropTarget())
-                    {
-                        var payload = ImGui.AcceptDragDropPayload($"ACTION_REORDER_{phase}");
+    public static void SetActionSelection(PresetStep step, PresetStepPhase phase, int selectedIndex)
+    {
+        var state   = EditorStates.GetValue(step, static _ => new EditorState());
+        var actions = GetPhaseActions(step, phase);
+        state.SetSelectedIndex(phase, CollectionToolbar.NormalizeSelectedIndex(selectedIndex, actions.Count));
+    }
 
-                        if (!payload.IsNull && payload.Data != null)
-                        {
-                            var sourceIndex = *(int*)payload.Data;
-
-                            if (sourceIndex != actionIndex && sourceIndex >= 0 && sourceIndex < actions.Count)
-                            {
-                                (actions[sourceIndex], actions[actionIndex]) = (actions[actionIndex], actions[sourceIndex]);
-
-                                if (selectedIndex == sourceIndex)
-                                    selectedIndex = actionIndex;
-                                else if (selectedIndex == actionIndex)
-                                    selectedIndex = sourceIndex;
-                            }
-                        }
-
-                        ImGui.EndDragDropTarget();
-                    }
-
-                    DrawActionContextMenu(actions, sharedState, ref selectedIndex, actionIndex, action, phase);
-                }
-            }
+    public static bool TrySelectFirstAction(PresetStep step, PresetStepPhase phase, out int selectedIndex)
+    {
+        var actions = GetPhaseActions(step, phase);
+        if (actions.Count == 0)
+        {
+            selectedIndex = -1;
+            SetActionSelection(step, phase, selectedIndex);
+            return false;
         }
 
-        ImGui.TableSetColumnIndex(1);
-        using var detailsChild = ImRaii.Child($"{phase}ActionsDetailsChild", ImGui.GetContentRegionAvail(), true, ImGuiWindowFlags.NoBackground);
-        if (!detailsChild) return;
+        selectedIndex = 0;
+        SetActionSelection(step, phase, selectedIndex);
+        return true;
+    }
+
+    public static bool DrawSelectedActionEditor(PresetStep step, PresetStepPhase phase, ref int selectedIndex)
+    {
+        var actions = GetPhaseActions(step, phase);
+        selectedIndex = CollectionToolbar.NormalizeSelectedIndex(selectedIndex, actions.Count);
+        SetActionSelection(step, phase, selectedIndex);
 
         if (selectedIndex < 0 || selectedIndex >= actions.Count)
         {
-            ImGui.TextDisabled("请选择一个执行动作进行编辑");
-            return;
+            ImGui.TextDisabled("当前阶段暂无执行动作");
+            return false;
         }
 
         var currentAction = actions[selectedIndex];
         actions[selectedIndex] = DrawActionEditor(currentAction, phase, selectedIndex);
+        return true;
     }
+
 
     private sealed class EditorState
     {
         public int EnterSelectedIndex { get; set; } = -1;
         public int BodySelectedIndex  { get; set; } = -1;
         public int ExitSelectedIndex  { get; set; } = -1;
+
+        public int GetSelectedIndex(PresetStepPhase phase) =>
+            phase switch
+            {
+                PresetStepPhase.Enter => EnterSelectedIndex,
+                PresetStepPhase.Body  => BodySelectedIndex,
+                PresetStepPhase.Exit  => ExitSelectedIndex,
+                _                     => -1
+            };
+
+        public void SetSelectedIndex(PresetStepPhase phase, int index)
+        {
+            switch (phase)
+            {
+                case PresetStepPhase.Enter:
+                    EnterSelectedIndex = index;
+                    break;
+                case PresetStepPhase.Body:
+                    BodySelectedIndex = index;
+                    break;
+                case PresetStepPhase.Exit:
+                    ExitSelectedIndex = index;
+                    break;
+            }
+        }
+    }
+
+    public static void DrawActionContextMenu(PresetStep step, PresetStepPhase phase, int actionIndex, StepEditorSharedState sharedState, string popupID)
+    {
+        var actions       = GetPhaseActions(step, phase);
+        var selectedIndex = NormalizeActionSelection(step, phase);
+        if (actionIndex < 0 || actionIndex >= actions.Count)
+            return;
+
+        DrawActionContextMenu(actions, sharedState, ref selectedIndex, actionIndex, actions[actionIndex], phase, popupID);
+        SetActionSelection(step, phase, selectedIndex);
     }
 
     private static void DrawActionContextMenu
@@ -176,15 +140,16 @@ internal static class StepEditor
         ref int                 selectedIndex,
         int                     actionIndex,
         ExecuteActionBase       action,
-        PresetStepPhase         phase
+        PresetStepPhase         phase,
+        string?                 popupID = null
     )
     {
         var contextOperation = StepOperationType.Pass;
 
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-            ImGui.OpenPopup($"ActionContentMenu_{phase}_{actionIndex}");
+            ImGui.OpenPopup(popupID ?? $"ActionContentMenu_{phase}_{actionIndex}");
 
-        using var context = ImRaii.ContextPopupItem($"ActionContentMenu_{phase}_{actionIndex}");
+        using var context = ImRaii.ContextPopupItem(popupID ?? $"ActionContentMenu_{phase}_{actionIndex}");
         if (!context) return;
 
         ImGui.Text($"第 {actionIndex} 个动作: {action.Name}");
@@ -249,20 +214,29 @@ internal static class StepEditor
         ImGui.Separator();
         ImGui.Spacing();
 
-        var current = DrawActionTypeSelector(action);
+        using var tabBar = ImRaii.TabBar("ExecuteAction-ConditionGroup");
+        
+        using (var item = ImRaii.TabItem("执行动作"))
+        {
+            if (item)
+            {
+                var current = DrawActionTypeSelector(action);
+                
+                ImGui.Spacing();
 
-        ImGui.Spacing();
+                current.Draw();
 
-        current.Draw();
+                action = current;
+            }
+        }
+        
+        using (var item = ImRaii.TabItem("条件组"))
+        {
+            if (item)
+                action.Condition.Draw();
+        }
 
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "条件组");
-        current.Condition.Draw();
-
-        return current;
+        return action;
     }
 
     private static void DrawActionMetadataEditor(ExecuteActionBase action)
@@ -307,30 +281,4 @@ internal static class StepEditor
         return current;
     }
 
-    private static void DrawReorderButtons(ref int i, List<PresetStep> steps)
-    {
-        if (i > 0)
-        {
-            if (ImGui.TabItemButton("↑"))
-            {
-                var index = i - 1;
-                steps.Swap(i, index);
-                i = index;
-            }
-
-            ImGuiOm.TooltipHover("上移步骤");
-        }
-
-        if (i < steps.Count - 1)
-        {
-            if (ImGui.TabItemButton("↓"))
-            {
-                var index = i + 1;
-                steps.Swap(i, index);
-                i = index;
-            }
-
-            ImGuiOm.TooltipHover("下移步骤");
-        }
-    }
 }

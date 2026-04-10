@@ -13,6 +13,8 @@ namespace UntarnishedHeart.Execution.Common;
 
 public abstract class ExecuteActionExecutionHost
 {
+    private volatile ExecuteActionRuntimeCursor runtimeCursor = ExecuteActionRuntimeCursor.Empty;
+
     protected enum ActionFlowKind
     {
         Continue,
@@ -45,10 +47,20 @@ public abstract class ExecuteActionExecutionHost
         public static ActionFlowResult LeaveAndRestart() => new(ActionFlowKind.LeaveAndRestart);
     }
 
+    protected ExecuteActionRuntimeCursor CurrentRuntimeCursor => runtimeCursor;
+
+    protected void ResetRuntimeCursor() => runtimeCursor = ExecuteActionRuntimeCursor.Empty;
+
+    protected void SetRuntimeCursor(int stepIndex, PresetStepPhase? phase = null, int actionIndex = -1) =>
+        runtimeCursor = new(stepIndex, phase, actionIndex);
+
     protected async Task<ActionFlowResult> ExecuteStepAsync(PresetStep step, int stepIndex, CancellationToken cancellationToken)
     {
+        SetRuntimeCursor(stepIndex);
+
         foreach (var phase in Enum.GetValues<PresetStepPhase>())
         {
+            SetRuntimeCursor(stepIndex, phase);
             var actions     = GetActions(step, phase);
             var phaseResult = await ExecutePhaseAsync(stepIndex, step, phase, actions, cancellationToken);
             if (phaseResult.Kind != ActionFlowKind.Continue)
@@ -69,6 +81,7 @@ public abstract class ExecuteActionExecutionHost
     {
         for (var actionIndex = 0; actionIndex < actions.Count;)
         {
+            SetRuntimeCursor(stepIndex, phase, actionIndex);
             var action = actions[actionIndex];
             var result = await ExecuteActionAsync(stepIndex, step, phase, actionIndex, action, actions.Count, cancellationToken);
 

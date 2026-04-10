@@ -70,7 +70,8 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
             MaxRound       = MaxRound,
             RunningMessage = RunningMessage,
             IsFinished     = IsFinished,
-            IsStopped      = IsStopped
+            IsStopped      = IsStopped,
+            RuntimeCursor  = CurrentRuntimeCursor
         };
 
     public void Start()
@@ -79,6 +80,7 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
             return;
 
         isStarted = true;
+        ResetRuntimeCursor();
 
         if (ExecutorPreset is not { IsValid: true })
         {
@@ -798,6 +800,7 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
         if (Result != null)
             return;
 
+        ResetRuntimeCursor();
         Result = result;
 
         if (abortQueue)

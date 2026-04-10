@@ -31,6 +31,8 @@ public sealed class RouteExecutor
     private string                   currentPresetName   = string.Empty;
     private string                   routeRunningMessage = string.Empty;
 
+    public Route SourceRoute { get; } = route;
+
     public List<PresetStep> Steps { get; } = route.Steps;
 
     public int CurrentStepIndex { get; private set; }
@@ -68,6 +70,15 @@ public sealed class RouteExecutor
         }
     }
 
+    public RouteExecutionCursor ExecutionCursor =>
+        new()
+        {
+            RouteCursor = CurrentRuntimeCursor.HasStep
+                              ? CurrentRuntimeCursor
+                              : new(CurrentStepIndex, null, -1),
+            PresetCursor = CurrentExecutor is { Completion.IsCompleted: false } currentExecutor ? currentExecutor.Progress.RuntimeCursor : null
+        };
+
     private int CompletedDutyCount { get; set; }
 
     public void Dispose()
@@ -101,6 +112,7 @@ public sealed class RouteExecutor
         if (IsRunning || Steps.Count == 0 || IsDisposed) return;
 
         ResetRouteProgress();
+        ResetRuntimeCursor();
         State                              = RouteExecutorState.Running;
         IsStopAfterDutyCompletionRequested = false;
         routeRunningMessage                = string.Empty;
@@ -135,6 +147,7 @@ public sealed class RouteExecutor
         IsStopAfterDutyCompletionRequested = false;
         cancelToken?.Cancel();
         State = RouteExecutorState.Stopped;
+        ResetRuntimeCursor();
 
         CancelMovement();
         DisposeCurrentExecutor();
@@ -422,6 +435,7 @@ public sealed class RouteExecutor
         CurrentStepIndex    = 0;
         currentPresetName   = string.Empty;
         routeRunningMessage = string.Empty;
+        ResetRuntimeCursor();
     }
 
     private string GetCurrentStepName() =>

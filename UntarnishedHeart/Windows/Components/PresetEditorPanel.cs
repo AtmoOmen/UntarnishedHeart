@@ -2,7 +2,9 @@ using System.Runtime.CompilerServices;
 using Lumina.Excel.Sheets;
 using OmenTools.ImGuiOm.Widgets.Combos;
 using OmenTools.Interop.Game.Lumina;
+using UntarnishedHeart.Execution.Common;
 using UntarnishedHeart.Execution.Enums;
+using UntarnishedHeart.Execution.Managers;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Windows.Helpers;
 
@@ -31,6 +33,9 @@ internal static class PresetEditorPanel
             if (stepInfo)
                 DrawStepInfo(preset, state);
         }
+        
+        using (ImRaii.Disabled())
+            ImGui.TabItemButton(state.TreeState.CurrentPathTabLabel);
     }
 
     private static void DrawBasicInfo(Preset preset, PresetEditorState state)
@@ -69,148 +74,16 @@ internal static class PresetEditorPanel
             preset.Remark = remark;
     }
 
-    private static unsafe void DrawStepInfo(Preset preset, PresetEditorState state)
+    private static void DrawStepInfo(Preset preset, PresetEditorState state)
     {
-        state.CurrentStep = NormalizeCurrentStep(state.CurrentStep, preset.Steps.Count);
-
-        using var table = ImRaii.Table("PresetStepsTable", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV);
-        if (!table) return;
-
-        ImGui.TableSetupColumn("StepsList",   ImGuiTableColumnFlags.WidthFixed, 200f * GlobalUIScale);
-        ImGui.TableSetupColumn("StepDetails", ImGuiTableColumnFlags.WidthStretch);
-        ImGui.TableNextRow();
-
-        ImGui.TableSetColumnIndex(0);
-        if (ImGuiOm.ButtonStretch("添加步骤"))
-            preset.Steps.Add(new PresetStep { Name = $"步骤 {preset.Steps.Count}" });
-
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
-        using (var child = ImRaii.Child("StepsSelectChild", ImGui.GetContentRegionAvail(), true))
-        {
-            if (child)
-            {
-                for (var i = 0; i < preset.Steps.Count; i++)
-                {
-                    var step        = preset.Steps[i];
-                    var actionCount = step.EnterActions.Count + step.BodyActions.Count + step.ExitActions.Count;
-                    var stepName    = $"{i}. {step.Name} ({actionCount} 个动作)";
-
-                    if (ImGui.Selectable(stepName, i == state.CurrentStep, ImGuiSelectableFlags.AllowDoubleClick))
-                        state.CurrentStep = i;
-
-                    if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
-                    {
-                        ImGui.SetDragDropPayload("STEP_REORDER", BitConverter.GetBytes(i));
-                        ImGui.Text($"步骤: {stepName}");
-                        ImGui.EndDragDropSource();
-                    }
-
-                    if (ImGui.BeginDragDropTarget())
-                    {
-                        var payload = ImGui.AcceptDragDropPayload("STEP_REORDER");
-
-                        if (!payload.IsNull && payload.Data != null)
-                        {
-                            var sourceIndex = *(int*)payload.Data;
-
-                            if (sourceIndex != i && sourceIndex >= 0 && sourceIndex < preset.Steps.Count)
-                            {
-                                (preset.Steps[sourceIndex], preset.Steps[i]) = (preset.Steps[i], preset.Steps[sourceIndex]);
-
-                                if (state.CurrentStep == sourceIndex)
-                                    state.CurrentStep = i;
-                                else if (state.CurrentStep == i)
-                                    state.CurrentStep = sourceIndex;
-                            }
-                        }
-
-                        ImGui.EndDragDropTarget();
-                    }
-
-                    DrawStepContextMenu(preset, state, i, step);
-                }
-            }
-        }
-
-        ImGui.TableSetColumnIndex(1);
-
-        using var detailsChild = ImRaii.Child("StepsDrawChild", ImGui.GetContentRegionAvail(), true, ImGuiWindowFlags.NoBackground);
-        if (!detailsChild) return;
-
-        if (state.CurrentStep < 0 || state.CurrentStep >= preset.Steps.Count)
-        {
-            ImGui.TextDisabled("请选择一个步骤进行编辑");
-            return;
-        }
-
-        var currentStep      = preset.Steps[state.CurrentStep];
-        var currentStepIndex = state.CurrentStep;
-        StepEditor.Draw(currentStep, ref currentStepIndex, preset.Steps, state.SharedState);
-        state.CurrentStep = currentStepIndex;
-    }
-
-    private static void DrawStepContextMenu(Preset preset, PresetEditorState state, int index, PresetStep step)
-    {
-        var contextOperation = StepOperationType.Pass;
-
-        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-            ImGui.OpenPopup($"StepContentMenu_{index}");
-
-        using var context = ImRaii.ContextPopupItem($"StepContentMenu_{index}");
-        if (!context) return;
-
-        ImGui.Text($"第 {index} 步: {step.Name}");
-        ImGui.Separator();
-
-        if (ImGui.MenuItem("复制"))
-            state.SharedState.StepToCopy = PresetStep.Copy(step);
-
-        if (state.SharedState.StepToCopy != null)
-        {
-            if (ImGui.MenuItem("粘贴至本步"))
-                contextOperation = StepOperationType.Paste;
-
-            if (ImGui.MenuItem("向上插入粘贴"))
-                contextOperation = StepOperationType.PasteUp;
-
-            if (ImGui.MenuItem("向下插入粘贴"))
-                contextOperation = StepOperationType.PasteDown;
-        }
-
-        if (ImGui.MenuItem("删除"))
-            contextOperation = StepOperationType.Delete;
-
-        if (index > 0 && ImGui.MenuItem("上移"))
-            contextOperation = StepOperationType.MoveUp;
-
-        if (index < preset.Steps.Count - 1 && ImGui.MenuItem("下移"))
-            contextOperation = StepOperationType.MoveDown;
-
-        ImGui.Separator();
-
-        if (ImGui.MenuItem("向上插入新步骤"))
-            contextOperation = StepOperationType.InsertUp;
-
-        if (ImGui.MenuItem("向下插入新步骤"))
-            contextOperation = StepOperationType.InsertDown;
-
-        ImGui.Separator();
-
-        if (ImGui.MenuItem("复制并插入本步骤"))
-            contextOperation = StepOperationType.PasteCurrent;
-
-        state.CurrentStep = CollectionOperationHelper.Apply
+        StepTreeEditor.Draw
         (
+            "Preset",
             preset.Steps,
-            index,
-            contextOperation,
-            state.CurrentStep,
-            () => new PresetStep { Name = $"步骤 {preset.Steps.Count}" },
-            state.SharedState.StepToCopy == null ? null : () => PresetStep.Copy(state.SharedState.StepToCopy),
-            () => PresetStep.Copy(step)
+            state.TreeState,
+            state.SharedState,
+            GetRunningCursor(preset),
+            () => new PresetStep { Name = $"步骤 {preset.Steps.Count}" }
         );
     }
 
@@ -224,12 +97,12 @@ internal static class PresetEditorPanel
     private static uint GetContentFinderConditionID(ushort zone) =>
         LuminaGetter.GetRow<TerritoryType>(zone)?.ContentFinderCondition.RowId ?? 0;
 
-    private static int NormalizeCurrentStep(int currentStep, int count)
+    private static ExecuteActionRuntimeCursor? GetRunningCursor(Preset preset)
     {
-        if (count == 0)
-            return -1;
+        if (ExecutionManager.PresetExecutor is not { IsDisposed: false, Completion.IsCompleted: false, ExecutorPreset: not null } presetExecutor)
+            return null;
 
-        return Math.Clamp(currentStep, 0, count - 1);
+        return ReferenceEquals(presetExecutor.ExecutorPreset, preset) ? presetExecutor.Progress.RuntimeCursor : null;
     }
 
     internal sealed class PresetEditorState
@@ -237,7 +110,7 @@ internal static class PresetEditorPanel
         Preset preset
     )
     {
-        public int                   CurrentStep  { get; set; } = -1;
+        public StepTreeEditorState   TreeState    { get; }      = new();
         public StepEditorSharedState SharedState  { get; }      = new();
         public ContentSelectCombo    ContentCombo { get; }      = new(preset.ToString())
         {
