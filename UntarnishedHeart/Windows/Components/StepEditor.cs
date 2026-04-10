@@ -256,29 +256,32 @@ internal static class StepEditor
     private static ExecuteActionBase DrawActionTypeSelector(ExecuteActionBase current)
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
-        using var combo = ImRaii.Combo("执行动作###ActionKindCombo", current.Kind.GetDescription(), ImGuiComboFlags.HeightLargest);
-        if (!combo)
-            return current;
 
-        foreach (var actionKind in Enum.GetValues<ExecuteActionKind>())
-        {
-            if (!ImGui.Selectable(actionKind.GetDescription(), current.Kind == actionKind))
-                continue;
+        var nextAction = current;
 
-            if (current.Kind == actionKind)
-                return current;
+        ConditionBase.DrawEnumLocalizedSelector
+        (
+            "执行动作###ActionKindCombo",
+            "选择执行动作",
+            "暂无可选执行动作",
+            current.Kind,
+            actionKind =>
+            {
+                if (current.Kind == actionKind)
+                    return;
 
-            var keepCustomName = !string.IsNullOrEmpty(current.Name) &&
-                                 !string.Equals(current.Name, current.GetDefaultName(), StringComparison.Ordinal);
-            var next = ExecuteActionBase.CreateDefaultAction(actionKind);
-            if (keepCustomName)
-                next.Name = current.Name;
+                var keepCustomName = !string.IsNullOrEmpty(current.Name) &&
+                                     !string.Equals(current.Name, current.GetDefaultName(), StringComparison.Ordinal);
+                nextAction = ExecuteActionBase.CreateDefaultAction(actionKind);
+                if (keepCustomName)
+                    nextAction.Name = current.Name;
 
-            next.Remark    = current.Remark;
-            next.Condition = ConditionCollection.Copy(current.Condition);
-            return next;
-        }
+                nextAction.Remark    = current.Remark;
+                nextAction.Condition = ConditionCollection.Copy(current.Condition);
+            },
+            static value => value.GetDescription()
+        );
 
-        return current;
+        return nextAction;
     }
 }

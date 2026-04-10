@@ -14,6 +14,7 @@ namespace UntarnishedHeart.Execution.Condition;
 public abstract class ConditionBase : IEquatable<ConditionBase>
 {
     protected const float EQUALITY_TOLERANCE = 0.01f;
+    private static readonly Dictionary<string, object> PendingEnumSelections = [];
 
     [JsonProperty("Name")]
     public string Name { get; set; } = string.Empty;
@@ -95,20 +96,47 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
     internal static TEnum DrawEnumCombo<TEnum>(string id, TEnum current, in HashSet<TEnum>? passedEnums = null)
         where TEnum : struct, Enum
     {
+        if (TryConsumePendingEnumSelection(id, out TEnum pendingValue))
+            current = pendingValue;
+
+        var skippedEnums = passedEnums;
+        var candidates = Enum
+                         .GetValues<TEnum>()
+                         .Where(candidate => skippedEnums == null || !skippedEnums.Contains(candidate))
+                         .ToArray();
+
+        if (candidates.Length == 0)
+        {
+            ImGui.TextDisabled("暂无可选项目");
+            return current;
+        }
+
         using var combo = ImRaii.Combo(id, current.GetDescription(), ImGuiComboFlags.HeightLargest);
-        if (!combo)
+        if (combo)
+            ImGui.CloseCurrentPopup();
+
+        if (!ImGui.IsItemClicked())
             return current;
 
-        foreach (var candidate in Enum.GetValues<TEnum>())
-        {
-            if (passedEnums != null && passedEnums.Contains(candidate))
-                continue;
+        var request = new CollectionSelectorRequest
+        (
+            BuildSelectorTitle(id),
+            "暂无可选项目",
+            Array.IndexOf(candidates, current),
+            candidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
+        );
 
-            if (ImGui.Selectable(candidate.GetDescription(), EqualityComparer<TEnum>.Default.Equals(current, candidate)))
-                current = candidate;
+        CollectionSelectorWindow.Open
+        (
+            request,
+            index =>
+            {
+                if ((uint)index >= (uint)candidates.Length)
+                    return;
 
-            ImGuiOm.TooltipHover(candidate.GetDescription());
-        }
+                PendingEnumSelections[id] = candidates[index];
+            }
+        );
 
         return current;
     }
@@ -258,6 +286,28 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
     {
         condition.ResetMetadata();
         return condition;
+    }
+
+    private static bool TryConsumePendingEnumSelection<TEnum>(string id, out TEnum value)
+        where TEnum : struct, Enum
+    {
+        if (PendingEnumSelections.Remove(id, out var pendingValue) && pendingValue is TEnum typedValue)
+        {
+            value = typedValue;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static string BuildSelectorTitle(string id)
+    {
+        var label = id.Split("###", StringSplitOptions.None)[0].Trim().TrimEnd(':', '：');
+        if (string.IsNullOrWhiteSpace(label))
+            return "选择项目";
+
+        return label.StartsWith("选择", StringComparison.Ordinal) ? label : $"选择{label}";
     }
 
     private ConditionBase DrawKindSelector()

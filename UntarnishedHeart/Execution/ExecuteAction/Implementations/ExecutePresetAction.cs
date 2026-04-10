@@ -4,6 +4,7 @@ using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.Route;
 using UntarnishedHeart.Internal;
 using UntarnishedHeart.Windows.Components;
+using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
 
@@ -36,14 +37,31 @@ public sealed class ExecutePresetAction : ExecuteActionBase
         var preview = selectedPresetIndex >= 0 ? presets[selectedPresetIndex].Name : "暂无预设";
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
 
-        using (var combo = ImRaii.Combo("目标预设###ExecutePresetNameCombo", preview, ImGuiComboFlags.HeightLargest))
+        using var combo = ImRaii.Combo("目标预设###ExecutePresetNameCombo", preview, ImGuiComboFlags.HeightLargest);
+        if (combo)
+            ImGui.CloseCurrentPopup();
+
+        if (ImGui.IsItemClicked())
         {
-            if (combo)
-            {
-                for (var i = 0; i < presets.Count; i++)
-                    if (ImGui.Selectable(presets[i].Name, selectedPresetIndex == i))
-                        selectedPresetIndex = i;
-            }
+            var request = new CollectionSelectorRequest
+            (
+                "选择目标预设",
+                "暂无预设",
+                selectedPresetIndex,
+                presets.Select(preset => new CollectionSelectorItem(preset.Name)).ToArray()
+            );
+
+            CollectionSelectorWindow.Open
+            (
+                request,
+                index =>
+                {
+                    if ((uint)index >= (uint)presets.Count)
+                        return;
+
+                    PresetName = presets[index].Name;
+                }
+            );
         }
 
         PresetName = selectedPresetIndex >= 0 ? presets[selectedPresetIndex].Name : string.Empty;

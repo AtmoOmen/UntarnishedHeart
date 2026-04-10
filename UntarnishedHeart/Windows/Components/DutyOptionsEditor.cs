@@ -1,6 +1,8 @@
 using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.Route;
 using UntarnishedHeart.Internal;
+using UntarnishedHeart.Execution.Condition;
+using UntarnishedHeart.Windows;
 using ContentsFinder = FFXIVClientStructs.FFXIV.Client.Game.UI.ContentsFinder;
 
 namespace UntarnishedHeart.Windows.Components;
@@ -123,35 +125,25 @@ internal static class DutyOptionsEditor
 
         var lootRule = option.LootRules;
 
-        using (var combo = ImRaii.Combo("战利品分配###DutyOptionsLootRule", LootRuleNames[lootRule]))
+        DrawLootRuleSelector(lootRule, loot =>
         {
-            if (combo)
+            option.LootRules = loot;
+            changed          = true;
+        });
+
+        ConditionBase.DrawEnumLocalizedSelector
+        (
+            "副本入口###DutyOptionsContentEntryCombo",
+            "选择副本入口",
+            "暂无可选副本入口",
+            dutyOptions.ContentEntryType,
+            entryType =>
             {
-                foreach (var (loot, name) in LootRuleNames)
-                {
-                    if (!ImGui.Selectable(name, loot == lootRule))
-                        continue;
-
-                    option.LootRules = loot;
-                    changed          = true;
-                }
-            }
-        }
-
-        using (var combo = ImRaii.Combo("副本入口###DutyOptionsContentEntryCombo", dutyOptions.ContentEntryType.GetDescription()))
-        {
-            if (combo)
-            {
-                foreach (var entryType in Enum.GetValues<ContentEntryType>())
-                {
-                    if (!ImGui.Selectable(entryType.GetDescription(), entryType == dutyOptions.ContentEntryType))
-                        continue;
-
-                    dutyOptions.ContentEntryType = entryType;
-                    changed                      = true;
-                }
-            }
-        }
+                dutyOptions.ContentEntryType = entryType;
+                changed                      = true;
+            },
+            static value => value.GetDescription()
+        );
 
         if (changed)
             dutyOptions.ContentsFinderOption = option;
@@ -169,42 +161,65 @@ internal static class DutyOptionsEditor
 
         var lootRule = option.LootRules;
 
-        using (var combo = ImRaii.Combo("战利品分配###DutyOptionsLootRule", LootRuleNames[lootRule]))
+        DrawLootRuleSelector(lootRule, loot =>
         {
-            if (combo)
-            {
-                foreach (var (loot, name) in LootRuleNames)
-                {
-                    if (!ImGui.Selectable(name, loot == lootRule))
-                        continue;
-
-                    option.LootRules = loot;
-                    changed          = true;
-                }
-            }
-        }
+            option.LootRules = loot;
+            changed          = true;
+        });
 
         ImGui.SetNextItemWidth(220f * GlobalUIScale);
 
-        using (var combo = ImRaii.Combo("副本入口###DutyOptionsContentEntryCombo", dutyOptions.ContentEntryType.GetDescription()))
-        {
-            if (combo)
+        ConditionBase.DrawEnumLocalizedSelector
+        (
+            "副本入口###DutyOptionsContentEntryCombo",
+            "选择副本入口",
+            "暂无可选副本入口",
+            dutyOptions.ContentEntryType,
+            entryType =>
             {
-                foreach (var entryType in Enum.GetValues<ContentEntryType>())
-                {
-                    if (!ImGui.Selectable(entryType.GetDescription(), entryType == dutyOptions.ContentEntryType))
-                        continue;
-
-                    dutyOptions.ContentEntryType = entryType;
-                    changed                      = true;
-                }
-            }
-        }
+                dutyOptions.ContentEntryType = entryType;
+                changed                      = true;
+            },
+            static value => value.GetDescription()
+        );
 
         if (changed)
             dutyOptions.ContentsFinderOption = option;
 
         return changed;
+    }
+
+    private static void DrawLootRuleSelector(ContentsFinder.LootRule current, Action<ContentsFinder.LootRule> setCurrent)
+    {
+        ImGui.SetNextItemWidth(220f * GlobalUIScale);
+
+        using var combo = ImRaii.Combo("战利品分配###DutyOptionsLootRule", LootRuleNames[current]);
+        if (combo)
+            ImGui.CloseCurrentPopup();
+
+        if (!ImGui.IsItemClicked())
+            return;
+
+        var items = LootRuleNames.ToArray();
+        var request = new CollectionSelectorRequest
+        (
+            "选择战利品分配",
+            "暂无可选战利品分配",
+            Array.FindIndex(items, item => item.Key == current),
+            items.Select(item => new CollectionSelectorItem(item.Value)).ToArray()
+        );
+
+        CollectionSelectorWindow.Open
+        (
+            request,
+            index =>
+            {
+                if ((uint)index >= (uint)items.Length)
+                    return;
+
+                setCurrent(items[index].Key);
+            }
+        );
     }
 
     private static bool DrawFinderOptionCell(int columnIndex, string label, bool currentValue, Action<bool> assign)

@@ -86,18 +86,15 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
     public void Draw()
     {
         ImGui.SetNextItemWidth(320f * GlobalUIScale);
-
-        using (var combo = ImRaii.Combo("处理类型###ExecuteTypeCombo", ExecuteType.GetDescription(), ImGuiComboFlags.HeightLargest))
-        {
-            if (combo)
-            {
-                foreach (var executeType in Enum.GetValues<ConditionExecuteType>())
-                {
-                    if (ImGui.Selectable(executeType.GetDescription(), ExecuteType == executeType))
-                        ExecuteType = executeType;
-                }
-            }
-        }
+        ConditionBase.DrawEnumLocalizedSelector
+        (
+            "处理类型###ExecuteTypeCombo",
+            "选择处理类型",
+            "暂无可选处理类型",
+            ExecuteType,
+            value => ExecuteType = value,
+            static value => value.GetDescription()
+        );
 
         switch (ExecuteType)
         {
@@ -114,18 +111,15 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
         }
 
         ImGui.SetNextItemWidth(320f * GlobalUIScale);
-
-        using (var combo = ImRaii.Combo("关系类型###RelationTypeCombo", RelationType.GetDescription(), ImGuiComboFlags.HeightLargest))
-        {
-            if (combo)
-            {
-                foreach (var relationType in Enum.GetValues<ConditionRelationType>())
-                {
-                    if (ImGui.Selectable(relationType.GetDescription(), RelationType == relationType))
-                        RelationType = relationType;
-                }
-            }
-        }
+        ConditionBase.DrawEnumLocalizedSelector
+        (
+            "关系类型###RelationTypeCombo",
+            "选择关系类型",
+            "暂无可选关系类型",
+            RelationType,
+            value => RelationType = value,
+            static value => value.GetDescription()
+        );
 
         ImGui.NewLine();
 
