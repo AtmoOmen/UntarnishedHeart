@@ -1,4 +1,3 @@
-using Dalamud.Interface.Colors;
 using UntarnishedHeart.Windows.Helpers;
 
 namespace UntarnishedHeart.Windows.Components;
@@ -8,7 +7,7 @@ internal static class ExecutionControlPanel
     public static void DrawStatus(ExecutionStatusViewState status)
     {
         ImGui.TextDisabled(status.ModeName);
-        ImGui.TextColored(status.IsRunning ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudRed, status.IsRunning ? "执行中" : "待命");
+        ImGui.TextColored(status.IsRunning ? KnownColor.LimeGreen.ToVector4() : KnownColor.IndianRed.ToVector4(), status.IsRunning ? "执行中" : "待命");
         ImGui.SameLine();
         ImGui.TextDisabled($"{status.ProgressLabel} {status.ProgressText}");
 

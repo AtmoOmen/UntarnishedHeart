@@ -3,7 +3,11 @@ using UntarnishedHeart.Windows.Components;
 
 namespace UntarnishedHeart.Windows;
 
-internal abstract class CollectionEditorWindowBase<TItem>(string title, ImGuiWindowFlags flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse) : Window(title, flags)
+internal abstract class CollectionEditorWindowBase<TItem>
+(
+    string           title,
+    ImGuiWindowFlags flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse
+) : Window(title, flags)
 {
     private int selectedIndex = -1;
 
@@ -43,6 +47,7 @@ internal abstract class CollectionEditorWindowBase<TItem>(string title, ImGuiWin
         ImGui.Spacing();
 
         selectedIndex = CollectionToolbar.NormalizeSelectedIndex(selectedIndex, Items.Count);
+
         if (selectedIndex < 0)
         {
             ImGui.TextDisabled(EmptySelectionText);

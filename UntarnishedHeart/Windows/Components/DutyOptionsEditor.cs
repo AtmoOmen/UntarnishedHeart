@@ -46,7 +46,7 @@ internal static class DutyOptionsEditor
     {
         var changed = false;
 
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "运行策略");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "运行策略");
         ImGui.Spacing();
 
         var runTimes = dutyOptions.RunTimes;
@@ -96,7 +96,7 @@ internal static class DutyOptionsEditor
         var changed = false;
         var option  = dutyOptions.ContentsFinderOption;
 
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "匹配选项");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "匹配选项");
         ImGui.Spacing();
 
         using (var table = ImRaii.Table("DutyFinderOptionsTable", 2, ImGuiTableFlags.SizingStretchSame))
@@ -164,39 +164,41 @@ internal static class DutyOptionsEditor
         var changed = false;
         var option  = dutyOptions.ContentsFinderOption;
 
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "掉落与入口");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "掉落与入口");
         ImGui.Spacing();
 
         var lootRule = option.LootRules;
 
-        if (ImGui.BeginCombo("战利品分配###DutyOptionsLootRule", LootRuleNames[lootRule]))
+        using (var combo = ImRaii.Combo("战利品分配###DutyOptionsLootRule", LootRuleNames[lootRule]))
         {
-            foreach (var (loot, name) in LootRuleNames)
+            if (combo)
             {
-                if (!ImGui.Selectable(name, loot == lootRule))
-                    continue;
+                foreach (var (loot, name) in LootRuleNames)
+                {
+                    if (!ImGui.Selectable(name, loot == lootRule))
+                        continue;
 
-                option.LootRules = loot;
-                changed          = true;
+                    option.LootRules = loot;
+                    changed          = true;
+                }
             }
-
-            ImGui.EndCombo();
         }
 
         ImGui.SetNextItemWidth(220f * GlobalUIScale);
 
-        if (ImGui.BeginCombo("副本入口###DutyOptionsContentEntryCombo", dutyOptions.ContentEntryType.GetDescription()))
+        using (var combo = ImRaii.Combo("副本入口###DutyOptionsContentEntryCombo", dutyOptions.ContentEntryType.GetDescription()))
         {
-            foreach (var entryType in Enum.GetValues<ContentEntryType>())
+            if (combo)
             {
-                if (!ImGui.Selectable(entryType.GetDescription(), entryType == dutyOptions.ContentEntryType))
-                    continue;
+                foreach (var entryType in Enum.GetValues<ContentEntryType>())
+                {
+                    if (!ImGui.Selectable(entryType.GetDescription(), entryType == dutyOptions.ContentEntryType))
+                        continue;
 
-                dutyOptions.ContentEntryType = entryType;
-                changed                      = true;
+                    dutyOptions.ContentEntryType = entryType;
+                    changed                      = true;
+                }
             }
-
-            ImGui.EndCombo();
         }
 
         if (changed)

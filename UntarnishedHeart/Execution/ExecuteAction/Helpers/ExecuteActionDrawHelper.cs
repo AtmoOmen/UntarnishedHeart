@@ -87,6 +87,7 @@ internal static class ExecuteActionDrawHelper
             return;
 
         ImGui.SameLine();
+
         if (ImGuiOm.ButtonIcon($"{buttonID}_ToCurrent", FontAwesomeIcon.WheelchairMove, "瞬移至设置坐标", true) &&
             DService.Instance().ObjectTable.LocalPlayer is { } localPlayer1)
         {

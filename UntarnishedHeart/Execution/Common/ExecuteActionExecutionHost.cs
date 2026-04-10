@@ -3,6 +3,7 @@ using OmenTools.OmenService;
 using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.ExecuteAction;
+using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.ExecuteAction.Implementations;
 using UntarnishedHeart.Execution.ExecuteAction.Models;
 using UntarnishedHeart.Execution.Preset;
@@ -269,7 +270,7 @@ public abstract class ExecuteActionExecutionHost
 
                 switch (switchClassJob.Mode)
                 {
-                    case ExecuteAction.Enums.SwitchClassJobMode.ByClassJob:
+                    case SwitchClassJobMode.ByClassJob:
                         if (switchClassJob.JobID == 0)
                             throw new InvalidOperationException("切换职业动作缺少目标职业");
 
@@ -278,7 +279,7 @@ public abstract class ExecuteActionExecutionHost
 
                         return ActionFlowResult.Continue();
 
-                    case ExecuteAction.Enums.SwitchClassJobMode.ByGearsetID:
+                    case SwitchClassJobMode.ByGearsetID:
                         if (switchClassJob.GearsetID is < 0 or > 99)
                             throw new InvalidOperationException($"切换职业动作的套装编号无效: {switchClassJob.GearsetID}");
 

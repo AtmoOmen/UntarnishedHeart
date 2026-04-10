@@ -7,9 +7,9 @@ namespace UntarnishedHeart.Windows;
 internal class CollectionSelectorWindow : Window
 {
     private CollectionSelectorRequest? currentRequest;
-    private Action<int>?              onSelected;
-    private Action<int>?              onDelete;
-    private Action?                   onCancel;
+    private Action<int>?               onSelected;
+    private Action<int>?               onDelete;
+    private Action?                    onCancel;
 
     private string searchText       = string.Empty;
     private int    highlightedIndex = -1;
@@ -235,6 +235,7 @@ internal class CollectionSelectorWindow : Window
     private void CompleteDelete(int index)
     {
         var callback = onDelete;
+
         if (callback == null)
         {
             CancelPendingRequest();

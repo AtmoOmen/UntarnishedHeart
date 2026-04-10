@@ -111,7 +111,7 @@ internal static class CollectionToolbar
             items.Select(item => new CollectionSelectorItem(getName(item))).ToArray(),
             allowDelete
         );
-        
+
         CollectionSelectorWindow.Open
         (
             request,

@@ -1,6 +1,5 @@
 using System.Numerics;
 using Dalamud.Game.ClientState.Keys;
-using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
@@ -52,7 +51,9 @@ public class DebugWindow() : Window($"调试窗口###{Plugin.PLUGIN_NAME}-DebugW
 
     private static void DrawDebugGeneralInfo()
     {
-        if (ImGui.BeginTable("GeneralInfoTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+        using var table = ImRaii.Table("GeneralInfoTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg);
+
+        if (table)
         {
             ImGui.TableSetupColumn("属性", ImGuiTableColumnFlags.WidthFixed, 120);
             ImGui.TableSetupColumn("值",  ImGuiTableColumnFlags.WidthStretch);
@@ -80,8 +81,6 @@ public class DebugWindow() : Window($"调试窗口###{Plugin.PLUGIN_NAME}-DebugW
             // 当前位置
             var positionValue = $"{DService.Instance().ObjectTable.LocalPlayer?.Position:F2}";
             DrawTableRow("当前位置", positionValue);
-
-            ImGui.EndTable();
         }
     }
 
@@ -93,7 +92,9 @@ public class DebugWindow() : Window($"调试窗口###{Plugin.PLUGIN_NAME}-DebugW
             return;
         }
 
-        if (ImGui.BeginTable("TargetInfoTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+        using var table = ImRaii.Table("TargetInfoTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg);
+
+        if (table)
         {
             ImGui.TableSetupColumn("属性", ImGuiTableColumnFlags.WidthFixed, 120);
             ImGui.TableSetupColumn("值",  ImGuiTableColumnFlags.WidthStretch);
@@ -134,8 +135,6 @@ public class DebugWindow() : Window($"调试窗口###{Plugin.PLUGIN_NAME}-DebugW
                 var castTimeValue = $"{target.CurrentCastTime:F2} / {target.TotalCastTime:F2}";
                 DrawTableRow("咏唱时间", castTimeValue);
             }
-
-            ImGui.EndTable();
         }
     }
 
@@ -147,7 +146,7 @@ public class DebugWindow() : Window($"调试窗口###{Plugin.PLUGIN_NAME}-DebugW
         {
             using (ImRaii.Group())
             {
-                ImGui.TextColored(KnownColor.LightSkyBlue.Vector(), "自身");
+                ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "自身");
 
                 foreach (var status in localPlayer.StatusList)
                 {
@@ -169,7 +168,7 @@ public class DebugWindow() : Window($"调试窗口###{Plugin.PLUGIN_NAME}-DebugW
         {
             using (ImRaii.Group())
             {
-                ImGui.TextColored(KnownColor.LightSkyBlue.Vector(), "目标");
+                ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "目标");
 
                 foreach (var status in target.StatusList)
                 {
@@ -203,7 +202,7 @@ public class DebugWindow() : Window($"调试窗口###{Plugin.PLUGIN_NAME}-DebugW
             var coordText = $"X: {worldPos.X:F2}, Y: {worldPos.Y:F2}, Z: {worldPos.Z:F2}";
             ImGui.Text("游戏世界坐标:");
             ImGui.SameLine();
-            ImGui.TextColored(ImGuiColors.ParsedGreen, coordText);
+            ImGui.TextColored(KnownColor.LimeGreen.ToVector4(), coordText);
 
             ImGui.Spacing();
 

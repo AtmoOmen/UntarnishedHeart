@@ -87,9 +87,9 @@ internal static class StepTreeEditor
             if (isStepSelected)
                 stepFlags |= ImGuiTreeNodeFlags.Selected;
 
-            var (stepColorCount, stepPushBorder) = PushTreeNodeHighlightStyle(isStepSelected, isStepRunning);
-            var stepOpen = ImGui.TreeNodeEx($"{stepIndex}. {step.Name} ({stepRenderState.ActionCount} 个动作)###{idPrefix}-Step-{stepIndex}", stepFlags);
-            PopTreeNodeHighlightStyle(stepColorCount, stepPushBorder);
+            using var stepHighlightStyle = PushTreeNodeHighlightStyle(isStepSelected, isStepRunning);
+            using var stepNode = ImRaii.TreeNode($"{stepIndex}. {step.Name} ({stepRenderState.ActionCount} 个动作)###{idPrefix}-Step-{stepIndex}", stepFlags);
+            var stepOpen = stepNode.Success;
 
             if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
             {
@@ -98,30 +98,33 @@ internal static class StepTreeEditor
                 state.CurrentAction   = -1;
             }
 
-            if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
+            using (var dragDropSource = ImRaii.DragDropSource(ImGuiDragDropFlags.None))
             {
-                ImGui.SetDragDropPayload($"STEP_REORDER_{idPrefix}", BitConverter.GetBytes(stepIndex));
-                ImGui.Text($"步骤: {stepIndex}. {step.Name}");
-                ImGui.EndDragDropSource();
+                if (dragDropSource)
+                {
+                    ImGui.SetDragDropPayload($"STEP_REORDER_{idPrefix}", BitConverter.GetBytes(stepIndex));
+                    ImGui.Text($"步骤: {stepIndex}. {step.Name}");
+                }
             }
 
-            if (ImGui.BeginDragDropTarget())
+            using (var dragDropTarget = ImRaii.DragDropTarget())
             {
-                var payload = ImGui.AcceptDragDropPayload($"STEP_REORDER_{idPrefix}");
-                if (!payload.IsNull && payload.Data != null)
+                if (dragDropTarget)
                 {
-                    var sourceIndex = *(int*)payload.Data;
-                    if (sourceIndex != stepIndex && sourceIndex >= 0 && sourceIndex < steps.Count)
+                    var payload = ImGui.AcceptDragDropPayload($"STEP_REORDER_{idPrefix}");
+                    if (!payload.IsNull && payload.Data != null)
                     {
-                        (steps[sourceIndex], steps[stepIndex]) = (steps[stepIndex], steps[sourceIndex]);
-                        if (state.CurrentStep == sourceIndex)
-                            state.CurrentStep = stepIndex;
-                        else if (state.CurrentStep == stepIndex)
-                            state.CurrentStep = sourceIndex;
+                        var sourceIndex = *(int*)payload.Data;
+                        if (sourceIndex != stepIndex && sourceIndex >= 0 && sourceIndex < steps.Count)
+                        {
+                            (steps[sourceIndex], steps[stepIndex]) = (steps[stepIndex], steps[sourceIndex]);
+                            if (state.CurrentStep == sourceIndex)
+                                state.CurrentStep = stepIndex;
+                            else if (state.CurrentStep == stepIndex)
+                                state.CurrentStep = sourceIndex;
+                        }
                     }
                 }
-
-                ImGui.EndDragDropTarget();
             }
 
             DrawStepContextMenu(idPrefix, steps, state, sharedState, stepIndex, step, createNewStep);
@@ -132,8 +135,6 @@ internal static class StepTreeEditor
             DrawPhaseNode(idPrefix, step, stepIndex, PresetStepPhase.Enter, "进入阶段", stepRenderState.EnterMatched, state, sharedState, runningCursor, keyword);
             DrawPhaseNode(idPrefix, step, stepIndex, PresetStepPhase.Body,  "进行阶段", stepRenderState.BodyMatched,  state, sharedState, runningCursor, keyword);
             DrawPhaseNode(idPrefix, step, stepIndex, PresetStepPhase.Exit,  "离开阶段", stepRenderState.ExitMatched,  state, sharedState, runningCursor, keyword);
-
-            ImGui.TreePop();
 
             if (shouldOpenByPending && state.PendingOpenPhase == null)
                 state.PendingOpenStep = -1;
@@ -167,9 +168,9 @@ internal static class StepTreeEditor
         if (isPhaseSelected)
             phaseFlags |= ImGuiTreeNodeFlags.Selected;
 
-        var (phaseColorCount, phasePushBorder) = PushTreeNodeHighlightStyle(isPhaseSelected, isPhaseRunning);
-        var phaseOpen = ImGui.TreeNodeEx($"{phaseName} ({actions.Count} 个动作)###{idPrefix}-Step-{stepIndex}-Phase-{phase}", phaseFlags);
-        PopTreeNodeHighlightStyle(phaseColorCount, phasePushBorder);
+        using var phaseHighlightStyle = PushTreeNodeHighlightStyle(isPhaseSelected, isPhaseRunning);
+        using var phaseNode = ImRaii.TreeNode($"{phaseName} ({actions.Count} 个动作)###{idPrefix}-Step-{stepIndex}-Phase-{phase}", phaseFlags);
+        var phaseOpen = phaseNode.Success;
 
         if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
         {
@@ -209,9 +210,8 @@ internal static class StepTreeEditor
             if (isActionSelected)
                 actionFlags |= ImGuiTreeNodeFlags.Selected;
 
-            var (actionColorCount, actionPushBorder) = PushTreeNodeHighlightStyle(isActionSelected, isActionRunning);
-            ImGui.TreeNodeEx($"{actionIndex}. {action.Name}###{idPrefix}-Step-{stepIndex}-Phase-{phase}-Action-{actionIndex}", actionFlags);
-            PopTreeNodeHighlightStyle(actionColorCount, actionPushBorder);
+            using var actionHighlightStyle = PushTreeNodeHighlightStyle(isActionSelected, isActionRunning);
+            using var actionNode = ImRaii.TreeNode($"{actionIndex}. {action.Name}###{idPrefix}-Step-{stepIndex}-Phase-{phase}-Action-{actionIndex}", actionFlags);
 
             if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
             {
@@ -222,35 +222,38 @@ internal static class StepTreeEditor
                 StepEditor.SetActionSelection(step, phase, actionIndex);
             }
 
-            if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
+            using (var dragDropSource = ImRaii.DragDropSource(ImGuiDragDropFlags.None))
             {
-                ImGui.SetDragDropPayload($"{idPrefix}_ACTION_REORDER_{stepIndex}_{phase}", BitConverter.GetBytes(actionIndex));
-                ImGui.Text($"{actionIndex}. {action.Name}");
-                ImGui.EndDragDropSource();
+                if (dragDropSource)
+                {
+                    ImGui.SetDragDropPayload($"{idPrefix}_ACTION_REORDER_{stepIndex}_{phase}", BitConverter.GetBytes(actionIndex));
+                    ImGui.Text($"{actionIndex}. {action.Name}");
+                }
             }
 
-            if (ImGui.BeginDragDropTarget())
+            using (var dragDropTarget = ImRaii.DragDropTarget())
             {
-                var payload = ImGui.AcceptDragDropPayload($"{idPrefix}_ACTION_REORDER_{stepIndex}_{phase}");
-                if (!payload.IsNull && payload.Data != null)
+                if (dragDropTarget)
                 {
-                    var sourceIndex = *(int*)payload.Data;
-                    if (sourceIndex != actionIndex && sourceIndex >= 0 && sourceIndex < actions.Count)
+                    var payload = ImGui.AcceptDragDropPayload($"{idPrefix}_ACTION_REORDER_{stepIndex}_{phase}");
+                    if (!payload.IsNull && payload.Data != null)
                     {
-                        (actions[sourceIndex], actions[actionIndex]) = (actions[actionIndex], actions[sourceIndex]);
+                        var sourceIndex = *(int*)payload.Data;
+                        if (sourceIndex != actionIndex && sourceIndex >= 0 && sourceIndex < actions.Count)
+                        {
+                            (actions[sourceIndex], actions[actionIndex]) = (actions[actionIndex], actions[sourceIndex]);
 
-                        var selectedIndex = StepEditor.GetActionSelection(step, phase);
-                        if (selectedIndex == sourceIndex)
-                            selectedIndex = actionIndex;
-                        else if (selectedIndex == actionIndex)
-                            selectedIndex = sourceIndex;
-                        StepEditor.SetActionSelection(step, phase, selectedIndex);
-                        if (state.CurrentStep == stepIndex && state.CurrentPhase == phase && state.CurrentNodeKind == StepTreeNodeKind.Action)
-                            state.CurrentAction = selectedIndex;
+                            var selectedIndex = StepEditor.GetActionSelection(step, phase);
+                            if (selectedIndex == sourceIndex)
+                                selectedIndex = actionIndex;
+                            else if (selectedIndex == actionIndex)
+                                selectedIndex = sourceIndex;
+                            StepEditor.SetActionSelection(step, phase, selectedIndex);
+                            if (state.CurrentStep == stepIndex && state.CurrentPhase == phase && state.CurrentNodeKind == StepTreeNodeKind.Action)
+                                state.CurrentAction = selectedIndex;
+                        }
                     }
                 }
-
-                ImGui.EndDragDropTarget();
             }
 
             StepEditor.DrawActionContextMenu(step, phase, actionIndex, sharedState, $"{idPrefix}_ActionContentMenu_{stepIndex}_{phase}_{actionIndex}");
@@ -258,7 +261,6 @@ internal static class StepTreeEditor
                 state.CurrentAction = StepEditor.NormalizeActionSelection(step, phase);
         }
 
-        ImGui.TreePop();
     }
 
     private static void DrawDetails(string idPrefix, List<PresetStep> steps, StepTreeEditorState state)
@@ -424,12 +426,13 @@ internal static class StepTreeEditor
         if (ImGui.MenuItem("复制并插入本步骤"))
             contextOperation = StepOperationType.PasteCurrent;
 
-        if (ImGui.BeginMenu("清空"))
+        using var clearMenu = ImRaii.Menu("清空");
+        if (clearMenu)
         {
-            ImGui.TextDisabled("将清空该步骤下的全部阶段动作");
+            ImGui.TextDisabled("将清空该步骤下的全部动作");
             ImGui.Separator();
 
-            if (ImGui.MenuItem("确认清空本步骤"))
+            if (ImGui.MenuItem("确认清空"))
             {
                 step.EnterActions.Clear();
                 step.BodyActions.Clear();
@@ -442,8 +445,6 @@ internal static class StepTreeEditor
                         state.CurrentNodeKind = StepTreeNodeKind.Phase;
                 }
             }
-
-            ImGui.EndMenu();
         }
 
         state.CurrentStep = CollectionOperationHelper.Apply
@@ -484,12 +485,13 @@ internal static class StepTreeEditor
             state.PendingOpenPhase = phase;
         }
 
-        if (!ImGui.BeginMenu("清空"))
+        using var clearMenu = ImRaii.Menu("清空");
+        if (!clearMenu)
             return;
 
         ImGui.TextDisabled($"将清空 {GetPhaseName(phase)} 的全部动作");
         ImGui.Separator();
-        if (ImGui.MenuItem("确认清空本阶段"))
+        if (ImGui.MenuItem("确认清空"))
         {
             actions.Clear();
             StepEditor.SetActionSelection(step, phase, -1);
@@ -500,8 +502,6 @@ internal static class StepTreeEditor
                 state.CurrentNodeKind = StepTreeNodeKind.Phase;
             }
         }
-
-        ImGui.EndMenu();
     }
 
     private static void NormalizeState(List<PresetStep> steps, StepTreeEditorState state)
@@ -528,38 +528,45 @@ internal static class StepTreeEditor
         return action.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static (int ColorCount, bool PushBorder) PushTreeNodeHighlightStyle(bool isSelected, bool isRunning)
+    private static IDisposable? PushTreeNodeHighlightStyle(bool isSelected, bool isRunning)
     {
         if (!isSelected && !isRunning)
-            return (0, false);
+            return null;
 
         var pulse = (MathF.Sin((float)ImGui.GetTime() * 3.5f) + 1f) * 0.5f;
-        var selectedColor = new Vector4(0.22f, 0.45f, 0.80f, 0.72f);
-        var runningColor  = new Vector4(0.22f, 0.68f, 0.26f, 0.32f + pulse * 0.24f);
+        var selectedColor = KnownColor.CornflowerBlue.ToVector4() with { W = 0.72f };
+        var runningColor  = KnownColor.ForestGreen.ToVector4() with { W = 0.32f + pulse * 0.24f };
         var headerColor   = isSelected && isRunning ? Vector4.Lerp(selectedColor, runningColor, 0.55f) : isSelected ? selectedColor : runningColor;
 
-        ImGui.PushStyleColor(ImGuiCol.Header, headerColor);
-        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, new Vector4(headerColor.X, headerColor.Y, headerColor.Z, Math.Min(1f, headerColor.W + 0.15f)));
-        ImGui.PushStyleColor(ImGuiCol.HeaderActive, new Vector4(headerColor.X, headerColor.Y, headerColor.Z, Math.Min(1f, headerColor.W + 0.24f)));
-
         var borderColor = isSelected && isRunning
-                              ? new Vector4(1f, 0.85f, 0.25f, 0.65f + pulse * 0.35f)
+                              ? KnownColor.Gold.ToVector4() with { W = 0.65f + pulse * 0.35f }
                               : isSelected
-                                  ? new Vector4(0.35f, 0.72f, 1f, 0.9f)
-                                  : new Vector4(0.65f, 0.95f, 0.35f, 0.5f + pulse * 0.35f);
-        ImGui.PushStyleColor(ImGuiCol.Border, borderColor);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1.15f);
+                                  ? KnownColor.DeepSkyBlue.ToVector4() with { W = 0.9f }
+                                  : KnownColor.YellowGreen.ToVector4() with { W = 0.5f + pulse * 0.35f };
 
-        return (4, true);
+        return new TreeNodeHighlightStyle(headerColor, borderColor);
     }
 
-    private static void PopTreeNodeHighlightStyle(int colorCount, bool pushBorder)
+    private sealed class TreeNodeHighlightStyle : IDisposable
     {
-        if (pushBorder)
-            ImGui.PopStyleVar();
+        private readonly IDisposable colorStack;
 
-        if (colorCount > 0)
-            ImGui.PopStyleColor(colorCount);
+        public TreeNodeHighlightStyle(Vector4 headerColor, Vector4 borderColor)
+        {
+            colorStack = ImRaii.PushColor(ImGuiCol.Header, headerColor)
+                               .Push(ImGuiCol.HeaderHovered, headerColor with { W = Math.Min(1f, headerColor.W + 0.15f) })
+                               .Push(ImGuiCol.HeaderActive,  headerColor with { W = Math.Min(1f, headerColor.W + 0.24f) })
+                               .Push(ImGuiCol.Border,        borderColor);
+            styleStack = ImRaii.PushStyle(ImGuiStyleVar.FrameBorderSize, 1.15f);
+        }
+
+        public void Dispose()
+        {
+            colorStack.Dispose();
+            styleStack.Dispose();
+        }
+
+        private readonly IDisposable styleStack;
     }
 
     private static string GetPhaseName(PresetStepPhase phase) =>

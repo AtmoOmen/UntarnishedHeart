@@ -103,7 +103,7 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         {
             if (passedEnums != null && passedEnums.Contains(candidate))
                 continue;
-            
+
             if (ImGui.Selectable(candidate.GetDescription(), EqualityComparer<TEnum>.Default.Equals(current, candidate)))
                 current = candidate;
 

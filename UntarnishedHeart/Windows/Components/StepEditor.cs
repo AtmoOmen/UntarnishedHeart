@@ -60,6 +60,7 @@ internal static class StepEditor
     public static bool TrySelectFirstAction(PresetStep step, PresetStepPhase phase, out int selectedIndex)
     {
         var actions = GetPhaseActions(step, phase);
+
         if (actions.Count == 0)
         {
             selectedIndex = -1;
@@ -215,13 +216,13 @@ internal static class StepEditor
         ImGui.Spacing();
 
         using var tabBar = ImRaii.TabBar("ExecuteAction-ConditionGroup");
-        
+
         using (var item = ImRaii.TabItem("执行动作"))
         {
             if (item)
             {
                 var current = DrawActionTypeSelector(action);
-                
+
                 ImGui.Spacing();
 
                 current.Draw();
@@ -229,7 +230,7 @@ internal static class StepEditor
                 action = current;
             }
         }
-        
+
         using (var item = ImRaii.TabItem("条件组"))
         {
             if (item)
@@ -280,5 +281,4 @@ internal static class StepEditor
 
         return current;
     }
-
 }
