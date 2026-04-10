@@ -34,8 +34,14 @@ internal static class PresetEditorPanel
                 DrawStepsTab(preset, state);
         }
         
-        using (ImRaii.Disabled())
-            ImGui.TabItemButton(state.TreeState.CurrentPathTabLabel);
+        
+        if (!string.IsNullOrEmpty(state.TreeState.CurrentPathTabLabel))
+        {
+            ImGui.TabItemButton("###Space");
+            
+            using (ImRaii.Disabled())
+                ImGui.TabItemButton($"{state.TreeState.CurrentPathTabLabel}###PathLabel");
+        }
     }
 
     private static void DrawBasicInfoTab(Preset preset, PresetEditorState state)

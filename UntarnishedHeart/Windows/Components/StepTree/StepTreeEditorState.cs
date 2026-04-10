@@ -18,5 +18,5 @@ internal sealed class StepTreeEditorState
 
     public PresetStepPhase? PendingOpenPhase { get; set; }
 
-    public string CurrentPathTabLabel { get; set; } = "当前路径";
+    public string CurrentPathTabLabel { get; set; } = string.Empty;
 }

@@ -60,6 +60,7 @@ internal static class StepTreeEditor
         ImGui.SetNextItemWidth(-1);
         if (ImGui.InputTextWithHint($"###StepFilterInput-{idPrefix}", "输入关键字筛选", ref filterText, 256))
             state.FilterText = filterText;
+        
         ImGui.Separator();
         ImGui.Spacing();
 
@@ -75,8 +76,8 @@ internal static class StepTreeEditor
             if (!stepRenderState.Visible)
                 continue;
 
-            var isStepSelected = state.CurrentStep == stepIndex && state.CurrentNodeKind == StepTreeNodeKind.Step;
-            var isStepRunning  = runningCursor is { HasStep: true } cursor && cursor.StepIndex == stepIndex;
+            var isStepSelected      = state.CurrentStep == stepIndex     && state.CurrentNodeKind   == StepTreeNodeKind.Step;
+            var isStepRunning       = runningCursor is { HasStep: true } && runningCursor.StepIndex == stepIndex;
             var shouldOpenByFilter  = !string.IsNullOrEmpty(keyword);
             var shouldOpenByPending = state.PendingOpenStep == stepIndex;
             if (shouldOpenByFilter || shouldOpenByPending)
@@ -176,12 +177,6 @@ internal static class StepTreeEditor
             state.CurrentPhase    = phase;
             state.CurrentNodeKind = StepTreeNodeKind.Phase;
             state.CurrentAction   = StepEditor.NormalizeActionSelection(step, phase);
-
-            if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) && StepEditor.TrySelectFirstAction(step, phase, out var firstActionIndex))
-            {
-                state.CurrentAction   = firstActionIndex;
-                state.CurrentNodeKind = StepTreeNodeKind.Action;
-            }
         }
 
         DrawPhaseContextMenu(idPrefix, step, stepIndex, phase, state);

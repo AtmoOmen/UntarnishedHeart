@@ -30,8 +30,13 @@ internal static class RouteEditorPanel
                 DrawStepsTab(route, state);
         }
 
-        using (ImRaii.Disabled())
-            ImGui.TabItemButton(state.TreeState.CurrentPathTabLabel);
+        if (!string.IsNullOrEmpty(state.TreeState.CurrentPathTabLabel))
+        {
+            ImGui.TabItemButton("###Space");
+            
+            using (ImRaii.Disabled())
+                ImGui.TabItemButton($"{state.TreeState.CurrentPathTabLabel}###PathLabel");
+        }
     }
 
     private static void DrawBasicInfoTab(Route route)
