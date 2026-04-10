@@ -4,49 +4,15 @@ using OmenTools.OmenService;
 
 namespace UntarnishedHeart.Windows;
 
-internal enum CollectionSelectorResultKind
-{
-    Selected,
-    DeleteRequested,
-    Cancelled
-}
-
-internal sealed record CollectionSelectorItem
-(
-    string  Text,
-    string? Description = null
-);
-
-internal sealed record CollectionSelectorRequest
-(
-    string                                Title,
-    string                                EmptyText,
-    int                                   SelectedIndex,
-    IReadOnlyList<CollectionSelectorItem> Items,
-    bool                                  AllowDelete = false
-);
-
-internal readonly record struct CollectionSelectorResult
-(
-    CollectionSelectorResultKind Kind,
-    int                          Index
-)
-{
-    public static CollectionSelectorResult Selected(int index) => new(CollectionSelectorResultKind.Selected, index);
-
-    public static CollectionSelectorResult DeleteRequested(int index) => new(CollectionSelectorResultKind.DeleteRequested, index);
-
-    public static CollectionSelectorResult Cancelled() => new(CollectionSelectorResultKind.Cancelled, -1);
-}
-
 internal class CollectionSelectorWindow : Window
 {
     private CollectionSelectorRequest?                      currentRequest;
     private TaskCompletionSource<CollectionSelectorResult>? completionSource;
-    private string                                          searchText       = string.Empty;
-    private int                                             highlightedIndex = -1;
-    private bool                                            focusSearchOnOpen;
-    private bool                                            scrollToHighlighted;
+    
+    private string searchText       = string.Empty;
+    private int    highlightedIndex = -1;
+    private bool   focusSearchOnOpen;
+    private bool   scrollToHighlighted;
 
     public CollectionSelectorWindow() : base($"集合选择###{Plugin.PLUGIN_NAME}-CollectionSelectorWindow")
     {
