@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using OmenTools.OmenService;
 using UntarnishedHeart.Execution.Common;
 using UntarnishedHeart.Execution.Managers;
 using UntarnishedHeart.Execution.Preset;
@@ -33,7 +32,7 @@ internal static class RouteEditorPanel
         if (!string.IsNullOrEmpty(state.TreeState.CurrentPathTabLabel))
         {
             ImGui.TabItemButton("###Space");
-            
+
             using (ImRaii.Disabled())
                 ImGui.TabItemButton($"{state.TreeState.CurrentPathTabLabel}###PathLabel");
         }

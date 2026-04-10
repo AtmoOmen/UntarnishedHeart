@@ -3,10 +3,8 @@ using Lumina.Excel.Sheets;
 using OmenTools.ImGuiOm.Widgets.Combos;
 using OmenTools.Interop.Game.Lumina;
 using UntarnishedHeart.Execution.Common;
-using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.Managers;
 using UntarnishedHeart.Execution.Preset;
-using UntarnishedHeart.Windows.Helpers;
 
 namespace UntarnishedHeart.Windows.Components;
 
@@ -33,12 +31,12 @@ internal static class PresetEditorPanel
             if (stepInfo)
                 DrawStepsTab(preset, state);
         }
-        
-        
+
+
         if (!string.IsNullOrEmpty(state.TreeState.CurrentPathTabLabel))
         {
             ImGui.TabItemButton("###Space");
-            
+
             using (ImRaii.Disabled())
                 ImGui.TabItemButton($"{state.TreeState.CurrentPathTabLabel}###PathLabel");
         }
@@ -116,9 +114,10 @@ internal static class PresetEditorPanel
         Preset preset
     )
     {
-        public StepTreeEditorState   TreeState    { get; }      = new();
-        public StepEditorSharedState SharedState  { get; }      = new();
-        public ContentSelectCombo    ContentCombo { get; }      = new(preset.ToString())
+        public StepTreeEditorState   TreeState   { get; } = new();
+        public StepEditorSharedState SharedState { get; } = new();
+
+        public ContentSelectCombo ContentCombo { get; } = new(preset.ToString())
         {
             SelectedID = GetContentFinderConditionID(preset.Zone)
         };

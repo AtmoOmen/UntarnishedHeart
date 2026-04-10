@@ -13,12 +13,12 @@ internal static class StepTreeEditor
 {
     public static void Draw
     (
-        string                    idPrefix,
-        List<PresetStep>          steps,
-        StepTreeEditorState       state,
-        StepEditorSharedState     sharedState,
+        string                      idPrefix,
+        List<PresetStep>            steps,
+        StepTreeEditorState         state,
+        StepEditorSharedState       sharedState,
         ExecuteActionRuntimeCursor? runningCursor,
-        Func<PresetStep>          createNewStep
+        Func<PresetStep>            createNewStep
     )
     {
         NormalizeState(steps, state);
@@ -37,12 +37,12 @@ internal static class StepTreeEditor
 
     private static unsafe void DrawSidebar
     (
-        string                    idPrefix,
-        List<PresetStep>          steps,
-        StepTreeEditorState       state,
-        StepEditorSharedState     sharedState,
+        string                      idPrefix,
+        List<PresetStep>            steps,
+        StepTreeEditorState         state,
+        StepEditorSharedState       sharedState,
         ExecuteActionRuntimeCursor? runningCursor,
-        Func<PresetStep>          createNewStep
+        Func<PresetStep>            createNewStep
     )
     {
         ImGui.TableSetColumnIndex(0);
@@ -60,7 +60,7 @@ internal static class StepTreeEditor
         ImGui.SetNextItemWidth(-1);
         if (ImGui.InputTextWithHint($"###StepFilterInput-{idPrefix}", "输入关键字筛选", ref filterText, 256))
             state.FilterText = filterText;
-        
+
         ImGui.Separator();
         ImGui.Spacing();
 
@@ -69,9 +69,10 @@ internal static class StepTreeEditor
             return;
 
         var keyword = state.FilterText.Trim();
+
         for (var stepIndex = 0; stepIndex < steps.Count; stepIndex++)
         {
-            var step = steps[stepIndex];
+            var step            = steps[stepIndex];
             var stepRenderState = BuildStepRenderState(step, keyword);
             if (!stepRenderState.Visible)
                 continue;
@@ -88,8 +89,8 @@ internal static class StepTreeEditor
                 stepFlags |= ImGuiTreeNodeFlags.Selected;
 
             using var stepHighlightStyle = PushTreeNodeHighlightStyle(isStepSelected, isStepRunning);
-            using var stepNode = ImRaii.TreeNode($"{stepIndex}. {step.Name} ({stepRenderState.ActionCount} 个动作)###{idPrefix}-Step-{stepIndex}", stepFlags);
-            var stepOpen = stepNode.Success;
+            using var stepNode           = ImRaii.TreeNode($"{stepIndex}. {step.Name} ({stepRenderState.ActionCount} 个动作)###{idPrefix}-Step-{stepIndex}", stepFlags);
+            var       stepOpen           = stepNode.Success;
 
             if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
             {
@@ -112,9 +113,11 @@ internal static class StepTreeEditor
                 if (dragDropTarget)
                 {
                     var payload = ImGui.AcceptDragDropPayload($"STEP_REORDER_{idPrefix}");
+
                     if (!payload.IsNull && payload.Data != null)
                     {
                         var sourceIndex = *(int*)payload.Data;
+
                         if (sourceIndex != stepIndex && sourceIndex >= 0 && sourceIndex < steps.Count)
                         {
                             (steps[sourceIndex], steps[stepIndex]) = (steps[stepIndex], steps[sourceIndex]);
@@ -143,34 +146,34 @@ internal static class StepTreeEditor
 
     private static unsafe void DrawPhaseNode
     (
-        string                    idPrefix,
-        PresetStep                step,
-        int                       stepIndex,
-        PresetStepPhase           phase,
-        string                    phaseName,
-        bool                      phaseMatched,
-        StepTreeEditorState       state,
-        StepEditorSharedState     sharedState,
+        string                      idPrefix,
+        PresetStep                  step,
+        int                         stepIndex,
+        PresetStepPhase             phase,
+        string                      phaseName,
+        bool                        phaseMatched,
+        StepTreeEditorState         state,
+        StepEditorSharedState       sharedState,
         ExecuteActionRuntimeCursor? runningCursor,
-        string                    keyword
+        string                      keyword
     )
     {
-        var actions = StepEditor.GetPhaseActions(step, phase);
-        var shouldOpenByFilter  = !string.IsNullOrEmpty(keyword) && phaseMatched;
+        var actions             = StepEditor.GetPhaseActions(step, phase);
+        var shouldOpenByFilter  = !string.IsNullOrEmpty(keyword)     && phaseMatched;
         var shouldOpenByPending = state.PendingOpenStep == stepIndex && state.PendingOpenPhase == phase;
         if (shouldOpenByFilter || shouldOpenByPending)
             ImGui.SetNextItemOpen(true, ImGuiCond.Always);
 
-        var isPhaseSelected = state.CurrentStep == stepIndex && state.CurrentPhase == phase && state.CurrentNodeKind == StepTreeNodeKind.Phase;
-        var isPhaseRunning  = runningCursor is { HasPhase: true } cursor && cursor.StepIndex == stepIndex && cursor.Phase == phase;
+        var isPhaseSelected = state.CurrentStep == stepIndex             && state.CurrentPhase == phase     && state.CurrentNodeKind == StepTreeNodeKind.Phase;
+        var isPhaseRunning  = runningCursor is { HasPhase: true } cursor && cursor.StepIndex   == stepIndex && cursor.Phase          == phase;
 
         var phaseFlags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.SpanAvailWidth;
         if (isPhaseSelected)
             phaseFlags |= ImGuiTreeNodeFlags.Selected;
 
         using var phaseHighlightStyle = PushTreeNodeHighlightStyle(isPhaseSelected, isPhaseRunning);
-        using var phaseNode = ImRaii.TreeNode($"{phaseName} ({actions.Count} 个动作)###{idPrefix}-Step-{stepIndex}-Phase-{phase}", phaseFlags);
-        var phaseOpen = phaseNode.Success;
+        using var phaseNode           = ImRaii.TreeNode($"{phaseName} ({actions.Count} 个动作)###{idPrefix}-Step-{stepIndex}-Phase-{phase}", phaseFlags);
+        var       phaseOpen           = phaseNode.Success;
 
         if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
         {
@@ -197,13 +200,13 @@ internal static class StepTreeEditor
             if (!ShouldRenderAction(action, keyword, phaseMatched))
                 continue;
 
-            var isActionSelected = state.CurrentStep == stepIndex &&
-                                   state.CurrentPhase == phase     &&
-                                   state.CurrentAction == actionIndex &&
+            var isActionSelected = state.CurrentStep     == stepIndex   &&
+                                   state.CurrentPhase    == phase       &&
+                                   state.CurrentAction   == actionIndex &&
                                    state.CurrentNodeKind == StepTreeNodeKind.Action;
             var isActionRunning = runningCursor is { HasAction: true } actionCursor &&
-                                  actionCursor.StepIndex == stepIndex &&
-                                  actionCursor.Phase == phase         &&
+                                  actionCursor.StepIndex   == stepIndex             &&
+                                  actionCursor.Phase       == phase                 &&
                                   actionCursor.ActionIndex == actionIndex;
 
             var actionFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen | ImGuiTreeNodeFlags.SpanAvailWidth;
@@ -236,9 +239,11 @@ internal static class StepTreeEditor
                 if (dragDropTarget)
                 {
                     var payload = ImGui.AcceptDragDropPayload($"{idPrefix}_ACTION_REORDER_{stepIndex}_{phase}");
+
                     if (!payload.IsNull && payload.Data != null)
                     {
                         var sourceIndex = *(int*)payload.Data;
+
                         if (sourceIndex != actionIndex && sourceIndex >= 0 && sourceIndex < actions.Count)
                         {
                             (actions[sourceIndex], actions[actionIndex]) = (actions[actionIndex], actions[sourceIndex]);
@@ -277,6 +282,7 @@ internal static class StepTreeEditor
         }
 
         var step = steps[state.CurrentStep];
+
         switch (state.CurrentNodeKind)
         {
             case StepTreeNodeKind.Step:
@@ -289,6 +295,7 @@ internal static class StepTreeEditor
             {
                 state.CurrentAction = StepEditor.NormalizeActionSelection(step, state.CurrentPhase);
                 var currentAction = state.CurrentAction;
+
                 if (!StepEditor.DrawSelectedActionEditor(step, state.CurrentPhase, ref currentAction))
                 {
                     state.CurrentAction   = -1;
@@ -350,7 +357,7 @@ internal static class StepTreeEditor
     {
         var actions = StepEditor.GetPhaseActions(step, phase);
         ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), $"{GetPhaseName(phase)}");
-        
+
         ImGui.SameLine();
         ImGui.TextDisabled($"(共 {actions.Count} 个动作)");
 
@@ -369,13 +376,13 @@ internal static class StepTreeEditor
 
     private static void DrawStepContextMenu
     (
-        string                    idPrefix,
-        List<PresetStep>          steps,
-        StepTreeEditorState       state,
-        StepEditorSharedState     sharedState,
-        int                       index,
-        PresetStep                step,
-        Func<PresetStep>          createNewStep
+        string                idPrefix,
+        List<PresetStep>      steps,
+        StepTreeEditorState   state,
+        StepEditorSharedState sharedState,
+        int                   index,
+        PresetStep            step,
+        Func<PresetStep>      createNewStep
     )
     {
         var contextOperation = StepOperationType.Pass;
@@ -427,6 +434,7 @@ internal static class StepTreeEditor
             contextOperation = StepOperationType.PasteCurrent;
 
         using var clearMenu = ImRaii.Menu("清空");
+
         if (clearMenu)
         {
             ImGui.TextDisabled("将清空该步骤下的全部动作");
@@ -471,6 +479,7 @@ internal static class StepTreeEditor
             return;
 
         var actions = StepEditor.GetPhaseActions(step, phase);
+
         if (ImGui.MenuItem("添加动作"))
         {
             actions.Add(ExecuteActionBase.CreateDefaultAction(ExecuteActionKind.Wait));
@@ -491,6 +500,7 @@ internal static class StepTreeEditor
 
         ImGui.TextDisabled($"将清空 {GetPhaseName(phase)} 的全部动作");
         ImGui.Separator();
+
         if (ImGui.MenuItem("确认清空"))
         {
             actions.Clear();
@@ -507,6 +517,7 @@ internal static class StepTreeEditor
     private static void NormalizeState(List<PresetStep> steps, StepTreeEditorState state)
     {
         state.CurrentStep = steps.Count == 0 ? -1 : Math.Clamp(state.CurrentStep, 0, steps.Count - 1);
+
         if (state.CurrentStep < 0)
         {
             state.CurrentAction   = -1;
@@ -533,7 +544,7 @@ internal static class StepTreeEditor
         if (!isSelected && !isRunning)
             return null;
 
-        var pulse = (MathF.Sin((float)ImGui.GetTime() * 3.5f) + 1f) * 0.5f;
+        var pulse         = (MathF.Sin((float)ImGui.GetTime() * 3.5f) + 1f) * 0.5f;
         var selectedColor = KnownColor.CornflowerBlue.ToVector4() with { W = 0.72f };
         var runningColor  = KnownColor.ForestGreen.ToVector4() with { W = 0.32f + pulse * 0.24f };
         var headerColor   = isSelected && isRunning ? Vector4.Lerp(selectedColor, runningColor, 0.55f) : isSelected ? selectedColor : runningColor;
@@ -584,10 +595,10 @@ internal static class StepTreeEditor
         if (string.IsNullOrEmpty(keyword))
             return new(true, true, true, true, actionCount);
 
-        var stepMatched = step.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+        var stepMatched  = step.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase);
         var enterMatched = stepMatched || step.EnterActions.Any(action => action.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase));
-        var bodyMatched  = stepMatched || step.BodyActions.Any(action => action.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase));
-        var exitMatched  = stepMatched || step.ExitActions.Any(action => action.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+        var bodyMatched  = stepMatched || step.BodyActions.Any(action => action.Name.Contains(keyword,  StringComparison.OrdinalIgnoreCase));
+        var exitMatched  = stepMatched || step.ExitActions.Any(action => action.Name.Contains(keyword,  StringComparison.OrdinalIgnoreCase));
         var visible      = stepMatched || enterMatched || bodyMatched || exitMatched;
         return new(visible, enterMatched, bodyMatched, exitMatched, actionCount);
     }
