@@ -5,6 +5,7 @@ using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Condition.Legacy;
 using UntarnishedHeart.Execution.Models;
 using UntarnishedHeart.Execution.Preset.Helpers;
+using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Execution.Condition;
 
@@ -13,6 +14,7 @@ namespace UntarnishedHeart.Execution.Condition;
 public abstract class ConditionBase : IEquatable<ConditionBase>
 {
     protected const float EQUALITY_TOLERANCE = 0.01f;
+    private static readonly Dictionary<uint, Task<CollectionSelectorResult>> EnumSelectorTasks = [];
 
     [JsonProperty("Name")]
     public string Name { get; set; } = string.Empty;
@@ -112,10 +114,74 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         return current;
     }
 
+    internal static TEnum DrawEnumLocalizedSelector<TEnum>
+    (
+        string                id,
+        string                title,
+        string                emptyText,
+        TEnum                 current,
+        Func<TEnum, string>   getDisplayText,
+        Func<TEnum, string?>? getDescription = null,
+        in HashSet<TEnum>?    passedEnums    = null
+    )
+        where TEnum : struct, Enum
+    {
+        var selectorID = ImGui.GetID(id);
+        var skippedEnums = passedEnums;
+        var candidates = Enum
+                         .GetValues<TEnum>()
+                         .Where(candidate => skippedEnums == null || !skippedEnums.Contains(candidate))
+                         .ToArray();
+
+        if (candidates.Length == 0)
+        {
+            ImGui.TextDisabled(emptyText);
+            return current;
+        }
+
+        ConsumePendingEnumSelectorResult(selectorID, candidates, ref current);
+
+        using var combo = ImRaii.Combo(id, getDisplayText(current), ImGuiComboFlags.HeightLarge);
+        if (combo)
+            ImGui.CloseCurrentPopup();
+
+        if (!ImGui.IsItemClicked())
+            return current;
+
+        var request = new CollectionSelectorRequest
+        (
+            title,
+            emptyText,
+            Array.IndexOf(candidates, current),
+            candidates.Select(candidate => new CollectionSelectorItem(getDisplayText(candidate), getDescription?.Invoke(candidate))).ToArray()
+        );
+
+        EnumSelectorTasks[selectorID] = CollectionSelectorWindow.OpenAsync(request);
+        return current;
+    }
+
     protected static ConditionTargetType DrawTargetType(string id, ConditionTargetType current)
     {
         DrawLabel("目标类型", KnownColor.LightSkyBlue.ToVector4());
         return DrawEnumCombo(id, current);
+    }
+
+    private static void ConsumePendingEnumSelectorResult<TEnum>(uint selectorID, TEnum[] candidates, ref TEnum current)
+        where TEnum : struct, Enum
+    {
+        if (!EnumSelectorTasks.TryGetValue(selectorID, out var task) || !task.IsCompleted)
+            return;
+
+        EnumSelectorTasks.Remove(selectorID);
+
+        var result = task.GetAwaiter().GetResult();
+        if (result.Kind != CollectionSelectorResultKind.Selected)
+            return;
+
+        if ((uint)result.Index >= (uint)candidates.Length)
+            return;
+
+        current = candidates[result.Index];
     }
 
     protected static IBattleChara? ResolveTarget(in ConditionContext context, ConditionTargetType targetType) =>
