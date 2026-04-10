@@ -84,7 +84,7 @@ internal static class StepTreeEditor
         ImGui.Spacing();
         var filterText = state.FilterText;
         ImGui.SetNextItemWidth(-1);
-        if (ImGui.InputTextWithHint($"###StepFilterInput-{idPrefix}", "输入关键字筛选步骤或动作", ref filterText, 256))
+        if (ImGui.InputTextWithHint($"###StepFilterInput-{idPrefix}", "输入关键字筛选", ref filterText, 256))
             state.FilterText = filterText;
         ImGui.Separator();
         ImGui.Spacing();

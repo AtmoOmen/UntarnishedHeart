@@ -1,5 +1,4 @@
 using Dalamud.Interface.Windowing;
-using Newtonsoft.Json;
 using OmenTools.OmenService;
 using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.Managers;
@@ -266,25 +265,14 @@ public class MainWindow : Window
 
     private static void ImportRouteFromClipboard()
     {
-        try
-        {
-            var config        = PluginConfig.Instance();
-            var clipboardText = ImGui.GetClipboardText();
-            if (string.IsNullOrWhiteSpace(clipboardText))
-                return;
+        var config = PluginConfig.Instance();
+        var route  = Route.ImportFromClipboard();
+        if (route == null)
+            return;
 
-            var route = JsonConvert.DeserializeObject<Route>(clipboardText);
-            if (route == null)
-                return;
-
-            config.Routes.Add(route);
-            config.SelectedRouteIndex = config.Routes.Count - 1;
-            config.Save();
-        }
-        catch (Exception ex)
-        {
-            NotifyHelper.Instance().Chat($"导入路线失败: {ex.Message}");
-        }
+        config.Routes.Add(route);
+        config.SelectedRouteIndex = config.Routes.Count - 1;
+        config.Save();
     }
 
     private static void StartSimpleExecution()

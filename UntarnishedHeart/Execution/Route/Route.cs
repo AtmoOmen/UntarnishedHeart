@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using OmenTools.OmenService;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Execution.Route.Configuration;
 
@@ -26,6 +27,37 @@ public sealed class Route : IEquatable<Route>
             Remark  = Remark,
             Steps   = Steps.Select(PresetStep.Copy).ToList()
         };
+
+    public void ExportToClipboard()
+    {
+        try
+        {
+            var json = JsonConvert.SerializeObject(this, Formatting.Indented);
+            ImGui.SetClipboardText(json);
+            NotifyHelper.Instance().Chat("路线已导出到剪贴板");
+        }
+        catch (Exception ex)
+        {
+            NotifyHelper.Instance().Chat($"导出路线失败: {ex.Message}");
+        }
+    }
+
+    public static Route? ImportFromClipboard()
+    {
+        try
+        {
+            var clipboardText = ImGui.GetClipboardText();
+            if (string.IsNullOrWhiteSpace(clipboardText))
+                return null;
+
+            return JsonConvert.DeserializeObject<Route>(clipboardText);
+        }
+        catch (Exception ex)
+        {
+            NotifyHelper.Instance().Chat($"导入路线失败: {ex.Message}");
+            return null;
+        }
+    }
 
     public bool Equals(Route? other)
     {

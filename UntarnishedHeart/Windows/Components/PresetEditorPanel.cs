@@ -25,20 +25,20 @@ internal static class PresetEditorPanel
         using (var basicInfo = ImRaii.TabItem("基本信息"))
         {
             if (basicInfo)
-                DrawBasicInfo(preset, state);
+                DrawBasicInfoTab(preset, state);
         }
 
         using (var stepInfo = ImRaii.TabItem("步骤"))
         {
             if (stepInfo)
-                DrawStepInfo(preset, state);
+                DrawStepsTab(preset, state);
         }
         
         using (ImRaii.Disabled())
             ImGui.TabItemButton(state.TreeState.CurrentPathTabLabel);
     }
 
-    private static void DrawBasicInfo(Preset preset, PresetEditorState state)
+    private static void DrawBasicInfoTab(Preset preset, PresetEditorState state)
     {
         ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "名称");
 
@@ -74,7 +74,7 @@ internal static class PresetEditorPanel
             preset.Remark = remark;
     }
 
-    private static void DrawStepInfo(Preset preset, PresetEditorState state)
+    private static void DrawStepsTab(Preset preset, PresetEditorState state)
     {
         StepTreeEditor.Draw
         (

@@ -1,73 +1,30 @@
-using Dalamud.Interface.Windowing;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Internal;
 using UntarnishedHeart.Windows.Components;
 
 namespace UntarnishedHeart.Windows;
 
-public class PresetEditor() : Window($"预设编辑器###{Plugin.PLUGIN_NAME}-PresetEditor", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
+internal class PresetEditor() : CollectionEditorWindowBase<Preset>($"预设编辑器###{Plugin.PLUGIN_NAME}-PresetEditor")
 {
-    private static int SelectedPresetIndex;
+    protected override string CollectionID => "Preset";
 
-    public override void Draw()
-    {
-        CollectionToolbar.DrawSelector
-        (
-            "选择预设:",
-            "###PresetSelectCombo",
-            PluginConfig.Instance().Presets,
-            ref SelectedPresetIndex,
-            preset => preset.Name,
-            preset => PluginConfig.Instance().Presets.Remove(preset),
-            "暂无预设"
-        );
+    protected override string SelectorLabel => "选择预设:";
 
-        ImGui.SameLine();
+    protected override string EmptyCollectionText => "暂无预设";
 
-        CollectionToolbar.DrawActionButtons
-        (
-            "SavePresets",
-            PluginConfig.Instance().Save,
-            "AddNewPreset",
-            () =>
-            {
-                PluginConfig.Instance().Presets.Add(new());
-                SelectedPresetIndex = PluginConfig.Instance().Presets.Count - 1;
-            },
-            "ImportNewPreset",
-            () =>
-            {
-                var config = Preset.ImportFromClipboard();
-                if (config == null) return;
+    protected override string EmptySelectionText => "暂无预设，请先添加或导入";
 
-                PluginConfig.Instance().Presets.Add(config);
-                SelectedPresetIndex = PluginConfig.Instance().Presets.Count - 1;
-                PluginConfig.Instance().Save();
-            },
-            "ExportPreset",
-            () =>
-            {
-                SelectedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(SelectedPresetIndex, PluginConfig.Instance().Presets.Count);
-                if (SelectedPresetIndex < 0) return;
+    protected override IList<Preset> Items => PluginConfig.Instance().Presets;
 
-                PluginConfig.Instance().Presets[SelectedPresetIndex].ExportToClipboard();
-            },
-            PluginConfig.Instance().Presets.Count > 0
-        );
+    protected override string GetItemName(Preset item) => item.Name;
 
-        ImGui.Separator();
-        ImGui.Spacing();
+    protected override Preset CreateNewItem() => new();
 
-        SelectedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(SelectedPresetIndex, PluginConfig.Instance().Presets.Count);
+    protected override Preset? ImportItem() => Preset.ImportFromClipboard();
 
-        if (SelectedPresetIndex < 0)
-        {
-            ImGui.Text("暂无预设，请先添加或导入");
-            return;
-        }
+    protected override void ExportItem(Preset item) => item.ExportToClipboard();
 
-        PresetEditorPanel.Draw(PluginConfig.Instance().Presets[SelectedPresetIndex]);
-    }
+    protected override void SaveItems() => PluginConfig.Instance().Save();
 
-    public void Dispose() { }
+    protected override void DrawEditor(Preset item) => PresetEditorPanel.Draw(item);
 }
