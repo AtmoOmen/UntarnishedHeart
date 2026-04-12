@@ -36,24 +36,13 @@ public sealed class SwitchClassJobAction : ExecuteActionBase
 
         if (ImGui.IsItemClicked())
         {
-            var request = new CollectionSelectorRequest
+            CollectionSelectorWindow.OpenEnum
             (
                 "选择切换方式",
                 "暂无可选切换方式",
-                Array.IndexOf(modeCandidates, Mode),
-                modeCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                request,
-                index =>
-                {
-                    if ((uint)index >= (uint)modeCandidates.Length)
-                        return;
-
-                    Mode = modeCandidates[index];
-                }
+                Mode,
+                value => Mode = value,
+                modeCandidates
             );
         }
 

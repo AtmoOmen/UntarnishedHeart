@@ -96,24 +96,13 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
 
         if (ImGui.IsItemClicked())
         {
-            var request = new CollectionSelectorRequest
+            CollectionSelectorWindow.OpenEnum
             (
                 "选择处理类型",
                 "暂无可选处理类型",
-                Array.IndexOf(executeTypeCandidates, ExecuteType),
-                executeTypeCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                request,
-                index =>
-                {
-                    if ((uint)index >= (uint)executeTypeCandidates.Length)
-                        return;
-
-                    ExecuteType = executeTypeCandidates[index];
-                }
+                ExecuteType,
+                value => ExecuteType = value,
+                executeTypeCandidates
             );
         }
 
@@ -141,24 +130,13 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
 
         if (ImGui.IsItemClicked())
         {
-            var request = new CollectionSelectorRequest
+            CollectionSelectorWindow.OpenEnum
             (
                 "选择关系类型",
                 "暂无可选关系类型",
-                Array.IndexOf(relationTypeCandidates, RelationType),
-                relationTypeCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                request,
-                index =>
-                {
-                    if ((uint)index >= (uint)relationTypeCandidates.Length)
-                        return;
-
-                    RelationType = relationTypeCandidates[index];
-                }
+                RelationType,
+                value => RelationType = value,
+                relationTypeCandidates
             );
         }
 

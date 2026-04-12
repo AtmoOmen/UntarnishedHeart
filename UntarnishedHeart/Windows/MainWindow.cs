@@ -122,17 +122,13 @@ public class MainWindow : Window
 
         if (ImGui.IsItemClicked())
         {
-            var request = new CollectionSelectorRequest
+            CollectionSelectorWindow.Open
             (
                 "选择预设",
                 "暂无预设",
                 selectedPresetIndex,
-                config.Presets.Select(preset => new CollectionSelectorItem(preset.Name)).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                request,
+                config.Presets,
+                static preset => preset.Name,
                 index =>
                 {
                     if ((uint)index >= (uint)config.Presets.Count)
@@ -174,17 +170,13 @@ public class MainWindow : Window
 
         if (ImGui.IsItemClicked())
         {
-            var request = new CollectionSelectorRequest
+            CollectionSelectorWindow.Open
             (
                 "选择路线",
                 "暂无路线",
                 selectedRouteIndex,
-                config.Routes.Select(route => new CollectionSelectorItem(route.Name)).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                request,
+                config.Routes,
+                static route => route.Name,
                 index =>
                 {
                     if ((uint)index >= (uint)config.Routes.Count)

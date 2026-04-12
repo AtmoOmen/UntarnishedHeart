@@ -43,17 +43,13 @@ public sealed class ExecutePresetAction : ExecuteActionBase
 
         if (ImGui.IsItemClicked())
         {
-            var request = new CollectionSelectorRequest
+            CollectionSelectorWindow.Open
             (
                 "选择目标预设",
                 "暂无预设",
                 selectedPresetIndex,
-                presets.Select(preset => new CollectionSelectorItem(preset.Name)).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                request,
+                presets,
+                static preset => preset.Name,
                 index =>
                 {
                     if ((uint)index >= (uint)presets.Count)

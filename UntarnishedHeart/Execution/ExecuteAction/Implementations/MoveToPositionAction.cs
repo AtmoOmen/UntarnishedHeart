@@ -33,24 +33,13 @@ public sealed class MoveToPositionAction : ExecuteActionBase
 
         if (ImGui.IsItemClicked())
         {
-            var request = new CollectionSelectorRequest
+            CollectionSelectorWindow.OpenEnum
             (
                 "选择移动方式",
                 "暂无可选移动方式",
-                Array.IndexOf(moveTypeCandidates, MoveType),
-                moveTypeCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                request,
-                index =>
-                {
-                    if ((uint)index >= (uint)moveTypeCandidates.Length)
-                        return;
-
-                    MoveType = moveTypeCandidates[index];
-                }
+                MoveType,
+                value => MoveType = value,
+                moveTypeCandidates
             );
         }
 

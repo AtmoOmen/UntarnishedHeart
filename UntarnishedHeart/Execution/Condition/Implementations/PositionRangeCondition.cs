@@ -58,24 +58,13 @@ public sealed class PositionRangeCondition : ConditionBase
 
         if (ImGui.IsItemClicked())
         {
-            var request = new CollectionSelectorRequest
+            CollectionSelectorWindow.OpenEnum
             (
                 "选择比较类型",
                 "暂无可选比较类型",
-                Array.IndexOf(comparisonCandidates, ComparisonType),
-                comparisonCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                request,
-                index =>
-                {
-                    if ((uint)index >= (uint)comparisonCandidates.Length)
-                        return;
-
-                    ComparisonType = comparisonCandidates[index];
-                }
+                ComparisonType,
+                value => ComparisonType = value,
+                comparisonCandidates
             );
         }
 

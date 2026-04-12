@@ -87,18 +87,14 @@ internal abstract class CollectionEditorWindowBase<TItem>
                 var title = string.IsNullOrWhiteSpace(trimmed)
                                 ? "选择项目"
                                 : trimmed.StartsWith("选择", StringComparison.Ordinal) ? trimmed : $"选择{trimmed}";
-                var request = new CollectionSelectorRequest
+
+                CollectionSelectorWindow.Open<TItem>
                 (
                     title,
                     EmptyCollectionText,
                     selectedIndex,
-                    Items.Select(item => new CollectionSelectorItem(GetItemName(item))).ToArray(),
-                    true
-                );
-
-                CollectionSelectorWindow.Open
-                (
-                    request,
+                    Items,
+                    GetItemName,
                     index =>
                     {
                         if ((uint)index >= (uint)Items.Count)

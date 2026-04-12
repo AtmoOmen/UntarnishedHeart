@@ -194,23 +194,13 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         if (!ImGui.IsItemClicked())
             return;
 
-        var request = new CollectionSelectorRequest
+        CollectionSelectorWindow.OpenEnum
         (
             "选择条件类型",
             "暂无可选条件类型",
-            Array.IndexOf(candidates, Kind),
-            candidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-        );
-
-        CollectionSelectorWindow.Open
-        (
-            request,
-            index =>
+            Kind,
+            selectedKind =>
             {
-                if ((uint)index >= (uint)candidates.Length)
-                    return;
-
-                var selectedKind = candidates[index];
                 if (selectedKind == Kind)
                     return;
 
@@ -222,7 +212,8 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
 
                 next.Remark = Remark;
                 replaceCurrent(next);
-            }
+            },
+            candidates
         );
     }
 

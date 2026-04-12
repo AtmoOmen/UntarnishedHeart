@@ -148,23 +148,19 @@ internal static class DutyOptionsEditor
         if (ImGui.IsItemClicked())
         {
             var lootRuleItems = LootRuleNames.ToArray();
-            var request = new CollectionSelectorRequest
+
+            CollectionSelectorWindow.Open
             (
                 "选择战利品分配",
                 "暂无可选战利品分配",
                 Array.FindIndex(lootRuleItems, item => item.Key == lootRule),
-                lootRuleItems.Select(item => new CollectionSelectorItem(item.Value)).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                request,
+                lootRuleItems,
+                static item => item.Value,
                 index =>
                 {
                     if ((uint)index >= (uint)lootRuleItems.Length)
                         return;
 
-                    DLog.Debug("测试");
                     option.LootRules = lootRuleItems[index].Key;
                     dutyOptions.ContentsFinderOption = option;
                     onChanged?.Invoke();
@@ -182,25 +178,17 @@ internal static class DutyOptionsEditor
 
         if (ImGui.IsItemClicked())
         {
-            var request = new CollectionSelectorRequest
+            CollectionSelectorWindow.OpenEnum
             (
                 "选择副本入口",
                 "暂无可选副本入口",
-                Array.IndexOf(contentEntryCandidates, dutyOptions.ContentEntryType),
-                contentEntryCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                request,
-                index =>
+                dutyOptions.ContentEntryType,
+                value =>
                 {
-                    if ((uint)index >= (uint)contentEntryCandidates.Length)
-                        return;
-
-                    dutyOptions.ContentEntryType = contentEntryCandidates[index];
+                    dutyOptions.ContentEntryType = value;
                     onChanged?.Invoke();
-                }
+                },
+                contentEntryCandidates
             );
         }
 

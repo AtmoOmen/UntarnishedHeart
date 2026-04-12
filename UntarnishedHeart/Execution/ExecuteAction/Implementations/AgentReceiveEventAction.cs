@@ -36,24 +36,13 @@ public sealed class AgentReceiveEventAction : ExecuteActionBase
 
         if (ImGui.IsItemClicked())
         {
-            var request = new CollectionSelectorRequest
+            CollectionSelectorWindow.OpenEnum
             (
                 "选择代理类型",
                 "暂无可选代理类型",
-                Array.IndexOf(agentCandidates, AgentID),
-                agentCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                request,
-                index =>
-                {
-                    if ((uint)index >= (uint)agentCandidates.Length)
-                        return;
-
-                    AgentID = agentCandidates[index];
-                }
+                AgentID,
+                value => AgentID = value,
+                agentCandidates
             );
         }
 

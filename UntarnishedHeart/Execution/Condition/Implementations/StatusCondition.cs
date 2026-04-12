@@ -60,24 +60,13 @@ public sealed class StatusCondition : ConditionBase
 
         if (ImGui.IsItemClicked())
         {
-            var comparisonRequest = new CollectionSelectorRequest
+            CollectionSelectorWindow.OpenEnum
             (
                 "选择比较类型",
                 "暂无可选比较类型",
-                Array.IndexOf(comparisonCandidates, ComparisonType),
-                comparisonCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                comparisonRequest,
-                index =>
-                {
-                    if ((uint)index >= (uint)comparisonCandidates.Length)
-                        return;
-
-                    ComparisonType = comparisonCandidates[index];
-                }
+                ComparisonType,
+                value => ComparisonType = value,
+                comparisonCandidates
             );
         }
 
@@ -91,24 +80,13 @@ public sealed class StatusCondition : ConditionBase
 
         if (ImGui.IsItemClicked())
         {
-            var targetTypeRequest = new CollectionSelectorRequest
+            CollectionSelectorWindow.OpenEnum
             (
                 "选择目标类型",
                 "暂无可选目标类型",
-                Array.IndexOf(targetTypeCandidates, TargetType),
-                targetTypeCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                targetTypeRequest,
-                index =>
-                {
-                    if ((uint)index >= (uint)targetTypeCandidates.Length)
-                        return;
-
-                    TargetType = targetTypeCandidates[index];
-                }
+                TargetType,
+                value => TargetType = value,
+                targetTypeCandidates
             );
         }
 

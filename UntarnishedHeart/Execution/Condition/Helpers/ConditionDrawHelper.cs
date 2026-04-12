@@ -23,24 +23,13 @@ internal static class ConditionDrawHelper
 
         if (ImGui.IsItemClicked())
         {
-            var request = new CollectionSelectorRequest
+            CollectionSelectorWindow.OpenEnum
             (
                 "选择技能类型",
                 "暂无可选技能类型",
-                Array.IndexOf(actionTypeCandidates, reference.ActionType),
-                actionTypeCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                request,
-                index =>
-                {
-                    if ((uint)index >= (uint)actionTypeCandidates.Length)
-                        return;
-
-                    reference.ActionType = actionTypeCandidates[index];
-                }
+                reference.ActionType,
+                value => reference.ActionType = value,
+                actionTypeCandidates
             );
         }
 
@@ -70,24 +59,13 @@ internal static class ConditionDrawHelper
 
         if (ImGui.IsItemClicked())
         {
-            var request = new CollectionSelectorRequest
+            CollectionSelectorWindow.OpenEnum
             (
                 "选择目标方式",
                 "暂无可选目标方式",
-                Array.IndexOf(selectorKindCandidates, selector.Kind),
-                selectorKindCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                request,
-                index =>
-                {
-                    if ((uint)index >= (uint)selectorKindCandidates.Length)
-                        return;
-
-                    selector.Kind = selectorKindCandidates[index];
-                }
+                selector.Kind,
+                value => selector.Kind = value,
+                selectorKindCandidates
             );
         }
 
@@ -106,24 +84,13 @@ internal static class ConditionDrawHelper
 
                 if (ImGui.IsItemClicked())
                 {
-                    var request = new CollectionSelectorRequest
+                    CollectionSelectorWindow.OpenEnum
                     (
                         "选择对象类型",
                         "暂无可选对象类型",
-                        Array.IndexOf(objectKindCandidates, selector.ObjectKind),
-                        objectKindCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-                    );
-
-                    CollectionSelectorWindow.Open
-                    (
-                        request,
-                        index =>
-                        {
-                            if ((uint)index >= (uint)objectKindCandidates.Length)
-                                return;
-
-                            selector.ObjectKind = objectKindCandidates[index];
-                        }
+                        selector.ObjectKind,
+                        value => selector.ObjectKind = value,
+                        objectKindCandidates
                     );
                 }
 

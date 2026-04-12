@@ -33,8 +33,107 @@ internal class CollectionSelectorWindow : Window
         Action?                   onCancel = null
     )
     {
-        var window = WindowManager.Instance().Get<CollectionSelectorWindow>() ?? throw new InvalidOperationException("集合选择窗口尚未注册");
+        var window = GetWindow();
         window.OpenInternal(request, onSelected, onDelete, onCancel);
+    }
+
+    internal static void Open<TItem>
+    (
+        string              title,
+        string              emptyText,
+        int                 selectedIndex,
+        IList<TItem>        items,
+        Func<TItem, string> textSelector,
+        Action<int>         onSelected,
+        Action<int>?        onDelete = null,
+        Action?             onCancel = null
+    ) =>
+        Open
+        (
+            title,
+            emptyText,
+            selectedIndex,
+            items,
+            item => new CollectionSelectorItem(textSelector(item)),
+            onSelected,
+            onDelete,
+            onCancel
+        );
+
+    internal static void Open<TItem>
+    (
+        string                              title,
+        string                              emptyText,
+        int                                 selectedIndex,
+        IList<TItem>                        items,
+        Func<TItem, CollectionSelectorItem> itemSelector,
+        Action<int>                         onSelected,
+        Action<int>?                        onDelete = null,
+        Action?                             onCancel = null
+    ) =>
+        Open
+        (
+            new CollectionSelectorRequest(title, emptyText, selectedIndex, BuildItems(items, itemSelector), onDelete != null),
+            onSelected,
+            onDelete,
+            onCancel
+        );
+
+    internal static void OpenEnum<TEnum>
+    (
+        string         title,
+        string         emptyText,
+        TEnum          selectedValue,
+        Action<TEnum>  onSelected,
+        params TEnum[] candidates
+    )
+        where TEnum : struct, Enum
+    {
+        var resolvedCandidates = ResolveEnumCandidates(candidates);
+        var items = candidates.Length == 0
+                        ? EnumSelectorCache<TEnum>.Items
+                        : BuildItems(resolvedCandidates, static value => new CollectionSelectorItem(value.GetDescription()));
+        var request = new CollectionSelectorRequest(title, emptyText, FindValueIndex(resolvedCandidates, selectedValue), items);
+
+        Open
+        (
+            request,
+            index =>
+            {
+                if (!IsValidIndex(index, resolvedCandidates.Count))
+                    return;
+
+                onSelected(resolvedCandidates[index]);
+            }
+        );
+    }
+
+    internal static void OpenEnum<TEnum>
+    (
+        string                              title,
+        string                              emptyText,
+        TEnum                               selectedValue,
+        Func<TEnum, CollectionSelectorItem> itemSelector,
+        Action<TEnum>                       onSelected,
+        params TEnum[]                      candidates
+    )
+        where TEnum : struct, Enum
+    {
+        var resolvedCandidates = ResolveEnumCandidates(candidates);
+        var request = new CollectionSelectorRequest
+            (title, emptyText, FindValueIndex(resolvedCandidates, selectedValue), BuildItems(resolvedCandidates, itemSelector));
+
+        Open
+        (
+            request,
+            index =>
+            {
+                if (!IsValidIndex(index, resolvedCandidates.Count))
+                    return;
+
+                onSelected(resolvedCandidates[index]);
+            }
+        );
     }
 
     private void OpenInternal
@@ -344,13 +443,30 @@ internal class CollectionSelectorWindow : Window
         return FindIndex(filteredIndices, normalizedIndex) >= 0 ? normalizedIndex : -1;
     }
 
-    private static int NormalizeItemIndex(IReadOnlyList<CollectionSelectorItem> items, int index) => 
+    private static int NormalizeItemIndex(IReadOnlyList<CollectionSelectorItem> items, int index) =>
         NormalizeIndex(index, items.Count);
 
-    private static int NormalizeIndex(int index, int count) => 
+    private static int NormalizeIndex(int index, int count) =>
         count <= 0 ? -1 : Math.Clamp(index, 0, count - 1);
 
-    private static bool IsValidIndex(int index, int count) => 
+    private static CollectionSelectorWindow GetWindow() =>
+        WindowManager.Instance().Get<CollectionSelectorWindow>() ?? throw new InvalidOperationException("集合选择窗口尚未注册");
+
+    private static IList<TEnum> ResolveEnumCandidates<TEnum>(TEnum[] candidates)
+        where TEnum : struct, Enum =>
+        candidates.Length == 0 ? EnumSelectorCache<TEnum>.Values : candidates;
+
+    private static CollectionSelectorItem[] BuildItems<TItem>(IList<TItem> items, Func<TItem, CollectionSelectorItem> itemSelector)
+    {
+        var result = new CollectionSelectorItem[items.Count];
+
+        for (var i = 0; i < items.Count; i++)
+            result[i] = itemSelector(items[i]);
+
+        return result;
+    }
+
+    private static bool IsValidIndex(int index, int count) =>
         (uint)index < (uint)count;
 
     private static int FindIndex(IReadOnlyList<int> indices, int value)
@@ -360,5 +476,23 @@ internal class CollectionSelectorWindow : Window
                 return i;
 
         return -1;
+    }
+
+    private static int FindValueIndex<T>(IList<T> values, T value)
+    {
+        var comparer = EqualityComparer<T>.Default;
+
+        for (var i = 0; i < values.Count; i++)
+            if (comparer.Equals(values[i], value))
+                return i;
+
+        return -1;
+    }
+
+    private static class EnumSelectorCache<TEnum>
+        where TEnum : struct, Enum
+    {
+        public static readonly TEnum[]                  Values = Enum.GetValues<TEnum>();
+        public static readonly CollectionSelectorItem[] Items  = BuildItems(Values, static value => new CollectionSelectorItem(value.GetDescription()));
     }
 }

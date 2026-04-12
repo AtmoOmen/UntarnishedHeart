@@ -260,23 +260,13 @@ internal static class StepEditor
         if (!ImGui.IsItemClicked())
             return;
 
-        var request = new CollectionSelectorRequest
+        CollectionSelectorWindow.OpenEnum
         (
             "选择执行动作",
             "暂无可选执行动作",
-            Array.IndexOf(candidates, current.Kind),
-            candidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-        );
-
-        CollectionSelectorWindow.Open
-        (
-            request,
-            index =>
+            current.Kind,
+            actionKind =>
             {
-                if ((uint)index >= (uint)candidates.Length)
-                    return;
-
-                var actionKind = candidates[index];
                 if (current.Kind == actionKind)
                     return;
 
@@ -289,7 +279,8 @@ internal static class StepEditor
                 nextAction.Remark    = current.Remark;
                 nextAction.Condition = ConditionCollection.Copy(current.Condition);
                 replaceCurrent(nextAction);
-            }
+            },
+            candidates
         );
     }
 }

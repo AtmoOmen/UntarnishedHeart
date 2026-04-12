@@ -54,24 +54,13 @@ public sealed class GameConditionStateCondition : ConditionBase
 
         if (ImGui.IsItemClicked())
         {
-            var comparisonRequest = new CollectionSelectorRequest
+            CollectionSelectorWindow.OpenEnum
             (
                 "选择比较类型",
                 "暂无可选比较类型",
-                Array.IndexOf(comparisonCandidates, ComparisonType),
-                comparisonCandidates.Select(candidate => new CollectionSelectorItem(candidate.GetDescription())).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                comparisonRequest,
-                index =>
-                {
-                    if ((uint)index >= (uint)comparisonCandidates.Length)
-                        return;
-
-                    ComparisonType = comparisonCandidates[index];
-                }
+                ComparisonType,
+                value => ComparisonType = value,
+                comparisonCandidates
             );
         }
 
@@ -88,24 +77,14 @@ public sealed class GameConditionStateCondition : ConditionBase
 
         if (ImGui.IsItemClicked())
         {
-            var flagRequest = new CollectionSelectorRequest
+            CollectionSelectorWindow.OpenEnum
             (
                 "选择状态标记",
                 "暂无可选状态标记",
-                Array.IndexOf(flagCandidates, Flag),
-                flagCandidates.Select(candidate => new CollectionSelectorItem(GetConditionFlagDisplayText(candidate), GetConditionFlagDescription(candidate))).ToArray()
-            );
-
-            CollectionSelectorWindow.Open
-            (
-                flagRequest,
-                index =>
-                {
-                    if ((uint)index >= (uint)flagCandidates.Length)
-                        return;
-
-                    Flag = flagCandidates[index];
-                }
+                Flag,
+                static candidate => new CollectionSelectorItem(GetConditionFlagDisplayText(candidate), GetConditionFlagDescription(candidate)),
+                value => Flag = value,
+                flagCandidates
             );
         }
     }
