@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Numerics;
 using Dalamud.Interface.Windowing;
 using OmenTools.OmenService;
@@ -91,7 +92,7 @@ internal class CollectionSelectorWindow : Window
     {
         var resolvedCandidates = ResolveEnumCandidates(candidates);
         var items = candidates.Length == 0
-                        ? EnumSelectorCache<TEnum>.Items
+                        ? EnumSelectorCache.GetItems<TEnum>()
                         : BuildItems(resolvedCandidates, static value => new CollectionSelectorItem(value.GetDescription()));
         var request = new CollectionSelectorRequest(title, emptyText, FindValueIndex(resolvedCandidates, selectedValue), items);
 
@@ -454,7 +455,7 @@ internal class CollectionSelectorWindow : Window
 
     private static IList<TEnum> ResolveEnumCandidates<TEnum>(TEnum[] candidates)
         where TEnum : struct, Enum =>
-        candidates.Length == 0 ? EnumSelectorCache<TEnum>.Values : candidates;
+        candidates.Length == 0 ? EnumSelectorCache.GetValues<TEnum>() : candidates;
 
     private static CollectionSelectorItem[] BuildItems<TItem>(IList<TItem> items, Func<TItem, CollectionSelectorItem> itemSelector)
     {
@@ -489,10 +490,25 @@ internal class CollectionSelectorWindow : Window
         return -1;
     }
 
-    private static class EnumSelectorCache<TEnum>
-        where TEnum : struct, Enum
+    private static class EnumSelectorCache
     {
-        public static readonly TEnum[]                  Values = Enum.GetValues<TEnum>();
-        public static readonly CollectionSelectorItem[] Items  = BuildItems(Values, static value => new CollectionSelectorItem(value.GetDescription()));
+        private static readonly ConcurrentDictionary<Type, object> EnumValuesCache = [];
+        private static readonly ConcurrentDictionary<Type, object> EnumItemsCache  = [];
+
+        public static TEnum[] GetValues<TEnum>()
+            where TEnum : struct, Enum =>
+            (TEnum[])EnumValuesCache.GetOrAdd(typeof(TEnum), static _ => Enum.GetValues<TEnum>());
+
+        public static CollectionSelectorItem[] GetItems<TEnum>()
+            where TEnum : struct, Enum =>
+            (CollectionSelectorItem[])EnumItemsCache.GetOrAdd
+            (
+                typeof(TEnum),
+                static _ =>
+                {
+                    var values = GetValues<TEnum>();
+                    return BuildItems(values, static value => new CollectionSelectorItem(value.GetDescription()));
+                }
+            );
     }
 }
