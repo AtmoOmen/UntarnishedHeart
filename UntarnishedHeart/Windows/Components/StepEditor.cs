@@ -86,8 +86,9 @@ internal static class StepEditor
             return false;
         }
 
-        var currentIndex = selectedIndex;
-        DrawActionEditor(actions[currentIndex], phase, currentIndex, next => actions[currentIndex] = next);
+        var currentIndex  = selectedIndex;
+        var currentAction = actions[currentIndex];
+        DrawActionEditor(currentAction, phase, currentIndex, next => ReplaceAction(actions, currentAction, next));
         return true;
     }
 
@@ -232,6 +233,18 @@ internal static class StepEditor
         {
             if (item)
                 action.Condition.Draw();
+        }
+    }
+
+    private static void ReplaceAction(List<ExecuteActionBase> actions, ExecuteActionBase current, ExecuteActionBase next)
+    {
+        for (var i = 0; i < actions.Count; i++)
+        {
+            if (!ReferenceEquals(actions[i], current))
+                continue;
+
+            actions[i] = next;
+            return;
         }
     }
 

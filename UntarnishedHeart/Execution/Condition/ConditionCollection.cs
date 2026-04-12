@@ -155,7 +155,7 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
             using (var node = ImRaii.TreeNode($"{label}###Condition-{i}"))
             {
                 if (node)
-                    condition.Draw(i, next => Conditions[i] = next);
+                    condition.Draw(i, next => ReplaceCondition(condition, next));
                 else
                     DrawConditionContextMenu(i, condition);
             }
@@ -239,6 +239,18 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
             createClipboardCopy: conditionToCopy == null ? null : () => ConditionBase.Copy(conditionToCopy),
             createCurrentCopy: () => ConditionBase.Copy(condition)
         );
+    }
+
+    private void ReplaceCondition(ConditionBase current, ConditionBase next)
+    {
+        for (var i = 0; i < Conditions.Count; i++)
+        {
+            if (!ReferenceEquals(Conditions[i], current))
+                continue;
+
+            Conditions[i] = next;
+            return;
+        }
     }
 
     private static string BuildConditionLabel(int index, ConditionBase condition) => $"{index}. {condition.Name}";
