@@ -25,20 +25,29 @@ internal class CollectionSelectorWindow : Window
         };
     }
 
-    internal static void Open(CollectionSelectorRequest request, Action<int> onSelected, Action<int>? onDelete = null, Action? onCancel = null)
+    internal static void Open
+    (
+        CollectionSelectorRequest request,
+        Action<int>               onSelected,
+        Action<int>?              onDelete = null,
+        Action?                   onCancel = null
+    )
     {
         var window = WindowManager.Instance().Get<CollectionSelectorWindow>() ?? throw new InvalidOperationException("集合选择窗口尚未注册");
         window.OpenInternal(request, onSelected, onDelete, onCancel);
     }
 
-    private void OpenInternal(CollectionSelectorRequest request, Action<int> selectedCallback, Action<int>? deleteCallback, Action? cancelCallback)
+    private void OpenInternal
+    (
+        CollectionSelectorRequest request,
+        Action<int>               selectedCallback,
+        Action<int>?              deleteCallback,
+        Action?                   cancelCallback
+    )
     {
         CancelPendingRequest();
 
-        currentRequest = request with
-        {
-            SelectedIndex = Math.Clamp(request.SelectedIndex, request.Items.Count > 0 ? 0 : -1, request.Items.Count - 1)
-        };
+        currentRequest = NormalizeRequest(request);
 
         onSelected          = selectedCallback;
         onDelete            = deleteCallback;
@@ -52,13 +61,15 @@ internal class CollectionSelectorWindow : Window
 
     public override void Draw()
     {
-        if (currentRequest == null || onSelected == null)
+        var request = NormalizeCurrentRequest();
+
+        if (request == null || onSelected == null)
         {
             IsOpen = false;
             return;
         }
 
-        ImGui.Text(currentRequest.Title);
+        ImGui.Text(request.Title);
         ImGui.Spacing();
 
         if (focusSearchOnOpen)
@@ -70,14 +81,8 @@ internal class CollectionSelectorWindow : Window
         ImGui.SetNextItemWidth(-1f);
         ImGui.InputTextWithHint("###CollectionSelectorSearch", "输入关键字筛选", ref searchText, 256);
 
-        var filteredIndices     = BuildFilteredIndices(currentRequest, searchText);
-        var hasVisibleSelection = filteredIndices.Contains(highlightedIndex);
-
-        if (!hasVisibleSelection && filteredIndices.Count > 0)
-        {
-            highlightedIndex    = filteredIndices[0];
-            hasVisibleSelection = true;
-        }
+        var filteredIndices     = BuildFilteredIndices(request, searchText);
+        var hasVisibleSelection = NormalizeVisibleSelection(filteredIndices);
 
         ImGui.Spacing();
 
@@ -86,17 +91,17 @@ internal class CollectionSelectorWindow : Window
         using (var child = ImRaii.Child("CollectionSelectorItemsChild", new Vector2(0f, -footerHeight), true))
         {
             if (child)
-                DrawItemList(currentRequest, filteredIndices);
+                DrawItemList(request, filteredIndices);
         }
 
-        HandleKeyboard(filteredIndices, hasVisibleSelection);
+        HandleKeyboard(request, filteredIndices, hasVisibleSelection);
 
         if (ImGui.Button("取消", new Vector2(-1f, 0f))) CancelPendingRequest();
     }
 
     public override void OnClose() => CancelPendingRequest();
 
-    private void DrawItemList(CollectionSelectorRequest request, IReadOnlyList<int> filteredIndices)
+    private void DrawItemList(CollectionSelectorRequest request, List<int> filteredIndices)
     {
         if (filteredIndices.Count == 0)
         {
@@ -120,6 +125,9 @@ internal class CollectionSelectorWindow : Window
 
         foreach (var index in filteredIndices)
         {
+            if (!IsValidIndex(index, request.Items.Count))
+                continue;
+
             ImGui.TableNextRow();
             ImGui.TableSetColumnIndex(0);
 
@@ -149,7 +157,8 @@ internal class CollectionSelectorWindow : Window
             if (!context)
                 continue;
 
-            highlightedIndex = index;
+            highlightedIndex    = index;
+            scrollToHighlighted = false;
 
             using var deleteDisabled = ImRaii.Disabled(request.Items.Count <= 1);
 
@@ -161,7 +170,7 @@ internal class CollectionSelectorWindow : Window
         }
     }
 
-    private void HandleKeyboard(List<int> filteredIndices, bool hasVisibleSelection)
+    private void HandleKeyboard(CollectionSelectorRequest request, List<int> filteredIndices, bool hasVisibleSelection)
     {
         if (!ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows))
             return;
@@ -174,7 +183,7 @@ internal class CollectionSelectorWindow : Window
 
         if (filteredIndices.Count > 0)
         {
-            var currentFilteredIndex = filteredIndices.IndexOf(highlightedIndex);
+            var currentFilteredIndex = FindIndex(filteredIndices, highlightedIndex);
 
             if (ImGui.IsKeyPressed(ImGuiKey.DownArrow))
             {
@@ -195,27 +204,30 @@ internal class CollectionSelectorWindow : Window
         }
 
         if (hasVisibleSelection && ImGui.IsKeyPressed(ImGuiKey.Enter))
-            CompleteSelection(highlightedIndex);
+            CompleteSelection(NormalizeVisibleIndex(request, highlightedIndex, filteredIndices));
     }
 
     private static List<int> BuildFilteredIndices(CollectionSelectorRequest request, string searchText)
     {
         var indices = new List<int>(request.Items.Count);
+        var keyword = searchText.Trim();
 
         for (var i = 0; i < request.Items.Count; i++)
         {
             var item = request.Items[i];
 
-            if (string.IsNullOrWhiteSpace(searchText))
+            if (string.IsNullOrWhiteSpace(keyword))
             {
                 indices.Add(i);
                 continue;
             }
 
-            if (!string.IsNullOrWhiteSpace(item.Text) &&
-                item.Text.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                !string.IsNullOrWhiteSpace(item.Description) &&
-                item.Description.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            var textMatched = !string.IsNullOrWhiteSpace(item.Text) &&
+                              item.Text.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+            var descriptionMatched = !string.IsNullOrWhiteSpace(item.Description) &&
+                                     item.Description.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+
+            if (textMatched || descriptionMatched)
                 indices.Add(i);
         }
 
@@ -224,17 +236,26 @@ internal class CollectionSelectorWindow : Window
 
     private void CompleteSelection(int index)
     {
+        var request  = currentRequest;
         var callback = onSelected;
-        if (callback == null)
+        if (request == null || callback == null)
+            return;
+
+        var normalizedIndex = NormalizeItemIndex(request.Items, index);
+        if (normalizedIndex < 0)
             return;
 
         ResetState();
-        callback(index);
+        callback(normalizedIndex);
     }
 
     private void CompleteDelete(int index)
     {
+        var request  = currentRequest;
         var callback = onDelete;
+
+        if (request == null)
+            return;
 
         if (callback == null)
         {
@@ -242,8 +263,12 @@ internal class CollectionSelectorWindow : Window
             return;
         }
 
+        var normalizedIndex = NormalizeItemIndex(request.Items, index);
+        if (normalizedIndex < 0 || request.Items.Count <= 1)
+            return;
+
         ResetState();
-        callback(index);
+        callback(normalizedIndex);
     }
 
     private void CancelPendingRequest()
@@ -267,5 +292,73 @@ internal class CollectionSelectorWindow : Window
         focusSearchOnOpen   = false;
         scrollToHighlighted = false;
         IsOpen              = false;
+    }
+
+    private CollectionSelectorRequest? NormalizeCurrentRequest()
+    {
+        var request = currentRequest;
+        if (request == null)
+            return null;
+
+        var normalizedRequest = NormalizeRequest(request);
+        if (!ReferenceEquals(normalizedRequest, request))
+            currentRequest = normalizedRequest;
+
+        highlightedIndex = NormalizeItemIndex(normalizedRequest.Items, highlightedIndex);
+        if (highlightedIndex < 0)
+            scrollToHighlighted = false;
+
+        return normalizedRequest;
+    }
+
+    private bool NormalizeVisibleSelection(List<int> filteredIndices)
+    {
+        if (filteredIndices.Count == 0)
+        {
+            highlightedIndex    = -1;
+            scrollToHighlighted = false;
+            return false;
+        }
+
+        if (FindIndex(filteredIndices, highlightedIndex) >= 0)
+            return true;
+
+        highlightedIndex = filteredIndices[0];
+        return true;
+    }
+
+    private static CollectionSelectorRequest NormalizeRequest(CollectionSelectorRequest request)
+    {
+        var normalizedIndex = NormalizeItemIndex(request.Items, request.SelectedIndex);
+        return normalizedIndex == request.SelectedIndex
+                   ? request
+                   : request with { SelectedIndex = normalizedIndex };
+    }
+
+    private static int NormalizeVisibleIndex(CollectionSelectorRequest request, int index, IReadOnlyList<int> filteredIndices)
+    {
+        var normalizedIndex = NormalizeItemIndex(request.Items, index);
+        if (normalizedIndex < 0)
+            return -1;
+
+        return FindIndex(filteredIndices, normalizedIndex) >= 0 ? normalizedIndex : -1;
+    }
+
+    private static int NormalizeItemIndex(IReadOnlyList<CollectionSelectorItem> items, int index) => 
+        NormalizeIndex(index, items.Count);
+
+    private static int NormalizeIndex(int index, int count) => 
+        count <= 0 ? -1 : Math.Clamp(index, 0, count - 1);
+
+    private static bool IsValidIndex(int index, int count) => 
+        (uint)index < (uint)count;
+
+    private static int FindIndex(IReadOnlyList<int> indices, int value)
+    {
+        for (var i = 0; i < indices.Count; i++)
+            if (indices[i] == value)
+                return i;
+
+        return -1;
     }
 }
