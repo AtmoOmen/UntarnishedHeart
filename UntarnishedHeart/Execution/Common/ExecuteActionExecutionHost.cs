@@ -224,6 +224,37 @@ public abstract class ExecuteActionExecutionHost
                 await RunCommandsAsync(textCommand.Commands, actionLabel, cancellationToken);
                 return ActionFlowResult.Continue();
 
+            case GameCommandAction gameCommand:
+                SetRunningMessage(actionLabel);
+                ExecuteCommandManager.Instance().ExecuteCommand(gameCommand.Command, gameCommand.Param1, gameCommand.Param2, gameCommand.Param3, gameCommand.Param4);
+                return ActionFlowResult.Continue();
+
+            case GameCommandComplexAction gameCommandComplex:
+                SetRunningMessage(actionLabel);
+
+                if (gameCommandComplex.UseLocation)
+                    ExecuteCommandManager.Instance().ExecuteCommandComplexLocation
+                    (
+                        gameCommandComplex.Command,
+                        gameCommandComplex.Location,
+                        gameCommandComplex.Param1,
+                        gameCommandComplex.Param2,
+                        gameCommandComplex.Param3,
+                        gameCommandComplex.Param4
+                    );
+                else
+                    ExecuteCommandManager.Instance().ExecuteCommandComplex
+                    (
+                        gameCommandComplex.Command,
+                        gameCommandComplex.Target,
+                        gameCommandComplex.Param1,
+                        gameCommandComplex.Param2,
+                        gameCommandComplex.Param3,
+                        gameCommandComplex.Param4
+                    );
+
+                return ActionFlowResult.Continue();
+
             case SelectTargetAction selectTarget:
                 SetRunningMessage(actionLabel);
                 PresetTargetResolver.SelectTarget(PresetTargetResolver.Resolve(selectTarget.Selector));

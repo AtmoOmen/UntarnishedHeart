@@ -28,6 +28,12 @@ public enum ExecuteActionKind
     [Description("文本指令")]
     TextCommand,
 
+    [Description("游戏命令")]
+    GameCommand,
+
+    [Description("游戏命令 (富参数)")]
+    GameCommandComplex,
+
     [Description("选中特定目标")]
     SelectTarget,
 
