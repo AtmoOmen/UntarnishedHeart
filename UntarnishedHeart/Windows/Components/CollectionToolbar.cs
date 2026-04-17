@@ -40,5 +40,4 @@ internal static class CollectionToolbar
         if (ImGuiOm.ButtonIcon(exportID, FontAwesomeIcon.FileExport, "导出", true) && canExport)
             onExport();
     }
-
 }

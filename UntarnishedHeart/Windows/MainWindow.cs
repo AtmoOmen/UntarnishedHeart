@@ -114,6 +114,7 @@ public class MainWindow : Window
         var selectorWidth       = CalculateSelectorWidth(72f);
 
         ImGui.SetNextItemWidth(selectorWidth * GlobalUIScale);
+
         using (var combo = ImRaii.Combo("###MainPresetSelectCombo", previewValue, ImGuiComboFlags.HeightLarge))
         {
             if (combo)
@@ -143,6 +144,8 @@ public class MainWindow : Window
         if (ImGui.Button("编辑##EditPreset", new(72f * GlobalUIScale, 0f)))
             WindowManager.Instance().Get<PresetEditor>().IsOpen = true;
 
+        DrawPendingStartDescription(PendingExecutionStartManager.GetPresetDescription(GetSelectedPreset(selectedPresetIndex)));
+
         ImGui.Spacing();
         DutyOptionsEditor.DrawAndSaveToConfig();
     }
@@ -162,6 +165,7 @@ public class MainWindow : Window
         var selectorWidth      = CalculateSelectorWidth(72f);
 
         ImGui.SetNextItemWidth(selectorWidth * GlobalUIScale);
+
         using (var combo = ImRaii.Combo("###MainRouteSelectCombo", previewValue, ImGuiComboFlags.HeightLarge))
         {
             if (combo)
@@ -192,6 +196,7 @@ public class MainWindow : Window
         if (ImGui.Button("编辑##EditRoute", new(72f * GlobalUIScale, 0f)))
             WindowManager.Instance().Get<RouteEditor>().IsOpen = true;
 
+        DrawPendingStartDescription(PendingExecutionStartManager.GetRouteDescription(GetSelectedRoute(selectedRouteIndex)));
     }
 
     private static void DrawPrimaryActionSection()
@@ -242,6 +247,7 @@ public class MainWindow : Window
     {
         var config                = PluginConfig.Instance();
         var normalizedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(selectedPresetIndex, config.Presets.Count);
+        PendingExecutionStartManager.ClearPreset();
         if (config.SelectedPresetIndex == normalizedPresetIndex)
             return;
 
@@ -253,6 +259,7 @@ public class MainWindow : Window
     {
         var config               = PluginConfig.Instance();
         var normalizedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(selectedRouteIndex, config.Routes.Count);
+        PendingExecutionStartManager.ClearRoute();
         if (config.SelectedRouteIndex == normalizedRouteIndex)
             return;
 
@@ -316,11 +323,15 @@ public class MainWindow : Window
         if (selectedPresetIndex < 0)
             return;
 
+        var selectedPreset = config.Presets[selectedPresetIndex];
+        var startCursor    = PendingExecutionStartManager.GetPresetStartCursor(selectedPreset);
+
         ExecutionManager.StartSimpleExecution
         (
-            config.Presets[selectedPresetIndex],
-            config.CreatePresetRunOptions()
+            selectedPreset,
+            config.CreatePresetRunOptions(startCursor)
         );
+        PendingExecutionStartManager.ClearPreset(selectedPreset);
 
         ExecutionUIHelper.OpenStatusWindow();
     }
@@ -332,9 +343,34 @@ public class MainWindow : Window
         if (selectedRouteIndex < 0)
             return;
 
-        ExecutionManager.StartRouteExecution(config.Routes[selectedRouteIndex]);
+        var selectedRoute = config.Routes[selectedRouteIndex];
+        var startCursor   = PendingExecutionStartManager.GetRouteStartCursor(selectedRoute);
+
+        ExecutionManager.StartRouteExecution(selectedRoute, startCursor);
+        PendingExecutionStartManager.ClearRoute(selectedRoute);
 
         ExecutionUIHelper.OpenStatusWindow();
+    }
+
+    private static Preset? GetSelectedPreset(int selectedPresetIndex)
+    {
+        var config = PluginConfig.Instance();
+        return selectedPresetIndex >= 0 && selectedPresetIndex < config.Presets.Count ? config.Presets[selectedPresetIndex] : null;
+    }
+
+    private static Route? GetSelectedRoute(int selectedRouteIndex)
+    {
+        var config = PluginConfig.Instance();
+        return selectedRouteIndex >= 0 && selectedRouteIndex < config.Routes.Count ? config.Routes[selectedRouteIndex] : null;
+    }
+
+    private static void DrawPendingStartDescription(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+            return;
+
+        ImGui.Spacing();
+        ImGui.TextDisabled(description);
     }
 
     private static float CalculateSelectorWidth(float actionButtonWidth)

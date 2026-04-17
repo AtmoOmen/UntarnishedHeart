@@ -13,12 +13,13 @@ internal static class StepTreeEditor
 {
     public static void Draw
     (
-        string                      idPrefix,
-        List<PresetStep>            steps,
-        StepTreeEditorState         state,
-        StepEditorSharedState       sharedState,
-        ExecuteActionRuntimeCursor? runningCursor,
-        Func<PresetStep>            createNewStep
+        string                         idPrefix,
+        List<PresetStep>               steps,
+        StepTreeEditorState            state,
+        StepEditorSharedState          sharedState,
+        ExecuteActionRuntimeCursor?    runningCursor,
+        Func<PresetStep>               createNewStep,
+        StepTreeExecutionStartOptions? executionStartOptions = null
     )
     {
         NormalizeState(steps, state);
@@ -31,18 +32,19 @@ internal static class StepTreeEditor
         ImGui.TableSetupColumn($"{idPrefix}Detail",  ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableNextRow();
 
-        DrawSidebar(idPrefix, steps, state, sharedState, runningCursor, createNewStep);
+        DrawSidebar(idPrefix, steps, state, sharedState, runningCursor, createNewStep, executionStartOptions);
         DrawDetails(idPrefix, steps, state);
     }
 
     private static unsafe void DrawSidebar
     (
-        string                      idPrefix,
-        List<PresetStep>            steps,
-        StepTreeEditorState         state,
-        StepEditorSharedState       sharedState,
-        ExecuteActionRuntimeCursor? runningCursor,
-        Func<PresetStep>            createNewStep
+        string                         idPrefix,
+        List<PresetStep>               steps,
+        StepTreeEditorState            state,
+        StepEditorSharedState          sharedState,
+        ExecuteActionRuntimeCursor?    runningCursor,
+        Func<PresetStep>               createNewStep,
+        StepTreeExecutionStartOptions? executionStartOptions
     )
     {
         ImGui.TableSetColumnIndex(0);
@@ -130,14 +132,53 @@ internal static class StepTreeEditor
                 }
             }
 
-            DrawStepContextMenu(idPrefix, steps, state, sharedState, stepIndex, step, createNewStep);
+            DrawStepContextMenu(idPrefix, steps, state, sharedState, stepIndex, step, createNewStep, executionStartOptions);
 
             if (!stepOpen)
                 continue;
 
-            DrawPhaseNode(idPrefix, step, stepIndex, PresetStepPhase.Enter, "进入阶段", stepRenderState.EnterMatched, state, sharedState, runningCursor, keyword);
-            DrawPhaseNode(idPrefix, step, stepIndex, PresetStepPhase.Body,  "进行阶段", stepRenderState.BodyMatched,  state, sharedState, runningCursor, keyword);
-            DrawPhaseNode(idPrefix, step, stepIndex, PresetStepPhase.Exit,  "离开阶段", stepRenderState.ExitMatched,  state, sharedState, runningCursor, keyword);
+            DrawPhaseNode
+            (
+                idPrefix,
+                step,
+                stepIndex,
+                PresetStepPhase.Enter,
+                "进入阶段",
+                stepRenderState.EnterMatched,
+                state,
+                sharedState,
+                runningCursor,
+                keyword,
+                executionStartOptions
+            );
+            DrawPhaseNode
+            (
+                idPrefix,
+                step,
+                stepIndex,
+                PresetStepPhase.Body,
+                "进行阶段",
+                stepRenderState.BodyMatched,
+                state,
+                sharedState,
+                runningCursor,
+                keyword,
+                executionStartOptions
+            );
+            DrawPhaseNode
+            (
+                idPrefix,
+                step,
+                stepIndex,
+                PresetStepPhase.Exit,
+                "离开阶段",
+                stepRenderState.ExitMatched,
+                state,
+                sharedState,
+                runningCursor,
+                keyword,
+                executionStartOptions
+            );
 
             if (shouldOpenByPending && state.PendingOpenPhase == null)
                 state.PendingOpenStep = -1;
@@ -146,16 +187,17 @@ internal static class StepTreeEditor
 
     private static unsafe void DrawPhaseNode
     (
-        string                      idPrefix,
-        PresetStep                  step,
-        int                         stepIndex,
-        PresetStepPhase             phase,
-        string                      phaseName,
-        bool                        phaseMatched,
-        StepTreeEditorState         state,
-        StepEditorSharedState       sharedState,
-        ExecuteActionRuntimeCursor? runningCursor,
-        string                      keyword
+        string                         idPrefix,
+        PresetStep                     step,
+        int                            stepIndex,
+        PresetStepPhase                phase,
+        string                         phaseName,
+        bool                           phaseMatched,
+        StepTreeEditorState            state,
+        StepEditorSharedState          sharedState,
+        ExecuteActionRuntimeCursor?    runningCursor,
+        string                         keyword,
+        StepTreeExecutionStartOptions? executionStartOptions
     )
     {
         var actions             = StepEditor.GetPhaseActions(step, phase);
@@ -183,7 +225,7 @@ internal static class StepTreeEditor
             state.CurrentAction   = StepEditor.NormalizeActionSelection(step, phase);
         }
 
-        DrawPhaseContextMenu(idPrefix, step, stepIndex, phase, state);
+        DrawPhaseContextMenu(idPrefix, step, stepIndex, phase, state, executionStartOptions);
 
         if (shouldOpenByPending)
         {
@@ -261,7 +303,17 @@ internal static class StepTreeEditor
                 }
             }
 
-            StepEditor.DrawActionContextMenu(step, phase, actionIndex, sharedState, $"{idPrefix}_ActionContentMenu_{stepIndex}_{phase}_{actionIndex}");
+            StepEditor.DrawActionContextMenu
+            (
+                step,
+                phase,
+                actionIndex,
+                sharedState,
+                $"{idPrefix}_ActionContentMenu_{stepIndex}_{phase}_{actionIndex}",
+                executionStartOptions is { IsVisible: true, StartFromAction: not null }
+                    ? currentActionIndex => executionStartOptions.StartFromAction(stepIndex, phase, currentActionIndex)
+                    : null
+            );
             if (state.CurrentStep == stepIndex && state.CurrentPhase == phase)
                 state.CurrentAction = StepEditor.NormalizeActionSelection(step, phase);
         }
@@ -376,13 +428,14 @@ internal static class StepTreeEditor
 
     private static void DrawStepContextMenu
     (
-        string                idPrefix,
-        List<PresetStep>      steps,
-        StepTreeEditorState   state,
-        StepEditorSharedState sharedState,
-        int                   index,
-        PresetStep            step,
-        Func<PresetStep>      createNewStep
+        string                         idPrefix,
+        List<PresetStep>               steps,
+        StepTreeEditorState            state,
+        StepEditorSharedState          sharedState,
+        int                            index,
+        PresetStep                     step,
+        Func<PresetStep>               createNewStep,
+        StepTreeExecutionStartOptions? executionStartOptions
     )
     {
         var contextOperation = StepOperationType.Pass;
@@ -395,6 +448,12 @@ internal static class StepTreeEditor
 
         ImGui.Text($"第 {index} 步: {step.Name}");
         ImGui.Separator();
+
+        if (executionStartOptions is { IsVisible: true, StartFromStep: not null } && ImGui.MenuItem("从该步骤开始执行"))
+            executionStartOptions.StartFromStep(index);
+
+        if (executionStartOptions is { IsVisible: true, StartFromStep: not null })
+            ImGui.Separator();
 
         if (ImGui.MenuItem("复制"))
             sharedState.StepToCopy = PresetStep.Copy(step);
@@ -469,7 +528,15 @@ internal static class StepTreeEditor
         NormalizeState(steps, state);
     }
 
-    private static void DrawPhaseContextMenu(string idPrefix, PresetStep step, int stepIndex, PresetStepPhase phase, StepTreeEditorState state)
+    private static void DrawPhaseContextMenu
+    (
+        string                         idPrefix,
+        PresetStep                     step,
+        int                            stepIndex,
+        PresetStepPhase                phase,
+        StepTreeEditorState            state,
+        StepTreeExecutionStartOptions? executionStartOptions
+    )
     {
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             ImGui.OpenPopup($"{idPrefix}_PhaseMenu_{stepIndex}_{phase}");
@@ -479,6 +546,12 @@ internal static class StepTreeEditor
             return;
 
         var actions = StepEditor.GetPhaseActions(step, phase);
+
+        if (executionStartOptions is { IsVisible: true, StartFromPhase: not null } && ImGui.MenuItem("从该阶段开始执行"))
+            executionStartOptions.StartFromPhase(stepIndex, phase);
+
+        if (executionStartOptions is { IsVisible: true, StartFromPhase: not null })
+            ImGui.Separator();
 
         if (ImGui.MenuItem("添加动作"))
         {

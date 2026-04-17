@@ -21,7 +21,8 @@ namespace UntarnishedHeart.Execution.Route;
 
 public sealed class RouteExecutor
 (
-    Route route
+    Route                     route,
+    ExecuteActionRuntimeCursor? startCursor = null
 ) : ExecuteActionExecutionHost, IDisposable
 {
     private CancellationTokenSource? cancelToken;
@@ -30,6 +31,7 @@ public sealed class RouteExecutor
     private Task?                    movementTask;
     private string                   currentPresetName   = string.Empty;
     private string                   routeRunningMessage = string.Empty;
+    private readonly ExecuteActionRuntimeCursor? initialStartCursor = startCursor == null ? null : new(startCursor.StepIndex, startCursor.Phase, startCursor.ActionIndex);
 
     public Route SourceRoute { get; } = route;
 
@@ -175,12 +177,21 @@ public sealed class RouteExecutor
 
     private async Task ExecuteRouteAsync(CancellationToken cancellationToken)
     {
+        var nextStartCursor = initialStartCursor;
+
         while (CurrentStepIndex < Steps.Count             &&
                !cancellationToken.IsCancellationRequested &&
                State is RouteExecutorState.Running or RouteExecutorState.WaitingForExecutor)
         {
             var step       = Steps[CurrentStepIndex];
-            var stepResult = await ExecuteStepAsync(step, CurrentStepIndex, cancellationToken);
+            var stepResult = await ExecuteStepAsync
+            (
+                step,
+                CurrentStepIndex,
+                nextStartCursor is { StepIndex: var startStepIndex } && startStepIndex == CurrentStepIndex ? nextStartCursor : null,
+                cancellationToken
+            );
+            nextStartCursor = null;
 
             switch (stepResult.Kind)
             {
@@ -199,6 +210,7 @@ public sealed class RouteExecutor
                 case ActionFlowKind.LeaveAndRestart:
                     ResetRouteProgress();
                     State = RouteExecutorState.Running;
+                    nextStartCursor = initialStartCursor;
                     break;
                 default:
                     throw new InvalidOperationException($"不支持的步骤跳转结果: {stepResult.Kind}");
@@ -432,7 +444,7 @@ public sealed class RouteExecutor
     private void ResetRouteProgress()
     {
         CompletedDutyCount  = 0;
-        CurrentStepIndex    = 0;
+        CurrentStepIndex    = initialStartCursor?.StepIndex ?? 0;
         currentPresetName   = string.Empty;
         routeRunningMessage = string.Empty;
         ResetRuntimeCursor();

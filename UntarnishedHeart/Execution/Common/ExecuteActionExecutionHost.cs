@@ -55,15 +55,40 @@ public abstract class ExecuteActionExecutionHost
     protected void SetRuntimeCursor(int stepIndex, PresetStepPhase? phase = null, int actionIndex = -1) =>
         runtimeCursor = new(stepIndex, phase, actionIndex);
 
-    protected async Task<ActionFlowResult> ExecuteStepAsync(PresetStep step, int stepIndex, CancellationToken cancellationToken)
+    protected Task<ActionFlowResult> ExecuteStepAsync(PresetStep step, int stepIndex, CancellationToken cancellationToken) =>
+        ExecuteStepAsync(step, stepIndex, null, cancellationToken);
+
+    protected async Task<ActionFlowResult> ExecuteStepAsync
+    (
+        PresetStep                  step,
+        int                         stepIndex,
+        ExecuteActionRuntimeCursor? startCursor,
+        CancellationToken           cancellationToken
+    )
     {
         SetRuntimeCursor(stepIndex);
+        var startPhase       = startCursor is { HasPhase: true, StepIndex: var cursorStepIndex } && cursorStepIndex == stepIndex ? startCursor.Phase : null;
+        var hasReachedPhase  = !startPhase.HasValue;
 
         foreach (var phase in Enum.GetValues<PresetStepPhase>())
         {
+            if (!hasReachedPhase)
+            {
+                if (phase != startPhase)
+                    continue;
+
+                hasReachedPhase = true;
+            }
+
+            var startActionIndex = startCursor is { HasAction: true, StepIndex: var actionStepIndex } &&
+                                   actionStepIndex == stepIndex                                  &&
+                                   startCursor.Phase == phase
+                                       ? startCursor.ActionIndex
+                                       : 0;
+
             SetRuntimeCursor(stepIndex, phase);
             var actions     = GetActions(step, phase);
-            var phaseResult = await ExecutePhaseAsync(stepIndex, step, phase, actions, cancellationToken);
+            var phaseResult = await ExecutePhaseAsync(stepIndex, step, phase, actions, cancellationToken, startActionIndex);
             if (phaseResult.Kind != ActionFlowKind.Continue)
                 return phaseResult;
         }
@@ -77,10 +102,17 @@ public abstract class ExecuteActionExecutionHost
         PresetStep              step,
         PresetStepPhase         phase,
         List<ExecuteActionBase> actions,
-        CancellationToken       cancellationToken
+        CancellationToken       cancellationToken,
+        int                     startActionIndex = 0
     )
     {
-        for (var actionIndex = 0; actionIndex < actions.Count;)
+        if (startActionIndex < 0)
+            throw new InvalidOperationException($"无效的执行动作索引: {startActionIndex}");
+
+        if (startActionIndex > 0)
+            ValidateActionIndex(startActionIndex, actions.Count);
+
+        for (var actionIndex = startActionIndex; actionIndex < actions.Count;)
         {
             SetRuntimeCursor(stepIndex, phase, actionIndex);
             var action = actions[actionIndex];

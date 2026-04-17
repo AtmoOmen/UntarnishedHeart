@@ -5,6 +5,7 @@ using OmenTools.Interop.Game.Lumina;
 using UntarnishedHeart.Execution.Common;
 using UntarnishedHeart.Execution.Managers;
 using UntarnishedHeart.Execution.Preset;
+using UntarnishedHeart.Internal;
 
 namespace UntarnishedHeart.Windows.Components;
 
@@ -87,7 +88,8 @@ internal static class PresetEditorPanel
             state.TreeState,
             state.SharedState,
             GetRunningCursor(preset),
-            () => new PresetStep { Name = $"步骤 {preset.Steps.Count}" }
+            () => new PresetStep { Name = $"步骤 {preset.Steps.Count}" },
+            CreateExecutionStartOptions(preset)
         );
     }
 
@@ -107,6 +109,26 @@ internal static class PresetEditorPanel
             return null;
 
         return ReferenceEquals(presetExecutor.ExecutorPreset, preset) ? presetExecutor.Progress.RuntimeCursor : null;
+    }
+
+    private static StepTreeExecutionStartOptions? CreateExecutionStartOptions(Preset preset)
+    {
+        if (ExecutionManager.PresetExecutor is { IsDisposed: false, Completion.IsCompleted: false } ||
+            ExecutionManager.RouteExecutor is { IsRunning: true })
+            return null;
+
+        var presetIndex = PluginConfig.Instance().Presets.FindIndex(candidate => ReferenceEquals(candidate, preset));
+        if (presetIndex < 0)
+            return null;
+
+        return new()
+        {
+            IsVisible      = true,
+            StartFromStep  = stepIndex => PendingExecutionStartManager.SelectPreset(preset,          presetIndex, new(stepIndex, null, -1)),
+            StartFromPhase = (stepIndex, phase) => PendingExecutionStartManager.SelectPreset(preset, presetIndex, new(stepIndex, phase, -1)),
+            StartFromAction = (stepIndex, phase, actionIndex) =>
+                PendingExecutionStartManager.SelectPreset(preset, presetIndex, new(stepIndex, phase, actionIndex))
+        };
     }
 
     internal sealed class PresetEditorState

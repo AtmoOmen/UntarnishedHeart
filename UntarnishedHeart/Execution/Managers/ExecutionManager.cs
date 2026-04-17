@@ -1,3 +1,4 @@
+using UntarnishedHeart.Execution.Common;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Execution.Route;
 
@@ -33,10 +34,10 @@ internal static class ExecutionManager
         PresetExecutor.Start();
     }
 
-    public static void StartRouteExecution(Route.Route route)
+    public static void StartRouteExecution(Route.Route route, ExecuteActionRuntimeCursor? startCursor = null)
     {
         StopRouteExecutor();
-        RouteExecutor = new(route);
+        RouteExecutor = new(route, startCursor);
         RouteExecutor.Start();
     }
 

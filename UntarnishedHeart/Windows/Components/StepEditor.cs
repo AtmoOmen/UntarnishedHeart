@@ -5,7 +5,6 @@ using UntarnishedHeart.Execution.ExecuteAction;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Execution.Preset.Enums;
-using UntarnishedHeart.Windows;
 using UntarnishedHeart.Windows.Helpers;
 
 namespace UntarnishedHeart.Windows.Components;
@@ -125,14 +124,22 @@ internal static class StepEditor
         }
     }
 
-    public static void DrawActionContextMenu(PresetStep step, PresetStepPhase phase, int actionIndex, StepEditorSharedState sharedState, string popupID)
+    public static void DrawActionContextMenu
+    (
+        PresetStep            step,
+        PresetStepPhase       phase,
+        int                   actionIndex,
+        StepEditorSharedState sharedState,
+        string                popupID,
+        Action<int>?          startFromAction = null
+    )
     {
         var actions       = GetPhaseActions(step, phase);
         var selectedIndex = NormalizeActionSelection(step, phase);
         if (actionIndex < 0 || actionIndex >= actions.Count)
             return;
 
-        DrawActionContextMenu(actions, sharedState, ref selectedIndex, actionIndex, actions[actionIndex], phase, popupID);
+        DrawActionContextMenu(actions, sharedState, ref selectedIndex, actionIndex, actions[actionIndex], phase, popupID, startFromAction);
         SetActionSelection(step, phase, selectedIndex);
     }
 
@@ -144,7 +151,8 @@ internal static class StepEditor
         int                     actionIndex,
         ExecuteActionBase       action,
         PresetStepPhase         phase,
-        string?                 popupID = null
+        string?                 popupID         = null,
+        Action<int>?            startFromAction = null
     )
     {
         var contextOperation = StepOperationType.Pass;
@@ -157,6 +165,12 @@ internal static class StepEditor
 
         ImGui.Text($"第 {actionIndex} 个动作: {action.Name}");
         ImGui.Separator();
+
+        if (startFromAction != null && ImGui.MenuItem("从该动作开始执行"))
+            startFromAction(actionIndex);
+
+        if (startFromAction != null)
+            ImGui.Separator();
 
         if (ImGui.MenuItem("复制"))
             sharedState.ActionToCopy = ExecuteActionBase.Copy(action);

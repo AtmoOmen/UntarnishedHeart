@@ -75,6 +75,7 @@ internal abstract class CollectionEditorWindowBase<TItem>
             var previewValue = selectedIndex >= 0 ? GetItemName(Items[selectedIndex]) : "请选择";
 
             ImGui.SetNextItemWidth(280f * GlobalUIScale);
+
             using (var combo = ImRaii.Combo($"###{CollectionID}SelectCombo", previewValue, ImGuiComboFlags.HeightLarge))
             {
                 if (combo)
@@ -86,9 +87,11 @@ internal abstract class CollectionEditorWindowBase<TItem>
                 var trimmed = SelectorLabel.Trim().TrimEnd(':', '：');
                 var title = string.IsNullOrWhiteSpace(trimmed)
                                 ? "选择项目"
-                                : trimmed.StartsWith("选择", StringComparison.Ordinal) ? trimmed : $"选择{trimmed}";
+                                : trimmed.StartsWith("选择", StringComparison.Ordinal)
+                                    ? trimmed
+                                    : $"选择{trimmed}";
 
-                CollectionSelectorWindow.Open<TItem>
+                CollectionSelectorWindow.Open
                 (
                     title,
                     EmptyCollectionText,

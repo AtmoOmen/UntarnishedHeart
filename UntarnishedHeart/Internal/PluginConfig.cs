@@ -1,5 +1,6 @@
 using Dalamud.Configuration;
 using OmenTools.Interop.Game.Helpers;
+using UntarnishedHeart.Execution.Common;
 using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Execution.Route;
@@ -55,6 +56,6 @@ public class PluginConfig : IPluginConfiguration
     internal void Save() =>
         DService.Instance().PI.SavePluginConfig(this);
 
-    internal PresetExecutorRunOptions CreatePresetRunOptions() =>
-        new(RunTimes, LeaderMode, AutoRecommendGear, ContentEntryType, ContentsFinderOption);
+    internal PresetExecutorRunOptions CreatePresetRunOptions(ExecuteActionRuntimeCursor? startCursor = null) =>
+        new(RunTimes, LeaderMode, AutoRecommendGear, ContentEntryType, ContentsFinderOption, startCursor);
 }

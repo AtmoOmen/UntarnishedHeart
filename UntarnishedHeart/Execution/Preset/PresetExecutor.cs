@@ -317,14 +317,22 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
         if (runOptions.AutoRecommendGear)
             await EquipRecommendedGearAsync(cancellationToken);
 
-        var stepIndex = 0;
+        var stepIndex        = runOptions.StartCursor?.StepIndex ?? 0;
+        var nextStartCursor  = runOptions.StartCursor;
 
         while (stepIndex < ExecutorPreset!.Steps.Count)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             var step       = ExecutorPreset.Steps[stepIndex];
-            var stepResult = await ExecuteStepAsync(step, stepIndex, cancellationToken);
+            var stepResult = await ExecuteStepAsync
+            (
+                step,
+                stepIndex,
+                nextStartCursor is { StepIndex: var startStepIndex } && startStepIndex == stepIndex ? nextStartCursor : null,
+                cancellationToken
+            );
+            nextStartCursor = null;
 
             switch (stepResult.Kind)
             {

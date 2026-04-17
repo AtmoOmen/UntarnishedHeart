@@ -1,5 +1,4 @@
 using System.Collections.Frozen;
-using OmenTools.Dalamud;
 using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.Route;
 using UntarnishedHeart.Internal;
@@ -23,7 +22,7 @@ internal static class DutyOptionsEditor
 
         return changed;
     }
-    
+
     public static void DrawAndSaveToConfig()
     {
         var dutyOptions = CreateFromConfig();
@@ -44,7 +43,7 @@ internal static class DutyOptionsEditor
             PluginConfig.Instance().Save();
         }
     }
-    
+
     private static DutyOptions CreateFromConfig()
     {
         var config = PluginConfig.Instance();
@@ -139,6 +138,7 @@ internal static class DutyOptionsEditor
 
         var lootRule = option.LootRules;
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
+
         using (var combo = ImRaii.Combo("战利品分配###DutyOptionsLootRule", LootRuleNames[lootRule], ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -161,7 +161,7 @@ internal static class DutyOptionsEditor
                     if ((uint)index >= (uint)lootRuleItems.Length)
                         return;
 
-                    option.LootRules = lootRuleItems[index].Key;
+                    option.LootRules                 = lootRuleItems[index].Key;
                     dutyOptions.ContentsFinderOption = option;
                     onChanged?.Invoke();
                 }
@@ -170,6 +170,7 @@ internal static class DutyOptionsEditor
 
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
         var contentEntryCandidates = Enum.GetValues<ContentEntryType>();
+
         using (var combo = ImRaii.Combo("副本入口###DutyOptionsContentEntryCombo", dutyOptions.ContentEntryType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -197,7 +198,7 @@ internal static class DutyOptionsEditor
 
         return changed;
     }
-    
+
     private static bool DrawFinderOptionCell(int columnIndex, string label, bool currentValue, Action<bool> assign)
     {
         ImGui.TableSetColumnIndex(columnIndex);
@@ -209,7 +210,7 @@ internal static class DutyOptionsEditor
 
         return changed;
     }
-    
+
     private static readonly FrozenDictionary<ContentsFinder.LootRule, string> LootRuleNames = new Dictionary<ContentsFinder.LootRule, string>
     {
         [ContentsFinder.LootRule.Normal]     = "通常",
