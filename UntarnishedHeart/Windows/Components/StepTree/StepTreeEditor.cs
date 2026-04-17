@@ -491,6 +491,8 @@ internal static class StepTreeEditor
 
         if (ImGui.MenuItem("复制并插入本步骤"))
             contextOperation = StepOperationType.PasteCurrent;
+        
+        ImGui.Separator();
 
         using var clearMenu = ImRaii.Menu("清空");
 
