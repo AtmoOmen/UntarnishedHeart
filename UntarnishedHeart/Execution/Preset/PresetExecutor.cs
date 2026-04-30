@@ -3,6 +3,7 @@ using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
+using Dalamud.Game.DutyState;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
@@ -100,7 +101,7 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
         RegisterListeners();
 
         if (DService.Instance().ClientState.TerritoryType == ExecutorPreset.Zone)
-            OnDutyStarted(null, DService.Instance().ClientState.TerritoryType);
+            OnDutyStarted(null);
         else if (!DService.Instance().Condition.IsOccupiedInEvent && runOptions.LeaderMode)
             ReplaceCurrentWork(RegisterDutyAsync);
     }
@@ -237,7 +238,7 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
         args.Addon.ToStruct()->Callback(8);
     }
 
-    private void OnZoneChanged(ushort zone)
+    private void OnZoneChanged(uint zone)
     {
         if (ExecutorPreset == null || zone != ExecutorPreset.Zone || Completion.IsCompleted)
             return;
@@ -245,17 +246,17 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
         AbortPrevious();
     }
 
-    private void OnDutyStarted(object? sender, ushort zone)
+    private void OnDutyStarted(IDutyStateEventArgs args)
     {
-        if (ExecutorPreset == null || zone != ExecutorPreset.Zone || Completion.IsCompleted)
+        if (ExecutorPreset == null || GameState.TerritoryType != ExecutorPreset.Zone || Completion.IsCompleted)
             return;
 
         ReplaceCurrentWork(RunPresetAsync);
     }
 
-    private void OnDutyCompleted(object? sender, ushort zone)
+    private void OnDutyCompleted(IDutyStateEventArgs args)
     {
-        if (ExecutorPreset == null || zone != ExecutorPreset.Zone || Completion.IsCompleted)
+        if (ExecutorPreset == null || GameState.TerritoryType != ExecutorPreset.Zone || Completion.IsCompleted)
             return;
 
         ReplaceCurrentWork(HandleDutyCompletedAsync);
