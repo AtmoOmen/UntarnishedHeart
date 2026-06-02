@@ -1,6 +1,6 @@
 using Dalamud.Game.Text;
-using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin;
+using Dalamud.Utility;
 using OmenTools.OmenService;
 using UntarnishedHeart.Execution.Managers;
 using UntarnishedHeart.Internal;
@@ -14,12 +14,16 @@ public class Service
         DService.Init(pluginInterface);
         DService.Instance().UIBuilder.DisableCutsceneUiHide = true;
 
-        var notifyHelper = NotifyHelper.Instance();
-        notifyHelper.ChatPrefix = new SeStringBuilder()
-                                  .AddUiForeground(SeIconChar.BoxedLetterU.ToIconString(), 31)
-                                  .AddUiForeground(SeIconChar.BoxedLetterT.ToIconString(), 31)
-                                  .AddUiForeground(SeIconChar.BoxedLetterH.ToIconString(), 31)
-                                  .Build();
+        var       notifyHelper = NotifyHelper.Instance();
+        using var rented       = new RentedSeStringBuilder();
+
+        notifyHelper.ChatPrefix = rented.Builder
+                                        .PushColorType(31)
+                                        .Append(SeIconChar.BoxedLetterU.ToIconString())
+                                        .Append(SeIconChar.BoxedLetterT.ToIconString())
+                                        .Append(SeIconChar.BoxedLetterH.ToIconString())
+                                        .PopColorType()
+                                        .ToReadOnlySeString();
         PluginWindow.Init();
         PluginCommand.Init();
     }
