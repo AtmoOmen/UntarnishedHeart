@@ -21,7 +21,7 @@ public sealed class MoveToPositionAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.MoveToPosition;
 
-    public override void Draw()
+    public override void Draw(ExecuteActionDrawContext context)
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
         var moveTypeCandidates = Enum.GetValues<MoveType>();

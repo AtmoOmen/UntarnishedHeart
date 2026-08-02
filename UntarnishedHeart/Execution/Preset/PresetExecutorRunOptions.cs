@@ -21,7 +21,7 @@ internal sealed class PresetExecutorRunOptions
         AutoRecommendGear    = autoRecommendGear;
         ContentEntryType     = contentEntryType;
         ContentsFinderOption = contentsFinderOption.Clone();
-        StartCursor          = startCursor == null ? null : new(startCursor.StepIndex, startCursor.Phase, startCursor.ActionIndex);
+        StartCursor          = startCursor == null ? null : new(startCursor.StepIndex, startCursor.ActionIndex);
     }
 
     public int MaxRound { get; }

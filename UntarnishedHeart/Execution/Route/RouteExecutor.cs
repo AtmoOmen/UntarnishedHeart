@@ -1,10 +1,8 @@
-using System.Numerics;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using OmenTools.Dalamud;
 using OmenTools.Info.Game.Enums;
 using OmenTools.Interop.Game;
-using OmenTools.Interop.Windows.Helpers;
 using OmenTools.OmenService;
 using UntarnishedHeart.Execution.Common;
 using UntarnishedHeart.Execution.Condition;
@@ -12,7 +10,6 @@ using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.ExecuteAction;
 using UntarnishedHeart.Execution.ExecuteAction.Implementations;
 using UntarnishedHeart.Execution.Preset;
-using UntarnishedHeart.Execution.Preset.Enums;
 using UntarnishedHeart.Execution.Preset.Helpers;
 using UntarnishedHeart.Execution.Route.Enums;
 using UntarnishedHeart.Internal;
@@ -27,11 +24,9 @@ public sealed class RouteExecutor
 {
     private CancellationTokenSource? cancelToken;
     private Task?                    executionTask;
-    private CancellationTokenSource? movementCancellationSource;
-    private Task?                    movementTask;
     private string                   currentPresetName   = string.Empty;
     private string                   routeRunningMessage = string.Empty;
-    private readonly ExecuteActionRuntimeCursor? initialStartCursor = startCursor == null ? null : new(startCursor.StepIndex, startCursor.Phase, startCursor.ActionIndex);
+    private readonly ExecuteActionRuntimeCursor? initialStartCursor = startCursor == null ? null : new(startCursor.StepIndex, startCursor.ActionIndex);
 
     public Route SourceRoute { get; } = route;
 
@@ -77,7 +72,7 @@ public sealed class RouteExecutor
         {
             RouteCursor = CurrentRuntimeCursor.HasStep
                               ? CurrentRuntimeCursor
-                              : new(CurrentStepIndex, null, -1),
+                              : new(CurrentStepIndex, -1),
             PresetCursor = CurrentExecutor is { Completion.IsCompleted: false } currentExecutor ? currentExecutor.Progress.RuntimeCursor : null
         };
 
@@ -97,9 +92,7 @@ public sealed class RouteExecutor
         {
         }
 
-        movementCancellationSource?.Dispose();
-        movementCancellationSource = null;
-        movementTask               = null;
+        Movement.Dispose();
 
         cancelToken?.Dispose();
         cancelToken   = null;
@@ -151,7 +144,7 @@ public sealed class RouteExecutor
         State = RouteExecutorState.Stopped;
         ResetRuntimeCursor();
 
-        CancelMovement();
+        Movement.Cancel();
         DisposeCurrentExecutor();
     }
 
@@ -201,8 +194,6 @@ public sealed class RouteExecutor
                 case ActionFlowKind.JumpToStep:
                     CurrentStepIndex = stepResult.Index;
                     break;
-                case ActionFlowKind.RestartCurrentStep:
-                    break;
                 case ActionFlowKind.LeaveAndEnd:
                     State = RouteExecutorState.Completed;
                     NotifyHelper.Instance().Chat("路线执行完成");
@@ -228,10 +219,9 @@ public sealed class RouteExecutor
     (
         int               stepIndex,
         PresetStep        step,
-        PresetStepPhase   phase,
         int               actionIndex,
         ExecuteActionBase action,
-        int               currentPhaseActionCount,
+        int               currentActionCount,
         string            actionLabel,
         CancellationToken cancellationToken
     )
@@ -324,92 +314,6 @@ public sealed class RouteExecutor
         await WaitForDutyExitAsync(cancellationToken);
     }
 
-    protected override async Task RunCommandsAsync(string commands, string actionLabel, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(commands))
-            return;
-
-        foreach (var command in commands.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            if (command.StartsWith("/wait", StringComparison.OrdinalIgnoreCase))
-            {
-                var split = command.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-                if (split.Length == 2 && int.TryParse(split[1], out var waitTime))
-                {
-                    await DelayAsync(waitTime, $"{actionLabel} - 特殊文本等待", cancellationToken);
-                    continue;
-                }
-            }
-
-            SetRunningMessage($"{actionLabel} - {command}");
-            ChatManager.Instance().SendCommand(command);
-            await Task.Delay(100, cancellationToken);
-        }
-    }
-
-    protected override async Task ExecuteNearestInteractAsync(string sourceName, CancellationToken cancellationToken)
-    {
-        var target = PresetTargetResolver.FindNearestInteractableObject();
-
-        if (target == null)
-        {
-            SetRunningMessage($"未找到可交互物体: {sourceName}");
-            return;
-        }
-
-        await WaitUntilAsync
-        (
-            () => !DService.Instance().Condition.IsOnMount         &&
-                  !DService.Instance().Condition.IsOccupiedInEvent &&
-                  UIModule.IsScreenReady()                         &&
-                  target.TargetInteract(),
-            $"交互最近可交互物体: {sourceName}",
-            cancellationToken
-        );
-
-        PresetTargetResolver.OpenObjectInteraction(target);
-    }
-
-    protected override async Task ExecuteMovementActionAsync(MoveToPositionAction action, string actionLabel, CancellationToken cancellationToken)
-    {
-        if (action.Position == default)
-            return;
-
-        switch (action.MoveType)
-        {
-            case MoveType.简单移动:
-                SetRunningMessage(actionLabel);
-                StartPathfindMovement(action.Position, cancellationToken);
-                break;
-            case MoveType.寻路:
-                SetRunningMessage(actionLabel);
-                StartVnavmeshMovement(action.Position, cancellationToken);
-                break;
-            case MoveType.无:
-            case MoveType.传送:
-            default:
-                SetRunningMessage(actionLabel);
-                Teleport(action.Position);
-                break;
-        }
-
-        await Task.CompletedTask;
-    }
-
-    protected override async Task WaitUntilAsync(Func<bool> predicate, string message, CancellationToken cancellationToken, int intervalMs = 100)
-    {
-        SetRunningMessage(message);
-        while (!predicate())
-            await Task.Delay(intervalMs, cancellationToken);
-    }
-
-    protected override async Task DelayAsync(int delayMs, string message, CancellationToken cancellationToken)
-    {
-        SetRunningMessage(message);
-        await Task.Delay(delayMs, cancellationToken);
-    }
-
     private async Task WaitForAreaReadyAsync(CancellationToken cancellationToken)
     {
         await WaitUntilAsync
@@ -457,150 +361,5 @@ public sealed class RouteExecutor
     {
         CurrentExecutor?.Dispose();
         CurrentExecutor = null;
-    }
-
-    private static unsafe void Teleport(Vector3 position)
-    {
-        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
-            return;
-
-        localPlayer.ToStruct()->SetPosition(position.X, position.Y, position.Z);
-        KeyEmulationHelper.SendKeypress(Keys.W);
-    }
-
-    private void StartPathfindMovement(Vector3 position, CancellationToken parentToken) =>
-        StartMovement
-        (
-            async token =>
-            {
-                using var movementController = new MovementInputController();
-                movementController.DesiredPosition = position;
-                movementController.Enabled         = true;
-
-                try
-                {
-                    while (!token.IsCancellationRequested)
-                    {
-                        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
-                        {
-                            await Task.Delay(100, token);
-                            continue;
-                        }
-
-                        if (Vector3.DistanceSquared(localPlayer.Position, position) <= 2f)
-                            break;
-
-                        await Task.Delay(500, token);
-                    }
-                }
-                finally
-                {
-                    movementController.Enabled         = false;
-                    movementController.DesiredPosition = default;
-                }
-            },
-            parentToken
-        );
-
-    private void StartVnavmeshMovement(Vector3 position, CancellationToken parentToken) =>
-        StartMovement(token => RunVnavmeshMovementAsync(position, false, token), parentToken);
-
-    private void StartMovement(Func<CancellationToken, Task> workFactory, CancellationToken parentToken)
-    {
-        CancelMovement();
-
-        var movementCts = CancellationTokenSource.CreateLinkedTokenSource(parentToken);
-        movementCancellationSource = movementCts;
-
-        movementTask = DService.Instance().Framework.Run
-        (
-            async () =>
-            {
-                try
-                {
-                    await workFactory(movementCts.Token);
-                }
-                catch (OperationCanceledException) when (movementCts.IsCancellationRequested)
-                {
-                }
-                catch (Exception ex)
-                {
-                    NotifyHelper.Instance().Chat($"移动执行失败: {ex.Message}");
-                }
-                finally
-                {
-                    if (ReferenceEquals(movementCancellationSource, movementCts))
-                    {
-                        movementCancellationSource = null;
-                        movementTask               = null;
-                    }
-
-                    movementCts.Dispose();
-                }
-            },
-            movementCts.Token
-        );
-    }
-
-    private async Task RunVnavmeshMovementAsync(Vector3 position, bool fly, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var timeout = DateTime.Now.AddSeconds(10);
-            while (!vnavmeshIPC.GetIsNavReady() && DateTime.Now < timeout)
-                await Task.Delay(100, cancellationToken);
-
-            if (!vnavmeshIPC.GetIsNavReady())
-            {
-                NotifyHelper.Instance().ChatError("vnavmesh 未准备就绪");
-                return;
-            }
-
-            if (!vnavmeshIPC.PathfindAndMoveTo(position, fly))
-            {
-                NotifyHelper.Instance().ChatError("vnavmesh 寻路启动失败");
-                return;
-            }
-
-            await Task.Delay(500, cancellationToken);
-
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
-                {
-                    await Task.Delay(100, cancellationToken);
-                    continue;
-                }
-
-                var distance = Vector3.Distance(localPlayer.Position, position);
-                if (distance <= 2f)
-                    break;
-
-                if (!vnavmeshIPC.GetIsPathfindRunning() && !vnavmeshIPC.GetIsNavPathfindInProgress())
-                {
-                    await Task.Delay(500, cancellationToken);
-                    distance = Vector3.Distance(localPlayer.Position, position);
-
-                    if (distance > 2f)
-                        NotifyHelper.Instance().Chat($"vnavmesh 寻路结束但未到达目标，距离: {distance:F2} 米");
-
-                    break;
-                }
-
-                await Task.Delay(100, cancellationToken);
-            }
-        }
-        finally
-        {
-            vnavmeshIPC.StopPathfind();
-        }
-    }
-
-    private void CancelMovement()
-    {
-        if (movementCancellationSource is not { IsCancellationRequested: false } movementCts)
-            return;
-
-        movementCts.Cancel();
     }
 }

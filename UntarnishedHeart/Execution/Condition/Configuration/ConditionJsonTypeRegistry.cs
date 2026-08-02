@@ -12,9 +12,6 @@ internal sealed class ConditionJsonTypeRegistry : PolymorphicJsonTypeRegistry<Co
 
     protected override ConditionJsonTypeAttribute? GetMetadata(Type type) => type.GetCustomAttribute<ConditionJsonTypeAttribute>(false);
 
-    protected override bool ShouldRegisterType(Type type) =>
-        !string.Equals(type.Namespace, "UntarnishedHeart.Execution.Condition.Legacy", StringComparison.Ordinal);
-
     protected override string GetTypeID(ConditionJsonTypeAttribute metadata) => metadata.TypeID;
 
     protected override ConditionDetectType GetKind(ConditionJsonTypeAttribute metadata) => metadata.Kind;

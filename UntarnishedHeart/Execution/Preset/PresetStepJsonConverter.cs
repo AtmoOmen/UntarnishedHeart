@@ -41,22 +41,18 @@ public sealed class PresetStepJsonConverter : JsonConverter<PresetStep>
     internal static JObject SerializeToJObject(PresetStep value, JsonSerializer serializer) =>
         new()
         {
-            ["Version"]      = PresetStepJSONMigrator.CurrentJSONVersion,
-            ["Name"]         = value.Name,
-            ["Remark"]       = value.Remark,
-            ["EnterActions"] = JToken.FromObject(value.EnterActions, serializer),
-            ["BodyActions"]  = JToken.FromObject(value.BodyActions,  serializer),
-            ["ExitActions"]  = JToken.FromObject(value.ExitActions,  serializer)
+            ["Version"] = PresetStepJSONMigrator.CurrentJSONVersion,
+            ["Name"]    = value.Name,
+            ["Remark"]  = value.Remark,
+            ["Actions"] = JToken.FromObject(value.Actions, serializer)
         };
 
     internal static PresetStep DeserializeCurrent(JObject jsonObject, JsonSerializer serializer) =>
         new()
         {
-            Name         = ReadString(jsonObject["Name"]),
-            Remark       = ReadString(jsonObject["Remark"]),
-            EnterActions = ReadObject(jsonObject["EnterActions"], serializer, new List<ExecuteActionBase>()),
-            BodyActions  = ReadObject(jsonObject["BodyActions"],  serializer, new List<ExecuteActionBase>()),
-            ExitActions  = ReadObject(jsonObject["ExitActions"],  serializer, new List<ExecuteActionBase>())
+            Name    = ReadString(jsonObject["Name"]),
+            Remark  = ReadString(jsonObject["Remark"]),
+            Actions = ReadObject(jsonObject["Actions"], serializer, new List<ExecuteActionBase>())
         };
 
     internal static bool ReadBool(JToken? token, bool fallback = false) =>

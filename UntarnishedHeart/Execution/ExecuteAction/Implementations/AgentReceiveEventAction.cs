@@ -24,7 +24,7 @@ public sealed class AgentReceiveEventAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.AgentReceiveEvent;
 
-    public override void Draw()
+    public override void Draw(ExecuteActionDrawContext context)
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
         var agentCandidates = Enum.GetValues<AgentId>();

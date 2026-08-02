@@ -13,7 +13,7 @@ public sealed class WaitMillisecondsAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.Wait;
 
-    public override void Draw()
+    public override void Draw(ExecuteActionDrawContext context)
     {
         var milliseconds = Milliseconds;
         ImGui.SetNextItemWidth(240f * GlobalUIScale);

@@ -16,7 +16,7 @@ public sealed class SelectTargetAction : ExecuteActionBase
     public override ExecuteActionKind Kind =>
         ExecuteActionKind.SelectTarget;
 
-    public override void Draw() =>
+    public override void Draw(ExecuteActionDrawContext context) =>
         ExecuteActionDrawHelper.DrawTargetSelector(Selector, "SelectTarget");
 
     protected override bool EqualsCore(ExecuteActionBase other) =>

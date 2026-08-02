@@ -93,8 +93,8 @@ public class Preset : IEquatable<Preset>
         [
             new()
             {
-                Name = "选中魔列车",
-                BodyActions =
+                Name    = "选中魔列车",
+                Actions =
                 [
                     new SelectTargetAction
                     {
@@ -122,8 +122,8 @@ public class Preset : IEquatable<Preset>
         [
             new()
             {
-                Name = "选中伊弗利特",
-                BodyActions =
+                Name    = "选中伊弗利特",
+                Actions =
                 [
                     new SelectTargetAction
                     {
@@ -151,8 +151,8 @@ public class Preset : IEquatable<Preset>
         [
             new()
             {
-                Name = "移动到起点",
-                BodyActions =
+                Name    = "移动到起点",
+                Actions =
                 [
                     new MoveToPositionAction
                     {
@@ -166,8 +166,8 @@ public class Preset : IEquatable<Preset>
             },
             new()
             {
-                Name = "移动到第二点",
-                BodyActions =
+                Name    = "移动到第二点",
+                Actions =
                 [
                     new MoveToPositionAction
                     {

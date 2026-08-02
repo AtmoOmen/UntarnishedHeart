@@ -57,11 +57,11 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
         switch (legacyStep.StepType)
         {
             case RouteStepType.SwitchPreset:
-                step.BodyActions.Add(CreateExecutePresetAction(legacyStep));
+                step.Actions.Add(CreateExecutePresetAction(legacyStep));
 
                 var afterPresetAction = MigrateBranchAction(legacyStep.AfterPresetAction, legacyStep.AfterPresetJumpIndex, stepIndex);
                 if (afterPresetAction != null)
-                    step.BodyActions.Add(afterPresetAction);
+                    step.Actions.Add(afterPresetAction);
                 break;
 
             case RouteStepType.ConditionCheck:
@@ -72,7 +72,7 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
                 if (trueAction != null)
                 {
                     trueAction.Condition = positiveCondition;
-                    step.BodyActions.Add(trueAction);
+                    step.Actions.Add(trueAction);
                 }
 
                 var falseAction = MigrateBranchAction(legacyStep.FalseAction, legacyStep.FalseJumpIndex, stepIndex);
@@ -80,7 +80,7 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
                 if (falseAction != null)
                 {
                     falseAction.Condition = CreateConditionCollection(CreateCondition(legacyStep), true);
-                    step.BodyActions.Add(falseAction);
+                    step.Actions.Add(falseAction);
                 }
 
                 break;
@@ -114,12 +114,12 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
     private static ExecuteActionBase? MigrateBranchAction(RouteStepActionType actionType, int jumpIndex, int stepIndex) =>
         actionType switch
         {
-            RouteStepActionType.RepeatCurrentStep => InitializeAction(new RestartCurrentStepAction()),
+            RouteStepActionType.RepeatCurrentStep => InitializeAction(new JumpToStepAction { StepIndex = stepIndex }),
             RouteStepActionType.JumpToStep        => InitializeAction(new JumpToStepAction { StepIndex = jumpIndex }),
             RouteStepActionType.EndRoute          => InitializeAction(new LeaveDutyAndEndAction()),
             RouteStepActionType.GoToPreviousStep => stepIndex > 0
                                                         ? InitializeAction(new JumpToStepAction { StepIndex = stepIndex - 1 })
-                                                        : InitializeAction(new RestartCurrentStepAction()),
+                                                        : InitializeAction(new JumpToStepAction { StepIndex = stepIndex }),
             RouteStepActionType.GoToNextStep => null,
             _                                => null
         };

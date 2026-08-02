@@ -10,14 +10,8 @@ public enum ExecuteActionKind
     [Description("跳转步骤")]
     JumpToStep,
 
-    [Description("重新开始当前步骤")]
-    RestartCurrentStep,
-
     [Description("跳转执行动作")]
     JumpToAction,
-
-    [Description("重新开始当前执行动作")]
-    RestartCurrentAction,
 
     [Description("退出副本并结束预设/路线")]
     LeaveDutyAndEndPreset,

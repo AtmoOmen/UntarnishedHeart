@@ -24,7 +24,7 @@ public sealed class SwitchClassJobAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.SwitchClassJob;
 
-    public override void Draw()
+    public override void Draw(ExecuteActionDrawContext context)
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
         var modeCandidates = Enum.GetValues<SwitchClassJobMode>();

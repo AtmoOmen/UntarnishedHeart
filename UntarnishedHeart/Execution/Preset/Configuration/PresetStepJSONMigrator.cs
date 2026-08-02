@@ -7,14 +7,16 @@ namespace UntarnishedHeart.Execution.Preset.Configuration;
 
 internal sealed class PresetStepJSONMigrator : VersionedJsonMigratorBase<PresetStep>
 {
-    internal const int CurrentJSONVersion = 4;
+    internal const int CurrentJSONVersion = 6;
 
     private static readonly FrozenDictionary<int, JsonObjectMigratorBase> MigratorsInternal =
         new JsonObjectMigratorBase[]
         {
             new PresetStepV1ToV2Migrator(),
             new PresetStepV2ToV3Migrator(),
-            new PresetStepV3ToV4Migrator()
+            new PresetStepV3ToV4Migrator(),
+            new PresetStepV4ToV5Migrator(),
+            new PresetStepV5ToV6Migrator()
         }.ToFrozenDictionary(migrator => migrator.FromVersion);
 
     internal static PresetStepJSONMigrator Instance { get; } = new();

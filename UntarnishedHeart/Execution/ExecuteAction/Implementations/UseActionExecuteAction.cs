@@ -26,7 +26,7 @@ public sealed class UseActionExecuteAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.UseAction;
 
-    public override void Draw()
+    public override void Draw(ExecuteActionDrawContext context)
     {
         ExecuteActionDrawHelper.DrawActionReference(Action, "UseAction");
 

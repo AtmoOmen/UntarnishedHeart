@@ -18,7 +18,7 @@ public sealed class InteractTargetAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.InteractTarget;
 
-    public override void Draw()
+    public override void Draw(ExecuteActionDrawContext context)
     {
         ExecuteActionDrawHelper.DrawTargetSelector(Selector, "InteractTarget");
 

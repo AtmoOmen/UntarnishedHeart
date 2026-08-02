@@ -1,8 +1,7 @@
-﻿namespace UntarnishedHeart.Windows.Components;
+namespace UntarnishedHeart.Windows.Components;
 
 internal enum StepTreeNodeKind
 {
     Step,
-    Phase,
     Action
 }

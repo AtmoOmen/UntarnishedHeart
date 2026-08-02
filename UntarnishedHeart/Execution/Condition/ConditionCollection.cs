@@ -22,6 +22,8 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
 
     public int IntervalMs { get; set; }
 
+    public bool Negate { get; set; }
+
     private ConditionBase? conditionToCopy;
 
     public bool IsEmpty => Conditions.Count == 0;
@@ -34,15 +36,14 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
 
     public bool Evaluate(in ConditionContext context)
     {
-        if (Conditions.Count == 0)
-            return true;
-
-        return RelationType switch
-        {
-            ConditionRelationType.And => EvaluateAnd(context),
-            ConditionRelationType.Or  => EvaluateOr(context),
-            _                         => false
-        };
+        var result = Conditions.Count == 0 ||
+                     RelationType switch
+                     {
+                         ConditionRelationType.And => EvaluateAnd(context),
+                         ConditionRelationType.Or  => EvaluateOr(context),
+                         _                         => false
+                     };
+        return Negate ? !result : result;
     }
 
     private bool EvaluateAnd(in ConditionContext context)
@@ -77,12 +78,13 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
                MinExecuteCount == other.MinExecuteCount &&
                MaxExecuteCount == other.MaxExecuteCount &&
                IntervalMs      == other.IntervalMs      &&
+               Negate          == other.Negate          &&
                Conditions.SequenceEqual(other.Conditions);
     }
 
     public override bool Equals(object? obj) => Equals(obj as ConditionCollection);
 
-    public override int GetHashCode() => HashCode.Combine((int)RelationType, (int)ExecuteType, MinExecuteCount, MaxExecuteCount, IntervalMs, Conditions.Count);
+    public override int GetHashCode() => HashCode.Combine((int)RelationType, (int)ExecuteType, MinExecuteCount, MaxExecuteCount, IntervalMs, Negate, Conditions.Count);
 
     public void Draw()
     {
@@ -109,14 +111,15 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
         switch (ExecuteType)
         {
             case ConditionExecuteType.Repeat:
-            case ConditionExecuteType.Sustain:
                 DrawCountSettings();
+                DrawNegateSetting();
                 break;
             case ConditionExecuteType.Skip:
             case ConditionExecuteType.Wait:
                 MinExecuteCount = 1;
                 MaxExecuteCount = 1;
                 IntervalMs      = 0;
+                Negate          = false;
                 break;
         }
 
@@ -178,6 +181,15 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
         ImGui.SetNextItemWidth(160f * GlobalUIScale);
         if (ImGui.InputInt("重复间隔 (ms)###IntervalMsInput", ref intervalMs))
             IntervalMs = Math.Max(0, intervalMs);
+    }
+
+    private void DrawNegateSetting()
+    {
+        var negate = Negate;
+        if (ImGui.Checkbox("反转条件判断###NegateConditionInput", ref negate))
+            Negate = negate;
+
+        ImGuiOm.HelpMarker("关闭时在条件成立前持续重复, 开启后在条件成立期间持续重复");
     }
 
     private void DrawConditionContextMenu(int index, ConditionBase condition)
@@ -263,6 +275,7 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
             ExecuteType     = source.ExecuteType,
             MinExecuteCount = source.MinExecuteCount,
             MaxExecuteCount = source.MaxExecuteCount,
-            IntervalMs      = source.IntervalMs
+            IntervalMs      = source.IntervalMs,
+            Negate          = source.Negate
         };
 }

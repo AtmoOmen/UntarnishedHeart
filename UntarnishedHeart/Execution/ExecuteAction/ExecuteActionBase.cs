@@ -20,7 +20,7 @@ public abstract class ExecuteActionBase : IEquatable<ExecuteActionBase>
 
     public abstract ExecuteActionKind Kind { get; }
 
-    public abstract void Draw();
+    public abstract void Draw(ExecuteActionDrawContext context);
 
     public abstract ExecuteActionBase DeepCopy();
 

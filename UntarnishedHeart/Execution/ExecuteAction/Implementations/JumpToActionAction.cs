@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
+using UntarnishedHeart.Windows;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
 
@@ -13,12 +14,34 @@ public sealed class JumpToActionAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.JumpToAction;
 
-    public override void Draw()
+    public override void Draw(ExecuteActionDrawContext context)
     {
-        var actionIndex = ActionIndex;
+        var hasValidTarget = ActionIndex >= 0 && ActionIndex < context.Actions.Count;
+        var preview        = hasValidTarget ? $"{ActionIndex}. {context.Actions[ActionIndex].Name}" : "请选择目标动作";
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
-        if (ImGui.InputInt("目标动作索引###JumpToActionInput", ref actionIndex))
-            ActionIndex = actionIndex;
+
+        using var combo = ImRaii.Combo("目标动作###JumpToActionCombo", preview, ImGuiComboFlags.HeightLargest);
+        if (combo)
+            ImGui.CloseCurrentPopup();
+
+        if (!ImGui.IsItemClicked())
+            return;
+
+        CollectionSelectorWindow.Open
+        (
+            "选择目标动作",
+            "当前步骤暂无动作",
+            hasValidTarget ? ActionIndex : -1,
+            context.Actions,
+            static action => action.Name,
+            index =>
+            {
+                if ((uint)index >= (uint)context.Actions.Count)
+                    return;
+
+                ActionIndex = index;
+            }
+        );
     }
 
     protected override bool EqualsCore(ExecuteActionBase other) =>

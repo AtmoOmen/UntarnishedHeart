@@ -1,5 +1,7 @@
 using System.Runtime.CompilerServices;
 using UntarnishedHeart.Execution.Common;
+using UntarnishedHeart.Execution.ExecuteAction;
+using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.Managers;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Execution.Route;
@@ -66,7 +68,12 @@ internal static class RouteEditorPanel
             state.TreeState,
             state.SharedState,
             GetRunningCursor(route),
-            () => new PresetStep { Name = $"步骤 {route.Steps.Count}" },
+            () => new PresetStep
+            {
+                Name    = $"步骤 {route.Steps.Count}",
+                Actions = [ExecuteActionBase.CreateDefaultAction(ExecuteActionKind.ExecutePreset)]
+            },
+            () => PluginConfig.Instance().Save(),
             CreateExecutionStartOptions(route)
         );
     }
@@ -95,10 +102,9 @@ internal static class RouteEditorPanel
         return new()
         {
             IsVisible      = true,
-            StartFromStep  = stepIndex => PendingExecutionStartManager.SelectRoute(route,          routeIndex, new(stepIndex, null, -1)),
-            StartFromPhase = (stepIndex, phase) => PendingExecutionStartManager.SelectRoute(route, routeIndex, new(stepIndex, phase, -1)),
-            StartFromAction = (stepIndex, phase, actionIndex) =>
-                PendingExecutionStartManager.SelectRoute(route, routeIndex, new(stepIndex, phase, actionIndex))
+            StartFromStep  = stepIndex => PendingExecutionStartManager.SelectRoute(route, routeIndex, new(stepIndex, -1)),
+            StartFromAction = (stepIndex, actionIndex) =>
+                PendingExecutionStartManager.SelectRoute(route, routeIndex, new(stepIndex, actionIndex))
         };
     }
 

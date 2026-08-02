@@ -57,6 +57,8 @@ internal abstract class CollectionEditorWindowBase<TItem>
         DrawEditor(Items[selectedIndex]);
     }
 
+    public override void OnClose() => SaveItems();
+
     private void DrawToolbar()
     {
         selectedIndex = CollectionToolbar.NormalizeSelectedIndex(selectedIndex, Items.Count);

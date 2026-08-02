@@ -20,7 +20,7 @@ public sealed class ExecutePresetAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.ExecutePreset;
 
-    public override void Draw()
+    public override void Draw(ExecuteActionDrawContext context)
     {
         var presets             = PluginConfig.Instance().Presets;
         var selectedPresetIndex = -1;

@@ -31,7 +31,7 @@ public sealed class GameCommandAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.GameCommand;
 
-    public override void Draw()
+    public override void Draw(ExecuteActionDrawContext context)
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
         var commandCandidates = Enum.GetValues<ExecuteCommandFlag>();

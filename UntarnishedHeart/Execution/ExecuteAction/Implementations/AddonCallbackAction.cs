@@ -18,7 +18,7 @@ public sealed class AddonCallbackAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.AddonCallback;
 
-    public override void Draw()
+    public override void Draw(ExecuteActionDrawContext context)
     {
         var addonName = AddonName;
         ImGui.SetNextItemWidth(240f * GlobalUIScale);

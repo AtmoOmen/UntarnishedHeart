@@ -257,20 +257,21 @@ internal sealed class PresetStepV2ToV3Migrator : JsonObjectMigratorBase
 
         return new JObject
         {
-            ["Version"]         = 2,
+            ["Version"]         = 3,
             ["Conditions"]      = conditions,
             ["RelationType"]    = ConditionRelationType.And.ToString(),
             ["ExecuteType"]     = ConditionExecuteType.Wait.ToString(),
             ["MinExecuteCount"] = 1,
             ["MaxExecuteCount"] = 1,
-            ["IntervalMs"]      = 0
+            ["IntervalMs"]      = 0,
+            ["Negate"]          = false
         };
     }
 
     private static JObject CreateRepeatSelectCondition(JObject selector) =>
         new()
         {
-            ["Version"] = 2,
+            ["Version"] = 3,
             ["Conditions"] = new JArray
             (
                 CreateCondition
@@ -287,7 +288,8 @@ internal sealed class PresetStepV2ToV3Migrator : JsonObjectMigratorBase
             ["ExecuteType"]     = ConditionExecuteType.Repeat.ToString(),
             ["MinExecuteCount"] = 1,
             ["MaxExecuteCount"] = 0,
-            ["IntervalMs"]      = 100
+            ["IntervalMs"]      = 100,
+            ["Negate"]          = false
         };
 
     private static JObject CreateWaitGateAction(JObject conditionCollection) =>
@@ -296,13 +298,14 @@ internal sealed class PresetStepV2ToV3Migrator : JsonObjectMigratorBase
     private static JObject CreateSingleCondition(string kind, JObject payload) =>
         new()
         {
-            ["Version"]         = 2,
+            ["Version"]         = 3,
             ["Conditions"]      = new JArray(CreateCondition(kind, payload)),
             ["RelationType"]    = ConditionRelationType.And.ToString(),
             ["ExecuteType"]     = ConditionExecuteType.Wait.ToString(),
             ["MinExecuteCount"] = 1,
             ["MaxExecuteCount"] = 1,
-            ["IntervalMs"]      = 0
+            ["IntervalMs"]      = 0,
+            ["Negate"]          = false
         };
 
     private static JObject CreateCondition(string kind, JObject payload)
@@ -337,13 +340,14 @@ internal sealed class PresetStepV2ToV3Migrator : JsonObjectMigratorBase
     private static JObject CreateEmptyConditionCollection() =>
         new()
         {
-            ["Version"]         = 2,
+            ["Version"]         = 3,
             ["Conditions"]      = new JArray(),
             ["RelationType"]    = ConditionRelationType.And.ToString(),
             ["ExecuteType"]     = ConditionExecuteType.Wait.ToString(),
             ["MinExecuteCount"] = 1,
             ["MaxExecuteCount"] = 1,
-            ["IntervalMs"]      = 0
+            ["IntervalMs"]      = 0,
+            ["Negate"]          = false
         };
 
     private static string AppendMigrationRemark(string remark, string line) =>

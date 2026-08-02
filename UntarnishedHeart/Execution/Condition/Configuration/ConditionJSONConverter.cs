@@ -144,6 +144,17 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
 
     internal static uint ReadUInt(JToken? token) => (uint)Math.Max(0, (int)ReadFloat(token));
 
+    internal static bool ReadBool(JToken? token, bool fallback = false) =>
+        token is null
+            ? fallback
+            : token.Type switch
+            {
+                JTokenType.Boolean                                                         => token.Value<bool>(),
+                JTokenType.Integer                                                         => token.Value<int>() != 0,
+                JTokenType.String when bool.TryParse(token.Value<string>(), out var value) => value,
+                _                                                                          => fallback
+            };
+
     internal static int ReadInt(JToken? token, int fallback = 0) =>
         token is null
             ? fallback

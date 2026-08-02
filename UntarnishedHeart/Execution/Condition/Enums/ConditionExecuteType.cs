@@ -11,8 +11,5 @@ public enum ConditionExecuteType
     Skip,
 
     [Description("重复 (先判断, 满足前持续重复执行)")]
-    Repeat,
-
-    [Description("持续 (先判断, 满足时持续重复执行)")]
-    Sustain
+    Repeat
 }

@@ -89,6 +89,7 @@ internal static class PresetEditorPanel
             state.SharedState,
             GetRunningCursor(preset),
             () => new PresetStep { Name = $"步骤 {preset.Steps.Count}" },
+            () => PluginConfig.Instance().Save(),
             CreateExecutionStartOptions(preset)
         );
     }
@@ -124,10 +125,9 @@ internal static class PresetEditorPanel
         return new()
         {
             IsVisible      = true,
-            StartFromStep  = stepIndex => PendingExecutionStartManager.SelectPreset(preset,          presetIndex, new(stepIndex, null, -1)),
-            StartFromPhase = (stepIndex, phase) => PendingExecutionStartManager.SelectPreset(preset, presetIndex, new(stepIndex, phase, -1)),
-            StartFromAction = (stepIndex, phase, actionIndex) =>
-                PendingExecutionStartManager.SelectPreset(preset, presetIndex, new(stepIndex, phase, actionIndex))
+            StartFromStep  = stepIndex => PendingExecutionStartManager.SelectPreset(preset, presetIndex, new(stepIndex, -1)),
+            StartFromAction = (stepIndex, actionIndex) =>
+                PendingExecutionStartManager.SelectPreset(preset, presetIndex, new(stepIndex, actionIndex))
         };
     }
 

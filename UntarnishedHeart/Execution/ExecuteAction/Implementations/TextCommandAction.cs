@@ -13,7 +13,7 @@ public sealed class TextCommandAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.TextCommand;
 
-    public override void Draw()
+    public override void Draw(ExecuteActionDrawContext context)
     {
         var commands = Commands;
         if (ImGui.InputTextMultiline("###CommandsInput", ref commands, 4096, new(-1f, ImGui.GetTextLineHeightWithSpacing() * 6f)))

@@ -46,7 +46,8 @@ public sealed class ConditionCollectionJSONConverter : JsonConverter<ConditionCo
             ["ExecuteType"]     = value.ExecuteType.ToString(),
             ["MinExecuteCount"] = value.MinExecuteCount,
             ["MaxExecuteCount"] = value.MaxExecuteCount,
-            ["IntervalMs"]      = value.IntervalMs
+            ["IntervalMs"]      = value.IntervalMs,
+            ["Negate"]          = value.Negate
         };
 
     internal static ConditionCollection DeserializeCurrent(JObject jsonObject, JsonSerializer serializer) =>
@@ -57,6 +58,7 @@ public sealed class ConditionCollectionJSONConverter : JsonConverter<ConditionCo
             ExecuteType     = ConditionJSONConverter.ReadEnum(jsonObject["ExecuteType"],  ConditionExecuteType.Wait),
             MinExecuteCount = (int)ConditionJSONConverter.ReadUInt(jsonObject["MinExecuteCount"] ?? new JValue(1)),
             MaxExecuteCount = ConditionJSONConverter.ReadInt(jsonObject["MaxExecuteCount"], 1),
-            IntervalMs      = ConditionJSONConverter.ReadInt(jsonObject["IntervalMs"])
+            IntervalMs      = ConditionJSONConverter.ReadInt(jsonObject["IntervalMs"]),
+            Negate          = ConditionJSONConverter.ReadBool(jsonObject["Negate"])
         };
 }
