@@ -185,11 +185,12 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
 
     private void DrawNegateSetting()
     {
-        var negate = Negate;
-        if (ImGui.Checkbox("反转条件判断###NegateConditionInput", ref negate))
-            Negate = negate;
+        if (ImGui.RadioButton("条件不成立时重复###RepeatDirectionFalse", !Negate))
+            Negate = false;
 
-        ImGuiOm.HelpMarker("关闭时在条件成立前持续重复, 开启后在条件成立期间持续重复");
+        ImGui.SameLine();
+        if (ImGui.RadioButton("条件成立时重复###RepeatDirectionTrue", Negate))
+            Negate = true;
     }
 
     private void DrawConditionContextMenu(int index, ConditionBase condition)

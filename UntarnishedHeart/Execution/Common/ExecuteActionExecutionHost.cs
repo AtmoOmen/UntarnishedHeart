@@ -366,6 +366,9 @@ public abstract class ExecuteActionExecutionHost
         if (executedCount < conditionCollection.MinExecuteCount)
             return true;
 
+        if (conditionCollection is { IsEmpty: true, Negate: true })
+            return false;
+
         return !conditionCollection.Evaluate(CreateConditionContext());
     }
 

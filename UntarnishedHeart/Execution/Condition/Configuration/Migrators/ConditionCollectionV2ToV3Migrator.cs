@@ -18,7 +18,7 @@ internal sealed class ConditionCollectionV2ToV3Migrator : JsonObjectMigratorBase
         if (string.Equals(executeTypeText, "Sustain", StringComparison.OrdinalIgnoreCase))
         {
             migrated["ExecuteType"] = nameof(ConditionExecuteType.Repeat);
-            migrated["Negate"]      = true;
+            migrated["Negate"]      = migrated["Conditions"] is JArray { Count: > 0 };
         }
         else
         {
