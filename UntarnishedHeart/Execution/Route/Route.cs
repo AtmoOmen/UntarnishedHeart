@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using OmenTools.OmenService;
+using UntarnishedHeart.Internal;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Execution.Route.Configuration;
 
@@ -50,7 +51,11 @@ public sealed class Route : IEquatable<Route>
             if (string.IsNullOrWhiteSpace(clipboardText))
                 return null;
 
-            return JsonConvert.DeserializeObject<Route>(clipboardText);
+            var route = JsonConvert.DeserializeObject<Route>(clipboardText);
+            if (route != null)
+                PresetReferenceBinder.BindUnboundReferences(route, PluginConfig.Instance().Presets);
+
+            return route;
         }
         catch (Exception ex)
         {

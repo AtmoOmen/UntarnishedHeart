@@ -33,11 +33,22 @@ internal abstract class CollectionEditorWindowBase<TItem>
 
     protected abstract void DrawEditor(TItem item);
 
+    protected TItem? SelectedItem =>
+        selectedIndex >= 0 && selectedIndex < Items.Count ? Items[selectedIndex] : default;
+
+    protected int SelectedIndex
+    {
+        get => selectedIndex;
+        set => selectedIndex = CollectionToolbar.NormalizeSelectedIndex(value, Items.Count);
+    }
+
     protected virtual void OnItemAdded(TItem item, bool imported)
     {
         if (imported)
             SaveItems();
     }
+
+    protected virtual void DrawExtraToolbarButtons() { }
 
     public override void Draw()
     {
@@ -133,6 +144,8 @@ internal abstract class CollectionEditorWindowBase<TItem>
             ExportSelectedItem,
             Items.Count > 0
         );
+
+        DrawExtraToolbarButtons();
     }
 
     private void AddItem()

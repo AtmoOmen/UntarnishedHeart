@@ -40,6 +40,7 @@ public sealed class PresetJsonConverter : JsonConverter<Preset>
         new()
         {
             ["Version"]           = PresetJSONMigrator.CurrentJSONVersion,
+            ["ID"]                = value.ID,
             ["Name"]              = value.Name,
             ["Remark"]            = value.Remark,
             ["Zone"]              = value.Zone,
@@ -52,6 +53,7 @@ public sealed class PresetJsonConverter : JsonConverter<Preset>
         new()
         {
             Version           = PresetJSONMigrator.CurrentJSONVersion,
+            ID                = PresetStepJsonConverter.ReadString(jsonObject["ID"]),
             Name              = PresetStepJsonConverter.ReadString(jsonObject["Name"]),
             Remark            = PresetStepJsonConverter.ReadString(jsonObject["Remark"]),
             Zone              = (ushort)Math.Max(0, PresetStepJsonConverter.ReadInt(jsonObject["Zone"])),

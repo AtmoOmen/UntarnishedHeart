@@ -12,6 +12,9 @@ namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
 [ExecuteActionJsonType("ExecutePreset", ExecuteActionKind.ExecutePreset)]
 public sealed class ExecutePresetAction : ExecuteActionBase
 {
+    [JsonProperty("PresetID")]
+    public string PresetID { get; set; } = string.Empty;
+
     [JsonProperty("PresetName")]
     public string PresetName { get; set; } = string.Empty;
 
@@ -27,14 +30,16 @@ public sealed class ExecutePresetAction : ExecuteActionBase
 
         for (var i = 0; i < presets.Count; i++)
         {
-            if (!string.Equals(presets[i].Name, PresetName, StringComparison.Ordinal))
+            if (!string.Equals(presets[i].ID, PresetID, StringComparison.Ordinal))
                 continue;
 
             selectedPresetIndex = i;
             break;
         }
 
-        var preview = selectedPresetIndex >= 0 ? presets[selectedPresetIndex].Name : "暂无预设";
+        var preview = selectedPresetIndex >= 0
+                          ? presets[selectedPresetIndex].Name
+                          : string.IsNullOrWhiteSpace(PresetID) ? "未绑定" : "预设缺失";
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
 
         using var combo = ImRaii.Combo("目标预设###ExecutePresetNameCombo", preview, ImGuiComboFlags.HeightLargest);
@@ -55,6 +60,7 @@ public sealed class ExecutePresetAction : ExecuteActionBase
                     if ((uint)index >= (uint)presets.Count)
                         return;
 
+                    PresetID   = presets[index].ID;
                     PresetName = presets[index].Name;
                 }
             );
@@ -69,16 +75,18 @@ public sealed class ExecutePresetAction : ExecuteActionBase
 
     protected override bool EqualsCore(ExecuteActionBase other) =>
         other is ExecutePresetAction action &&
+        PresetID == action.PresetID         &&
         PresetName == action.PresetName     &&
         DutyOptions.Equals(action.DutyOptions);
 
-    protected override int GetCoreHashCode() => HashCode.Combine(PresetName, DutyOptions);
+    protected override int GetCoreHashCode() => HashCode.Combine(PresetID, PresetName, DutyOptions);
 
     public override ExecuteActionBase DeepCopy() =>
         CopyBasePropertiesTo
         (
             new ExecutePresetAction
             {
+                PresetID    = PresetID,
                 PresetName  = PresetName,
                 DutyOptions = DutyOptions.Copy(DutyOptions)
             }

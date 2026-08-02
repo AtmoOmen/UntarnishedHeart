@@ -15,6 +15,8 @@ public class Preset : IEquatable<Preset>
 {
     public int Version { get; set; } = PresetJSONMigrator.CurrentJSONVersion;
 
+    public string ID { get; set; } = Guid.NewGuid().ToString("D");
+
     public string Name { get; set; } = string.Empty;
 
     public string Remark { get; set; } = string.Empty;
@@ -28,6 +30,18 @@ public class Preset : IEquatable<Preset>
     public int DutyDelay { get; set; } = 500;
 
     public bool IsValid => Zone != 0 && Steps.Count > 0 && LuminaGetter.TryGetRow<TerritoryType>(Zone, out _);
+
+    public Preset Copy() =>
+        new()
+        {
+            ID                = ID,
+            Name              = Name,
+            Remark            = Remark,
+            Zone              = Zone,
+            Steps             = Steps.Select(PresetStep.Copy).ToList(),
+            AutoOpenTreasures = AutoOpenTreasures,
+            DutyDelay         = DutyDelay
+        };
 
     public bool Equals(Preset? other)
     {

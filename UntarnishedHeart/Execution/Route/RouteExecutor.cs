@@ -239,18 +239,18 @@ public sealed class RouteExecutor
         CancellationToken   cancellationToken
     )
     {
-        if (string.IsNullOrWhiteSpace(action.PresetName))
-            throw new InvalidOperationException("执行预设动作缺少目标预设名称");
+        if (string.IsNullOrWhiteSpace(action.PresetID))
+            throw new InvalidOperationException($"预设引用未绑定: {action.PresetName}");
 
-        var preset = PluginConfig.Instance().Presets.FirstOrDefault(candidate => string.Equals(candidate.Name, action.PresetName, StringComparison.Ordinal));
+        var preset = PluginConfig.Instance().Presets.FirstOrDefault(candidate => string.Equals(candidate.ID, action.PresetID, StringComparison.Ordinal));
         if (preset is not { IsValid: true })
             throw new InvalidOperationException($"无法找到有效预设: {action.PresetName}");
 
-        if (!string.Equals(currentPresetName, action.PresetName, StringComparison.Ordinal))
+        if (!string.Equals(currentPresetName, preset.Name, StringComparison.Ordinal))
         {
             DLog.Debug("路线执行预设发生变化，重置副本计数");
             CompletedDutyCount = 0;
-            currentPresetName  = action.PresetName;
+            currentPresetName  = preset.Name;
         }
 
         DisposeCurrentExecutor();
