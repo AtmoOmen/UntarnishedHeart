@@ -102,7 +102,7 @@ public sealed class RouteExecutor
         IsDisposed = true;
     }
 
-    public async Task StartAsync()
+    public void Start()
     {
         if (IsRunning || Steps.Count == 0 || IsDisposed) return;
 
@@ -111,6 +111,13 @@ public sealed class RouteExecutor
         State                              = RouteExecutorState.Running;
         IsStopAfterDutyCompletionRequested = false;
         routeRunningMessage                = string.Empty;
+
+        _ = DService.Instance().Framework.Run(StartAsync);
+    }
+
+    public async Task StartAsync()
+    {
+        if (State != RouteExecutorState.Running) return;
 
         cancelToken?.Dispose();
         cancelToken = new CancellationTokenSource();
@@ -130,9 +137,6 @@ public sealed class RouteExecutor
             NotifyHelper.Instance().Chat($"路线执行出错: {ex.Message}");
         }
     }
-
-    public void Start() =>
-        _ = DService.Instance().Framework.Run(StartAsync);
 
     public void Stop()
     {
