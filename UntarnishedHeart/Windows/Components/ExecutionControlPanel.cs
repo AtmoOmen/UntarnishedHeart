@@ -18,7 +18,7 @@ internal static class ExecutionControlPanel
         else
             ImGui.TextWrapped(status.RunningMessage);
 
-        ImGui.Spacing();
+        ImGui.NewLine();
 
         using (ImRaii.Disabled(!status.CanStop))
         {
