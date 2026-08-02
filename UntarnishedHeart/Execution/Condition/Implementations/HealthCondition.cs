@@ -51,7 +51,7 @@ public sealed class HealthCondition : ConditionBase
 
     protected override void DrawBody()
     {
-        DrawLabel("比较类型", KnownColor.LightSkyBlue.ToVector4());
+        DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<NumericComparisonType>();
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
@@ -63,15 +63,15 @@ public sealed class HealthCondition : ConditionBase
         {
             CollectionSelectorWindow.OpenEnum
             (
-                "选择比较类型",
-                "暂无可选比较类型",
+                "选择比较方式",
+                "暂无可选比较方式",
                 ComparisonType,
                 value => ComparisonType = value,
                 comparisonCandidates
             );
         }
 
-        DrawLabel("目标类型", KnownColor.LightSkyBlue.ToVector4());
+        DrawLabel("作用对象", KnownColor.LightSkyBlue.ToVector4());
         var targetTypeCandidates = Enum.GetValues<ConditionTargetType>();
         using (var combo = ImRaii.Combo("###TargetTypeCombo", TargetType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
@@ -83,8 +83,8 @@ public sealed class HealthCondition : ConditionBase
         {
             CollectionSelectorWindow.OpenEnum
             (
-                "选择目标类型",
-                "暂无可选目标类型",
+                "选择作用对象",
+                "暂无可选作用对象",
                 TargetType,
                 value => TargetType = value,
                 targetTypeCandidates

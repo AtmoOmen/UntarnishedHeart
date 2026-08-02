@@ -4,12 +4,12 @@ namespace UntarnishedHeart.Execution.Condition.Enums;
 
 public enum ConditionExecuteType
 {
-    [Description("等待 (不满足条件时, 等待满足, 再继续)")]
+    [Description("等待 (条件符合前一直等待, 符合后继续)")]
     Wait,
 
-    [Description("跳过 (满足时执行, 不满足时跳过)")]
+    [Description("跳过 (条件符合才执行, 不符合就跳过)")]
     Skip,
 
-    [Description("重复 (先判断, 满足前持续重复执行)")]
+    [Description("重复执行")]
     Repeat
 }

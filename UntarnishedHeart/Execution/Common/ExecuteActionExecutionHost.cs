@@ -133,7 +133,7 @@ public abstract class ExecuteActionExecutionHost
                 await WaitUntilAsync
                 (
                     () => conditionCollection.Evaluate(CreateConditionContext()),
-                    BuildActionMessage(stepIndex, step, actionIndex, "等待条件满足"),
+                    BuildActionMessage(stepIndex, step, actionIndex, "等待条件达成"),
                     cancellationToken
                 );
                 return await ExecuteActionCoreAsync(stepIndex, step, actionIndex, action, currentActionCount, cancellationToken);

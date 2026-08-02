@@ -25,7 +25,7 @@ public enum ExecuteActionKind
     [Description("游戏命令")]
     GameCommand,
 
-    [Description("游戏命令 (富参数)")]
+    [Description("游戏命令 (详细参数)")]
     GameCommandComplex,
 
     [Description("选中特定目标")]
@@ -43,10 +43,10 @@ public enum ExecuteActionKind
     [Description("移动到指定位置")]
     MoveToPosition,
 
-    [Description("界面回调")]
+    [Description("向界面发送操作")]
     AddonCallback,
 
-    [Description("代理事件")]
+    [Description("向界面发送事件")]
     AgentReceiveEvent,
 
     [Description("执行预设")]

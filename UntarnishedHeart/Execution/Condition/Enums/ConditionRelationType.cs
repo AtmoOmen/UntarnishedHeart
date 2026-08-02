@@ -4,9 +4,9 @@ namespace UntarnishedHeart.Execution.Condition.Enums;
 
 public enum ConditionRelationType
 {
-    [Description("和 (全部条件均需满足)")]
+    [Description("全部条件都要符合")]
     And,
 
-    [Description("或 (任一条件满足即可)")]
+    [Description("符合任一条件即可")]
     Or
 }

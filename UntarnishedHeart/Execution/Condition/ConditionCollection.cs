@@ -90,7 +90,7 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
     {
         ImGui.SetNextItemWidth(320f * GlobalUIScale);
         var executeTypeCandidates = Enum.GetValues<ConditionExecuteType>();
-        using (var combo = ImRaii.Combo("处理类型###ExecuteTypeCombo", ExecuteType.GetDescription(), ImGuiComboFlags.HeightLargest))
+        using (var combo = ImRaii.Combo("执行方式###ExecuteTypeCombo", ExecuteType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
                 ImGui.CloseCurrentPopup();
@@ -100,8 +100,8 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
         {
             CollectionSelectorWindow.OpenEnum
             (
-                "选择处理类型",
-                "暂无可选处理类型",
+                "选择执行方式",
+                "暂无可选执行方式",
                 ExecuteType,
                 value => ExecuteType = value,
                 executeTypeCandidates
@@ -112,7 +112,7 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
         {
             case ConditionExecuteType.Repeat:
                 DrawCountSettings();
-                DrawNegateSetting();
+                DrawRepeatDirectionSetting();
                 break;
             case ConditionExecuteType.Skip:
             case ConditionExecuteType.Wait:
@@ -125,7 +125,7 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
 
         ImGui.SetNextItemWidth(320f * GlobalUIScale);
         var relationTypeCandidates = Enum.GetValues<ConditionRelationType>();
-        using (var combo = ImRaii.Combo("关系类型###RelationTypeCombo", RelationType.GetDescription(), ImGuiComboFlags.HeightLargest))
+        using (var combo = ImRaii.Combo("条件组合方式###RelationTypeCombo", RelationType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
                 ImGui.CloseCurrentPopup();
@@ -135,8 +135,8 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
         {
             CollectionSelectorWindow.OpenEnum
             (
-                "选择关系类型",
-                "暂无可选关系类型",
+                "选择条件组合方式",
+                "暂无可选条件组合方式",
                 RelationType,
                 value => RelationType = value,
                 relationTypeCandidates
@@ -174,7 +174,7 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
 
         var maxExecuteCount = MaxExecuteCount;
         ImGui.SetNextItemWidth(160f * GlobalUIScale);
-        if (ImGui.InputInt("最大执行次数 (<= 0 为无限)###MaxExecuteCountInput", ref maxExecuteCount))
+        if (ImGui.InputInt("最大执行次数 (0 表示不限)###MaxExecuteCountInput", ref maxExecuteCount))
             MaxExecuteCount = maxExecuteCount;
 
         var intervalMs = IntervalMs;
@@ -183,13 +183,13 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
             IntervalMs = Math.Max(0, intervalMs);
     }
 
-    private void DrawNegateSetting()
+    private void DrawRepeatDirectionSetting()
     {
-        if (ImGui.RadioButton("条件不成立时重复###RepeatDirectionFalse", !Negate))
+        if (ImGui.RadioButton("条件不符合时重复###RepeatDirectionFalse", !Negate))
             Negate = false;
 
         ImGui.SameLine();
-        if (ImGui.RadioButton("条件成立时重复###RepeatDirectionTrue", Negate))
+        if (ImGui.RadioButton("条件符合时重复###RepeatDirectionTrue", Negate))
             Negate = true;
     }
 

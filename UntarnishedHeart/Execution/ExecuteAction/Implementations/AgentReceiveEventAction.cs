@@ -28,7 +28,7 @@ public sealed class AgentReceiveEventAction : ExecuteActionBase
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
         var agentCandidates = Enum.GetValues<AgentId>();
-        using (var combo = ImRaii.Combo("代理类型###AgentID", AgentID.GetDescription(), ImGuiComboFlags.HeightLargest))
+        using (var combo = ImRaii.Combo("目标界面###AgentID", AgentID.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
                 ImGui.CloseCurrentPopup();
@@ -38,8 +38,8 @@ public sealed class AgentReceiveEventAction : ExecuteActionBase
         {
             CollectionSelectorWindow.OpenEnum
             (
-                "选择代理类型",
-                "暂无可选代理类型",
+                "选择目标界面",
+                "暂无可选目标界面",
                 AgentID,
                 value => AgentID = value,
                 agentCandidates

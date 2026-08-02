@@ -63,8 +63,8 @@ public sealed class GameCommandComplexAction : ExecuteActionBase
         {
             CollectionSelectorWindow.OpenEnum
             (
-                "选择富参数游戏命令",
-                "暂无可选富参数游戏命令",
+                "选择详细参数游戏命令",
+                "暂无可选详细参数游戏命令",
                 Command,
                 value => Command = value,
                 commandCandidates

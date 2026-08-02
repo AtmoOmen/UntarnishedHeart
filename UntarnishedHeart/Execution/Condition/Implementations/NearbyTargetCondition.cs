@@ -45,7 +45,7 @@ public sealed class NearbyTargetCondition : ConditionBase
 
     protected override void DrawBody()
     {
-        DrawLabel("比较类型", KnownColor.LightSkyBlue.ToVector4());
+        DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<PresenceComparisonType>();
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
@@ -57,8 +57,8 @@ public sealed class NearbyTargetCondition : ConditionBase
         {
             CollectionSelectorWindow.OpenEnum
             (
-                "选择比较类型",
-                "暂无可选比较类型",
+                "选择比较方式",
+                "暂无可选比较方式",
                 ComparisonType,
                 value => ComparisonType = value,
                 comparisonCandidates
