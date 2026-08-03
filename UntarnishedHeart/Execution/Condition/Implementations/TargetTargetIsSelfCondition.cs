@@ -14,16 +14,24 @@ public sealed class TargetTargetIsSelfCondition : ConditionBase
     [JsonProperty("ComparisonType")]
     public PresenceComparisonType ComparisonType { get; set; } = PresenceComparisonType.Has;
 
-    public override bool Evaluate(in ConditionContext context)
+    public override bool Evaluate
+    (
+        in ConditionContext context
+    )
     {
         var isSelf = context.Target                != null &&
                      context.LocalPlayer           != null &&
                      context.Target.TargetObjectID == context.LocalPlayer.GameObjectID;
 
-        return ComparisonType == PresenceComparisonType.Has ? isSelf : !isSelf;
+        return ComparisonType == PresenceComparisonType.Has ?
+                   isSelf :
+                   !isSelf;
     }
 
-    protected override bool EqualsCore(ConditionBase other) =>
+    protected override bool EqualsCore
+    (
+        ConditionBase other
+    ) =>
         other is TargetTargetIsSelfCondition condition &&
         ComparisonType == condition.ComparisonType;
 
@@ -36,6 +44,7 @@ public sealed class TargetTargetIsSelfCondition : ConditionBase
     {
         DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<PresenceComparisonType>();
+
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)

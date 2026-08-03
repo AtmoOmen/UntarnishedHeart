@@ -27,14 +27,22 @@ internal static class ExecutionManager
         RouteExecutor = null;
     }
 
-    public static void StartSimpleExecution(Preset.Preset preset, PresetExecutorRunOptions runOptions)
+    public static void StartSimpleExecution
+    (
+        Preset.Preset            preset,
+        PresetExecutorRunOptions runOptions
+    )
     {
         DisposePresetExecutor();
         PresetExecutor = new(preset, runOptions);
         PresetExecutor.Start();
     }
 
-    public static void StartRouteExecution(Route.Route route, ExecuteActionRuntimeCursor? startCursor = null)
+    public static void StartRouteExecution
+    (
+        Route.Route                 route,
+        ExecuteActionRuntimeCursor? startCursor = null
+    )
     {
         StopRouteExecutor();
         RouteExecutor = new(route, startCursor);

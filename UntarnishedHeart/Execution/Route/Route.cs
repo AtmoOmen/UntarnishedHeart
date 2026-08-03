@@ -1,8 +1,8 @@
 using Newtonsoft.Json;
 using OmenTools.OmenService;
-using UntarnishedHeart.Internal;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Execution.Route.Configuration;
+using UntarnishedHeart.Internal;
 
 namespace UntarnishedHeart.Execution.Route;
 
@@ -64,7 +64,10 @@ public sealed class Route : IEquatable<Route>
         }
     }
 
-    public bool Equals(Route? other)
+    public bool Equals
+    (
+        Route? other
+    )
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
@@ -74,7 +77,10 @@ public sealed class Route : IEquatable<Route>
                Steps.SequenceEqual(other.Steps);
     }
 
-    public override bool Equals(object? obj) => Equals(obj as Route);
+    public override bool Equals
+    (
+        object? obj
+    ) => Equals(obj as Route);
 
     public override int GetHashCode() => HashCode.Combine(Name, Remark, Steps.Count);
 }

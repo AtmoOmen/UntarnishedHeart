@@ -13,7 +13,10 @@ internal static class PresetEditorPanel
 {
     private static readonly ConditionalWeakTable<Preset, PresetEditorState> EditorStates = [];
 
-    public static void Draw(Preset preset)
+    public static void Draw
+    (
+        Preset preset
+    )
     {
         var state = EditorStates.GetValue(preset, static value => new PresetEditorState(value));
         SyncContentCombo(state, preset);
@@ -43,7 +46,11 @@ internal static class PresetEditorPanel
         }
     }
 
-    private static void DrawBasicInfoTab(Preset preset, PresetEditorState state)
+    private static void DrawBasicInfoTab
+    (
+        Preset            preset,
+        PresetEditorState state
+    )
     {
         ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), "名称");
 
@@ -79,8 +86,11 @@ internal static class PresetEditorPanel
             preset.Remark = remark;
     }
 
-    private static void DrawStepsTab(Preset preset, PresetEditorState state)
-    {
+    private static void DrawStepsTab
+    (
+        Preset            preset,
+        PresetEditorState state
+    ) =>
         StepTreeEditor.Draw
         (
             "Preset",
@@ -92,27 +102,41 @@ internal static class PresetEditorPanel
             () => PluginConfig.Instance().Save(),
             CreateExecutionStartOptions(preset)
         );
-    }
 
-    private static void SyncContentCombo(PresetEditorState state, Preset preset)
+    private static void SyncContentCombo
+    (
+        PresetEditorState state,
+        Preset            preset
+    )
     {
         var selectedContentID = GetContentFinderConditionID(preset.Zone);
         if (state.ContentCombo.SelectedID != selectedContentID)
             state.ContentCombo.SelectedID = selectedContentID;
     }
 
-    private static uint GetContentFinderConditionID(ushort zone) =>
+    private static uint GetContentFinderConditionID
+    (
+        ushort zone
+    ) =>
         LuminaGetter.GetRow<TerritoryType>(zone)?.ContentFinderCondition.RowId ?? 0;
 
-    private static ExecuteActionRuntimeCursor? GetRunningCursor(Preset preset)
+    private static ExecuteActionRuntimeCursor? GetRunningCursor
+    (
+        Preset preset
+    )
     {
         if (ExecutionManager.PresetExecutor is not { IsDisposed: false, Completion.IsCompleted: false, ExecutorPreset: not null } presetExecutor)
             return null;
 
-        return ReferenceEquals(presetExecutor.ExecutorPreset, preset) ? presetExecutor.Progress.RuntimeCursor : null;
+        return ReferenceEquals(presetExecutor.ExecutorPreset, preset) ?
+                   presetExecutor.Progress.RuntimeCursor :
+                   null;
     }
 
-    private static StepTreeExecutionStartOptions? CreateExecutionStartOptions(Preset preset)
+    private static StepTreeExecutionStartOptions? CreateExecutionStartOptions
+    (
+        Preset preset
+    )
     {
         if (ExecutionManager.PresetExecutor is { IsDisposed: false, Completion.IsCompleted: false } ||
             ExecutionManager.RouteExecutor is { IsRunning: true })
@@ -124,8 +148,8 @@ internal static class PresetEditorPanel
 
         return new()
         {
-            IsVisible      = true,
-            StartFromStep  = stepIndex => PendingExecutionStartManager.SelectPreset(preset, presetIndex, new(stepIndex, -1)),
+            IsVisible     = true,
+            StartFromStep = stepIndex => PendingExecutionStartManager.SelectPreset(preset, presetIndex, new(stepIndex, -1)),
             StartFromAction = (stepIndex, actionIndex) =>
                 PendingExecutionStartManager.SelectPreset(preset, presetIndex, new(stepIndex, actionIndex))
         };

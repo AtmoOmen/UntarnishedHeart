@@ -21,7 +21,10 @@ public sealed class HasSpecificTargetCondition : ConditionBase
     [JsonProperty("Selector")]
     public TargetSelector Selector { get; set; } = new() { Kind = TargetSelectorKind.ByObjectKindAndDataID };
 
-    public override bool Evaluate(in ConditionContext context)
+    public override bool Evaluate
+    (
+        in ConditionContext context
+    )
     {
         var target = TargetManager.Target;
         var matches = target != null &&
@@ -36,10 +39,15 @@ public sealed class HasSpecificTargetCondition : ConditionBase
                           _ => false
                       };
 
-        return ComparisonType == PresenceComparisonType.Has ? matches : !matches;
+        return ComparisonType == PresenceComparisonType.Has ?
+                   matches :
+                   !matches;
     }
 
-    protected override bool EqualsCore(ConditionBase other) =>
+    protected override bool EqualsCore
+    (
+        ConditionBase other
+    ) =>
         other is HasSpecificTargetCondition condition &&
         ComparisonType == condition.ComparisonType    &&
         Selector.Equals(condition.Selector);
@@ -60,6 +68,7 @@ public sealed class HasSpecificTargetCondition : ConditionBase
     {
         DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<PresenceComparisonType>();
+
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)

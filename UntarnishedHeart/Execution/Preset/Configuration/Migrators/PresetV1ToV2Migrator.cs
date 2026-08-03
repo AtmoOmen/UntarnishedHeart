@@ -9,5 +9,8 @@ internal sealed class PresetV1ToV2Migrator : JsonObjectMigratorBase
 
     public override int ToVersion => 2;
 
-    public override JObject Migrate(JObject jsonObject) => (JObject)jsonObject.DeepClone();
+    public override JObject Migrate
+    (
+        JObject jsonObject
+    ) => (JObject)jsonObject.DeepClone();
 }

@@ -6,5 +6,10 @@ internal sealed class V1ToV2ConfigMigrator : ConfigMigratorBase
 
     public override int ToVersion => 2;
 
-    public override void Migrate(PluginConfig config) { }
+    public override void Migrate
+    (
+        PluginConfig config
+    )
+    {
+    }
 }

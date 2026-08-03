@@ -1,6 +1,5 @@
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Newtonsoft.Json;
-using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.ExecuteAction.Helpers;
@@ -24,10 +23,14 @@ public sealed class AgentReceiveEventAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.AgentReceiveEvent;
 
-    public override void Draw(ExecuteActionDrawContext context)
+    public override void Draw
+    (
+        ExecuteActionDrawContext context
+    )
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
         var agentCandidates = Enum.GetValues<AgentId>();
+
         using (var combo = ImRaii.Combo("目标界面###AgentID", AgentID.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -54,7 +57,10 @@ public sealed class AgentReceiveEventAction : ExecuteActionBase
         ExecuteActionDrawHelper.DrawAtkValueParameters(Parameters, "AgentReceiveEventParameters");
     }
 
-    protected override bool EqualsCore(ExecuteActionBase other) =>
+    protected override bool EqualsCore
+    (
+        ExecuteActionBase other
+    ) =>
         other is AgentReceiveEventAction action &&
         AgentID   == action.AgentID             &&
         EventKind == action.EventKind           &&

@@ -6,7 +6,12 @@ namespace UntarnishedHeart.Execution.Route.Configuration;
 
 public sealed class RouteJsonConverter : JsonConverter<Route>
 {
-    public override void WriteJson(JsonWriter writer, Route? value, JsonSerializer serializer)
+    public override void WriteJson
+    (
+        JsonWriter     writer,
+        Route?         value,
+        JsonSerializer serializer
+    )
     {
         if (value is null)
         {
@@ -37,7 +42,11 @@ public sealed class RouteJsonConverter : JsonConverter<Route>
         return DeserializeCurrent(jsonObject, serializer);
     }
 
-    internal static JObject SerializeToJObject(Route value, JsonSerializer serializer) =>
+    internal static JObject SerializeToJObject
+    (
+        Route          value,
+        JsonSerializer serializer
+    ) =>
         new()
         {
             ["Version"] = RouteJSONMigrator.CurrentJSONVersion,
@@ -46,7 +55,11 @@ public sealed class RouteJsonConverter : JsonConverter<Route>
             ["Steps"]   = JToken.FromObject(value.Steps, serializer)
         };
 
-    internal static Route DeserializeCurrent(JObject jsonObject, JsonSerializer serializer) =>
+    internal static Route DeserializeCurrent
+    (
+        JObject        jsonObject,
+        JsonSerializer serializer
+    ) =>
         new()
         {
             Version = RouteJSONMigrator.CurrentJSONVersion,

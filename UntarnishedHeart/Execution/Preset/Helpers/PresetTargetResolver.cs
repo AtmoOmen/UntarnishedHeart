@@ -17,22 +17,28 @@ internal static class PresetTargetResolver
         ObjectKind.GatheringPoint
     ];
 
-    public static IGameObject? Resolve(TargetSelector selector)
+    public static IGameObject? Resolve
+    (
+        TargetSelector selector
+    )
     {
         ArgumentNullException.ThrowIfNull(selector);
 
         return selector.Kind switch
         {
             TargetSelectorKind.CurrentTarget => TargetManager.Target,
-            TargetSelectorKind.ByEntityID => selector.EntityID == 0
-                                                 ? null
-                                                 : DService.Instance().ObjectTable.SearchByEntityID(selector.EntityID),
+            TargetSelectorKind.ByEntityID => selector.EntityID == 0 ?
+                                                 null :
+                                                 DService.Instance().ObjectTable.SearchByEntityID(selector.EntityID),
             TargetSelectorKind.ByObjectKindAndDataID => FindNearest(selector),
             _                                        => null
         };
     }
 
-    public static IGameObject? FindNearest(TargetSelector selector)
+    public static IGameObject? FindNearest
+    (
+        TargetSelector selector
+    )
     {
         if (selector.DataID == 0)
             return null;
@@ -72,7 +78,10 @@ internal static class PresetTargetResolver
                        .FirstOrDefault();
     }
 
-    public static unsafe void SelectTarget(IGameObject? gameObject)
+    public static unsafe void SelectTarget
+    (
+        IGameObject? gameObject
+    )
     {
         if (gameObject == null)
             return;
@@ -80,7 +89,10 @@ internal static class PresetTargetResolver
         TargetSystem.Instance()->Target = gameObject.ToStruct();
     }
 
-    public static unsafe void OpenObjectInteraction(IGameObject? gameObject)
+    public static unsafe void OpenObjectInteraction
+    (
+        IGameObject? gameObject
+    )
     {
         if (gameObject is not { ObjectKind: ObjectKind.EventObj })
             return;

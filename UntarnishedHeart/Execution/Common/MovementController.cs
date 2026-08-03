@@ -28,7 +28,10 @@ internal sealed class MovementController : IDisposable
         movementTask               = null;
     }
 
-    public static unsafe void Teleport(Vector3 position)
+    public static unsafe void Teleport
+    (
+        Vector3 position
+    )
     {
         if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
             return;
@@ -37,7 +40,11 @@ internal sealed class MovementController : IDisposable
         KeyEmulationHelper.SendKeypress(Keys.W);
     }
 
-    public void StartPathfindMovement(Vector3 position, CancellationToken parentToken) =>
+    public void StartPathfindMovement
+    (
+        Vector3           position,
+        CancellationToken parentToken
+    ) =>
         Start
         (
             async token =>
@@ -71,10 +78,18 @@ internal sealed class MovementController : IDisposable
             parentToken
         );
 
-    public void StartVnavmeshMovement(Vector3 position, CancellationToken parentToken) =>
+    public void StartVnavmeshMovement
+    (
+        Vector3           position,
+        CancellationToken parentToken
+    ) =>
         Start(token => RunVnavmeshMovementAsync(position, false, token), parentToken);
 
-    private void Start(Func<CancellationToken, Task> workFactory, CancellationToken parentToken)
+    private void Start
+    (
+        Func<CancellationToken, Task> workFactory,
+        CancellationToken             parentToken
+    )
     {
         Cancel();
 
@@ -111,7 +126,12 @@ internal sealed class MovementController : IDisposable
         );
     }
 
-    private async Task RunVnavmeshMovementAsync(Vector3 position, bool fly, CancellationToken cancellationToken)
+    private async Task RunVnavmeshMovementAsync
+    (
+        Vector3           position,
+        bool              fly,
+        CancellationToken cancellationToken
+    )
     {
         try
         {

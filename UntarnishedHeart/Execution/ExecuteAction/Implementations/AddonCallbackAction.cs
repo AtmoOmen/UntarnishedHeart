@@ -18,7 +18,10 @@ public sealed class AddonCallbackAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.AddonCallback;
 
-    public override void Draw(ExecuteActionDrawContext context)
+    public override void Draw
+    (
+        ExecuteActionDrawContext context
+    )
     {
         var addonName = AddonName;
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
@@ -28,7 +31,10 @@ public sealed class AddonCallbackAction : ExecuteActionBase
         ExecuteActionDrawHelper.DrawAtkValueParameters(Parameters, "AddonCallbackParameters");
     }
 
-    protected override bool EqualsCore(ExecuteActionBase other) =>
+    protected override bool EqualsCore
+    (
+        ExecuteActionBase other
+    ) =>
         other is AddonCallbackAction action &&
         AddonName == action.AddonName       &&
         Parameters.SequenceEqual(action.Parameters);

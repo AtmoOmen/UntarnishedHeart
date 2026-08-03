@@ -18,7 +18,10 @@ public sealed class InteractTargetAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.InteractTarget;
 
-    public override void Draw(ExecuteActionDrawContext context)
+    public override void Draw
+    (
+        ExecuteActionDrawContext context
+    )
     {
         ExecuteActionDrawHelper.DrawTargetSelector(Selector, "InteractTarget");
 
@@ -28,7 +31,10 @@ public sealed class InteractTargetAction : ExecuteActionBase
         ImGuiOm.HelpMarker("部分 Object Kind 对象需要启用本项才能正常交互\n如: EventObj、EventNpc 等");
     }
 
-    protected override bool EqualsCore(ExecuteActionBase other) =>
+    protected override bool EqualsCore
+    (
+        ExecuteActionBase other
+    ) =>
         other is InteractTargetAction action &&
         Selector.Equals(action.Selector)     &&
         OpenObjectInteraction == action.OpenObjectInteraction;

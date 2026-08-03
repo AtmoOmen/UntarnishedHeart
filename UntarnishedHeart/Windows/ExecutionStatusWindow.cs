@@ -14,8 +14,8 @@ public class ExecutionStatusWindow : Window
     ) =>
         SizeConstraints = new()
         {
-            MinimumSize = new Vector2(200, 150) * GlobalUIScale,
-            MaximumSize = new Vector2(200, 150) * GlobalUIScale
+            MinimumSize = new Vector2(250, 150) * GlobalUIScale,
+            MaximumSize = new Vector2(250, 150) * GlobalUIScale
         };
 
     public override void Draw()

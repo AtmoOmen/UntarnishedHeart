@@ -40,42 +40,54 @@ internal static class CollectionOperationHelper
                     return selectedIndex;
 
                 items[index] = createClipboardCopy();
-                return selectedIndex >= 0 ? index : selectedIndex;
+                return selectedIndex >= 0 ?
+                           index :
+                           selectedIndex;
 
             case StepOperationType.PasteUp:
                 if (createClipboardCopy == null)
                     return selectedIndex;
 
                 items.Insert(index, createClipboardCopy());
-                return selectedIndex >= 0 ? index : selectedIndex;
+                return selectedIndex >= 0 ?
+                           index :
+                           selectedIndex;
 
             case StepOperationType.PasteDown:
                 if (createClipboardCopy == null)
                     return selectedIndex;
 
                 items.Insert(index + 1, createClipboardCopy());
-                return selectedIndex >= 0 ? index + 1 : selectedIndex;
+                return selectedIndex >= 0 ?
+                           index + 1 :
+                           selectedIndex;
 
             case StepOperationType.PasteCurrent:
                 if (createCurrentCopy == null)
                     return selectedIndex;
 
                 items.Insert(index, createCurrentCopy());
-                return selectedIndex >= 0 ? index : selectedIndex;
+                return selectedIndex >= 0 ?
+                           index :
+                           selectedIndex;
 
             case StepOperationType.InsertUp:
                 if (createNew == null)
                     return selectedIndex;
 
                 items.Insert(index, createNew());
-                return selectedIndex >= 0 ? index : selectedIndex;
+                return selectedIndex >= 0 ?
+                           index :
+                           selectedIndex;
 
             case StepOperationType.InsertDown:
                 if (createNew == null)
                     return selectedIndex;
 
                 items.Insert(index + 1, createNew());
-                return selectedIndex >= 0 ? index + 1 : selectedIndex;
+                return selectedIndex >= 0 ?
+                           index + 1 :
+                           selectedIndex;
 
             case StepOperationType.Pass:
             default:
@@ -83,7 +95,12 @@ internal static class CollectionOperationHelper
         }
     }
 
-    private static int NormalizeSelectedIndexAfterDelete(int selectedIndex, int removedIndex, int count)
+    private static int NormalizeSelectedIndexAfterDelete
+    (
+        int selectedIndex,
+        int removedIndex,
+        int count
+    )
     {
         if (selectedIndex < 0)
             return -1;
@@ -100,7 +117,12 @@ internal static class CollectionOperationHelper
         return selectedIndex;
     }
 
-    private static int MoveSelectedIndex(int selectedIndex, int sourceIndex, int targetIndex)
+    private static int MoveSelectedIndex
+    (
+        int selectedIndex,
+        int sourceIndex,
+        int targetIndex
+    )
     {
         if (selectedIndex < 0)
             return -1;

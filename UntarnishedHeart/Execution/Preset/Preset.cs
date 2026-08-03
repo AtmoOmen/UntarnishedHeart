@@ -43,7 +43,10 @@ public class Preset : IEquatable<Preset>
             DutyDelay         = DutyDelay
         };
 
-    public bool Equals(Preset? other)
+    public bool Equals
+    (
+        Preset? other
+    )
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
@@ -56,7 +59,10 @@ public class Preset : IEquatable<Preset>
                Steps.SequenceEqual(other.Steps);
     }
 
-    public override bool Equals(object? obj) => Equals(obj as Preset);
+    public override bool Equals
+    (
+        object? obj
+    ) => Equals(obj as Preset);
 
     public override int GetHashCode() => HashCode.Combine(Name, Remark, Zone, AutoOpenTreasures, DutyDelay, Steps.Count);
 
@@ -107,7 +113,7 @@ public class Preset : IEquatable<Preset>
         [
             new()
             {
-                Name    = "选中魔列车",
+                Name = "选中魔列车",
                 Actions =
                 [
                     new SelectTargetAction
@@ -136,7 +142,7 @@ public class Preset : IEquatable<Preset>
         [
             new()
             {
-                Name    = "选中伊弗利特",
+                Name = "选中伊弗利特",
                 Actions =
                 [
                     new SelectTargetAction
@@ -165,7 +171,7 @@ public class Preset : IEquatable<Preset>
         [
             new()
             {
-                Name    = "移动到起点",
+                Name = "移动到起点",
                 Actions =
                 [
                     new MoveToPositionAction
@@ -180,7 +186,7 @@ public class Preset : IEquatable<Preset>
             },
             new()
             {
-                Name    = "移动到第二点",
+                Name = "移动到第二点",
                 Actions =
                 [
                     new MoveToPositionAction

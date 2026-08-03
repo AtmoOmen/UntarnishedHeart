@@ -11,7 +11,10 @@ public sealed class PlayerLevelCondition : RouteValueConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.PlayerLevel;
 
-    protected override int GetCurrentValue(in ConditionContext context) => LocalPlayerState.CurrentLevel;
+    protected override int GetCurrentValue
+    (
+        in ConditionContext context
+    ) => LocalPlayerState.CurrentLevel;
 
     protected override RouteValueConditionBase DeepCopyCore() =>
         new PlayerLevelCondition

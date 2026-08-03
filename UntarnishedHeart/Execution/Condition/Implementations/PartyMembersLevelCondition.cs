@@ -10,7 +10,10 @@ public sealed class PartyMembersLevelCondition : RouteValueConditionBase
 {
     public override ConditionDetectType Kind => ConditionDetectType.PartyMembersLevel;
 
-    public override bool Evaluate(in ConditionContext context)
+    public override bool Evaluate
+    (
+        in ConditionContext context
+    )
     {
         if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
             return false;
@@ -30,7 +33,10 @@ public sealed class PartyMembersLevelCondition : RouteValueConditionBase
         return true;
     }
 
-    protected override int GetCurrentValue(in ConditionContext context) => 0;
+    protected override int GetCurrentValue
+    (
+        in ConditionContext context
+    ) => 0;
 
     protected override RouteValueConditionBase DeepCopyCore() =>
         new PartyMembersLevelCondition

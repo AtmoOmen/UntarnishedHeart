@@ -20,13 +20,21 @@ public sealed class NearbyTargetCondition : ConditionBase
     [JsonProperty("Selector")]
     public TargetSelector Selector { get; set; } = new() { Kind = TargetSelectorKind.ByObjectKindAndDataID };
 
-    public override bool Evaluate(in ConditionContext context)
+    public override bool Evaluate
+    (
+        in ConditionContext context
+    )
     {
         var exists = ResolveSpecificTarget(Selector) != null;
-        return ComparisonType == PresenceComparisonType.Has ? exists : !exists;
+        return ComparisonType == PresenceComparisonType.Has ?
+                   exists :
+                   !exists;
     }
 
-    protected override bool EqualsCore(ConditionBase other) =>
+    protected override bool EqualsCore
+    (
+        ConditionBase other
+    ) =>
         other is NearbyTargetCondition condition   &&
         ComparisonType == condition.ComparisonType &&
         Selector.Equals(condition.Selector);
@@ -47,6 +55,7 @@ public sealed class NearbyTargetCondition : ConditionBase
     {
         DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<PresenceComparisonType>();
+
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)

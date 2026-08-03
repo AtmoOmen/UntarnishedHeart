@@ -6,5 +6,8 @@ internal abstract class ConfigMigratorBase
 
     public abstract int ToVersion { get; }
 
-    public abstract void Migrate(PluginConfig config);
+    public abstract void Migrate
+    (
+        PluginConfig config
+    );
 }

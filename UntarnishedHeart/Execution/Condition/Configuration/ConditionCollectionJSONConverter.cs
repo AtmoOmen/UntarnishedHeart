@@ -6,7 +6,12 @@ namespace UntarnishedHeart.Execution.Condition.Configuration;
 
 public sealed class ConditionCollectionJSONConverter : JsonConverter<ConditionCollection>
 {
-    public override void WriteJson(JsonWriter writer, ConditionCollection? value, JsonSerializer serializer)
+    public override void WriteJson
+    (
+        JsonWriter           writer,
+        ConditionCollection? value,
+        JsonSerializer       serializer
+    )
     {
         if (value is null)
         {
@@ -37,7 +42,11 @@ public sealed class ConditionCollectionJSONConverter : JsonConverter<ConditionCo
         return DeserializeCurrent(jsonObject, serializer);
     }
 
-    internal static JObject SerializeToJObject(ConditionCollection value, JsonSerializer serializer) =>
+    internal static JObject SerializeToJObject
+    (
+        ConditionCollection value,
+        JsonSerializer      serializer
+    ) =>
         new()
         {
             ["Version"]         = ConditionCollectionJSONMigrator.CurrentJSONVersion,
@@ -50,7 +59,11 @@ public sealed class ConditionCollectionJSONConverter : JsonConverter<ConditionCo
             ["Negate"]          = value.Negate
         };
 
-    internal static ConditionCollection DeserializeCurrent(JObject jsonObject, JsonSerializer serializer) =>
+    internal static ConditionCollection DeserializeCurrent
+    (
+        JObject        jsonObject,
+        JsonSerializer serializer
+    ) =>
         new()
         {
             Conditions      = ConditionJSONConverter.ReadObject(jsonObject["Conditions"], serializer, new List<ConditionBase>()),

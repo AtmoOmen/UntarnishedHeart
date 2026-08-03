@@ -13,14 +13,20 @@ public sealed class TextCommandAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.TextCommand;
 
-    public override void Draw(ExecuteActionDrawContext context)
+    public override void Draw
+    (
+        ExecuteActionDrawContext context
+    )
     {
         var commands = Commands;
         if (ImGui.InputTextMultiline("###CommandsInput", ref commands, 4096, new(-1f, ImGui.GetTextLineHeightWithSpacing() * 6f)))
             Commands = commands;
     }
 
-    protected override bool EqualsCore(ExecuteActionBase other) => other is TextCommandAction action && Commands == action.Commands;
+    protected override bool EqualsCore
+    (
+        ExecuteActionBase other
+    ) => other is TextCommandAction action && Commands == action.Commands;
 
     protected override int GetCoreHashCode() => Commands.GetHashCode(StringComparison.Ordinal);
 

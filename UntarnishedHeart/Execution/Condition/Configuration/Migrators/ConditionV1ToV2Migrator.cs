@@ -12,7 +12,10 @@ internal sealed class ConditionV1ToV2Migrator : JsonObjectMigratorBase
 
     public override int ToVersion => 2;
 
-    public override JObject Migrate(JObject jsonObject)
+    public override JObject Migrate
+    (
+        JObject jsonObject
+    )
     {
         var migrated = ConditionBase.MigrateLegacyV1ToV2
         (

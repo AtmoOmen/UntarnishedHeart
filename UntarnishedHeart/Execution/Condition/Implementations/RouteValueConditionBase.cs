@@ -13,16 +13,25 @@ public abstract class RouteValueConditionBase : ConditionBase
     [JsonProperty("ExpectedValue")]
     public int ExpectedValue { get; set; }
 
-    public override bool Evaluate(in ConditionContext context) =>
+    public override bool Evaluate
+    (
+        in ConditionContext context
+    ) =>
         CompareNumeric(ComparisonType, GetCurrentValue(context), ExpectedValue);
 
-    protected override bool EqualsCore(ConditionBase other) =>
+    protected override bool EqualsCore
+    (
+        ConditionBase other
+    ) =>
         other is RouteValueConditionBase condition &&
         ComparisonType == condition.ComparisonType &&
         ExpectedValue  == condition.ExpectedValue  &&
         EqualsExtraCore(condition);
 
-    protected virtual bool EqualsExtraCore(RouteValueConditionBase other) => true;
+    protected virtual bool EqualsExtraCore
+    (
+        RouteValueConditionBase other
+    ) => true;
 
     protected override int GetCoreHashCode() => HashCode.Combine((int)ComparisonType, ExpectedValue, GetExtraHashCode());
 
@@ -34,6 +43,7 @@ public abstract class RouteValueConditionBase : ConditionBase
     {
         DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<NumericComparisonType>();
+
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -60,7 +70,10 @@ public abstract class RouteValueConditionBase : ConditionBase
             ExpectedValue = expectedValue;
     }
 
-    protected abstract int GetCurrentValue(in ConditionContext context);
+    protected abstract int GetCurrentValue
+    (
+        in ConditionContext context
+    );
 
     protected abstract RouteValueConditionBase DeepCopyCore();
 

@@ -54,7 +54,10 @@ internal sealed class PresetStepV2ToV3Migrator : JsonObjectMigratorBase
 
     public override int ToVersion => 3;
 
-    public override JObject Migrate(JObject jsonObject)
+    public override JObject Migrate
+    (
+        JObject jsonObject
+    )
     {
         var name         = PresetStepJsonConverter.ReadString(jsonObject["Note"]);
         var remark       = string.Empty;
@@ -163,9 +166,9 @@ internal sealed class PresetStepV2ToV3Migrator : JsonObjectMigratorBase
 
             if (PresetStepJsonConverter.ReadBool(jsonObject["InteractWithTarget"]))
             {
-                var interactSelector = PresetStepJsonConverter.ReadBool(jsonObject["InteractNeedTargetAnything"], true)
-                                           ? new JObject { ["Kind"] = TargetSelectorKind.CurrentTarget.ToString() }
-                                           : (JObject)selector.DeepClone();
+                var interactSelector = PresetStepJsonConverter.ReadBool(jsonObject["InteractNeedTargetAnything"], true) ?
+                                           new JObject { ["Kind"] = TargetSelectorKind.CurrentTarget.ToString() } :
+                                           (JObject)selector.DeepClone();
 
                 bodyActions.Add
                 (
@@ -220,7 +223,10 @@ internal sealed class PresetStepV2ToV3Migrator : JsonObjectMigratorBase
         };
     }
 
-    private static JObject? CreateSelector(JObject jsonObject)
+    private static JObject? CreateSelector
+    (
+        JObject jsonObject
+    )
     {
         var dataID = PresetStepJsonConverter.ReadUInt(jsonObject["DataID"]);
         if (dataID == 0)
@@ -268,7 +274,10 @@ internal sealed class PresetStepV2ToV3Migrator : JsonObjectMigratorBase
         };
     }
 
-    private static JObject CreateRepeatSelectCondition(JObject selector) =>
+    private static JObject CreateRepeatSelectCondition
+    (
+        JObject selector
+    ) =>
         new()
         {
             ["Version"] = 3,
@@ -292,10 +301,17 @@ internal sealed class PresetStepV2ToV3Migrator : JsonObjectMigratorBase
             ["Negate"]          = false
         };
 
-    private static JObject CreateWaitGateAction(JObject conditionCollection) =>
+    private static JObject CreateWaitGateAction
+    (
+        JObject conditionCollection
+    ) =>
         CreateAction(ExecuteActionKind.Wait, new JObject { ["Milliseconds"] = 0, ["Condition"] = conditionCollection });
 
-    private static JObject CreateSingleCondition(string kind, JObject payload) =>
+    private static JObject CreateSingleCondition
+    (
+        string  kind,
+        JObject payload
+    ) =>
         new()
         {
             ["Version"]         = 3,
@@ -308,7 +324,11 @@ internal sealed class PresetStepV2ToV3Migrator : JsonObjectMigratorBase
             ["Negate"]          = false
         };
 
-    private static JObject CreateCondition(string kind, JObject payload)
+    private static JObject CreateCondition
+    (
+        string  kind,
+        JObject payload
+    )
     {
         var result = new JObject
         {
@@ -322,7 +342,11 @@ internal sealed class PresetStepV2ToV3Migrator : JsonObjectMigratorBase
         return result;
     }
 
-    private static JObject CreateAction(ExecuteActionKind kind, JObject payload)
+    private static JObject CreateAction
+    (
+        ExecuteActionKind kind,
+        JObject           payload
+    )
     {
         var result = new JObject
         {
@@ -350,8 +374,12 @@ internal sealed class PresetStepV2ToV3Migrator : JsonObjectMigratorBase
             ["Negate"]          = false
         };
 
-    private static string AppendMigrationRemark(string remark, string line) =>
-        string.IsNullOrWhiteSpace(remark)
-            ? $"[迁移提示] {line}"
-            : $"{remark}\n[迁移提示] {line}";
+    private static string AppendMigrationRemark
+    (
+        string remark,
+        string line
+    ) =>
+        string.IsNullOrWhiteSpace(remark) ?
+            $"[迁移提示] {line}" :
+            $"{remark}\n[迁移提示] {line}";
 }

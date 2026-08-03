@@ -1,4 +1,3 @@
-using System.Numerics;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
@@ -8,9 +7,7 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using Lumina.Excel.Sheets;
-using OmenTools.Dalamud;
 using OmenTools.Info.Game.Enums;
-using OmenTools.Interop.Game;
 using OmenTools.Interop.Game.Helpers;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
@@ -18,8 +15,6 @@ using OmenTools.Threading;
 using UntarnishedHeart.Execution.Common;
 using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.Enums;
-using UntarnishedHeart.Execution.ExecuteAction.Implementations;
-using UntarnishedHeart.Execution.Preset.Helpers;
 
 namespace UntarnishedHeart.Execution.Preset;
 
@@ -29,13 +24,19 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
     private readonly TaskCompletionSource<PresetExecutorResult> completionSource   = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly PresetExecutorRunOptions                   runOptions;
 
-    private CancellationTokenSource? executorCancellationSource;
-    private CancellationTokenSource? currentWorkCancellationSource;
-    private Task?                    currentWorkTask;
-    private bool                     isStarted;
-    private bool                     listenersRegistered;
+    private          CancellationTokenSource?    executorCancellationSource;
+    private          CancellationTokenSource?    currentWorkCancellationSource;
+    private          Task?                       currentWorkTask;
+    private          bool                        isStarted;
+    private          bool                        listenersRegistered;
+    private volatile ExecuteActionRuntimeCursor? pendingNavigation;
+    private volatile bool                        isPresetRunActive;
 
-    internal PresetExecutor(Preset? preset, PresetExecutorRunOptions runOptions)
+    internal PresetExecutor
+    (
+        Preset?                  preset,
+        PresetExecutorRunOptions runOptions
+    )
     {
         ExecutorPreset  = preset;
         this.runOptions = runOptions;
@@ -56,6 +57,8 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
     public bool IsStopped => Result?.EndReason == ExecutorEndReason.Stopped;
 
     public bool IsStopAfterDutyCompletionRequested { get; private set; }
+
+    internal bool CanNavigate => isPresetRunActive;
 
     internal Task<PresetExecutorResult> Completion => completionSource.Task;
 
@@ -149,6 +152,22 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
         ReplaceCurrentWork(token => LeaveDutyAndRestartAsync("手动退出副本开启新一局", token));
     }
 
+    public void NavigateTo
+    (
+        int stepIndex,
+        int actionIndex = -1
+    )
+    {
+        if (!isPresetRunActive || Completion.IsCompleted || ExecutorPreset is not { IsValid: true })
+            return;
+
+        if (!IsValidNavigation(stepIndex, actionIndex))
+            return;
+
+        pendingNavigation = new ExecuteActionRuntimeCursor(stepIndex, actionIndex);
+        ReplaceCurrentWork(RunPresetAsync);
+    }
+
     public bool RequestNearestInteract()
     {
         if (Completion.IsCompleted || IsDisposed)
@@ -183,9 +202,9 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
 
         try
         {
-            using var commandCancellationSource = executorCancellationSource == null
-                                                      ? null
-                                                      : CancellationTokenSource.CreateLinkedTokenSource(executorCancellationSource.Token);
+            using var commandCancellationSource = executorCancellationSource == null ?
+                                                      null :
+                                                      CancellationTokenSource.CreateLinkedTokenSource(executorCancellationSource.Token);
 
             await ExecuteNearestInteractAsync("命令触发最近交互", commandCancellationSource?.Token ?? CancellationToken.None);
         }
@@ -227,14 +246,21 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
         listenersRegistered = false;
     }
 
-    private static unsafe void OnAddonDraw(AddonEvent type, AddonArgs args)
+    private static unsafe void OnAddonDraw
+    (
+        AddonEvent type,
+        AddonArgs  args
+    )
     {
         if (!Throttler.Shared.Throttle("自动确认进入副本节流")) return;
         if (args.Addon == nint.Zero) return;
         args.Addon.ToStruct()->Callback(8);
     }
 
-    private void OnZoneChanged(uint zone)
+    private void OnZoneChanged
+    (
+        uint zone
+    )
     {
         if (ExecutorPreset == null || zone != ExecutorPreset.Zone || Completion.IsCompleted)
             return;
@@ -242,7 +268,10 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
         AbortPrevious();
     }
 
-    private void OnDutyStarted(IDutyStateEventArgs args)
+    private void OnDutyStarted
+    (
+        IDutyStateEventArgs args
+    )
     {
         if (ExecutorPreset == null || GameState.TerritoryType != ExecutorPreset.Zone || Completion.IsCompleted)
             return;
@@ -250,7 +279,10 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
         ReplaceCurrentWork(RunPresetAsync);
     }
 
-    private void OnDutyCompleted(IDutyStateEventArgs args)
+    private void OnDutyCompleted
+    (
+        IDutyStateEventArgs args
+    )
     {
         if (ExecutorPreset == null || GameState.TerritoryType != ExecutorPreset.Zone || Completion.IsCompleted)
             return;
@@ -258,7 +290,10 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
         ReplaceCurrentWork(HandleDutyCompletedAsync);
     }
 
-    private void ReplaceCurrentWork(Func<CancellationToken, Task> workFactory)
+    private void ReplaceCurrentWork
+    (
+        Func<CancellationToken, Task> workFactory
+    )
     {
         AbortPrevious();
 
@@ -307,60 +342,94 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
         );
     }
 
-    private async Task RunPresetAsync(CancellationToken cancellationToken)
+    private async Task RunPresetAsync
+    (
+        CancellationToken cancellationToken
+    )
     {
-        await WaitUntilAsync(() => DService.Instance().DutyState.IsDutyStarted, "等待副本开始", cancellationToken);
+        isPresetRunActive = true;
 
-        if (runOptions.AutoRecommendGear)
-            await EquipRecommendedGearAsync(cancellationToken);
-
-        var stepIndex        = runOptions.StartCursor?.StepIndex ?? 0;
-        var nextStartCursor  = runOptions.StartCursor;
-
-        while (stepIndex < ExecutorPreset!.Steps.Count)
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            await WaitUntilAsync(() => DService.Instance().DutyState.IsDutyStarted, "等待副本开始", cancellationToken);
 
-            var step       = ExecutorPreset.Steps[stepIndex];
-            var stepResult = await ExecuteStepAsync
-            (
-                step,
-                stepIndex,
-                nextStartCursor is { StepIndex: var startStepIndex } && startStepIndex == stepIndex ? nextStartCursor : null,
-                cancellationToken
-            );
-            nextStartCursor = null;
+            if (runOptions.AutoRecommendGear)
+                await EquipRecommendedGearAsync(cancellationToken);
 
-            switch (stepResult.Kind)
+            var effectiveStartCursor = pendingNavigation ?? runOptions.StartCursor;
+            pendingNavigation = null;
+            var stepIndex       = effectiveStartCursor?.StepIndex ?? 0;
+            var nextStartCursor = effectiveStartCursor;
+
+            while (stepIndex < ExecutorPreset!.Steps.Count)
             {
-                case ActionFlowKind.Continue:
-                    stepIndex++;
-                    break;
-                case ActionFlowKind.JumpToStep:
-                    stepIndex = stepResult.Index;
-                    break;
-                case ActionFlowKind.LeaveAndEnd:
-                    Finish
-                    (
-                        new PresetExecutorResult
-                        {
-                            EndReason       = ExecutorEndReason.Completed,
-                            CompletedRounds = CurrentRound
-                        },
-                        false
-                    );
-                    return;
-                case ActionFlowKind.LeaveAndRestart:
-                    return;
-                default:
-                    throw new InvalidOperationException($"不支持的步骤跳转结果: {stepResult.Kind}");
-            }
-        }
+                cancellationToken.ThrowIfCancellationRequested();
 
-        SetRunningMessage("等待副本完成");
+                var step = ExecutorPreset.Steps[stepIndex];
+                var stepResult = await ExecuteStepAsync
+                                 (
+                                     step,
+                                     stepIndex,
+                                     nextStartCursor is { StepIndex: var startStepIndex } && startStepIndex == stepIndex ?
+                                         nextStartCursor :
+                                         null,
+                                     cancellationToken
+                                 );
+                nextStartCursor = null;
+
+                switch (stepResult.Kind)
+                {
+                    case ActionFlowKind.Continue:
+                        stepIndex++;
+                        break;
+                    case ActionFlowKind.JumpToStep:
+                        stepIndex = stepResult.Index;
+                        break;
+                    case ActionFlowKind.LeaveAndEnd:
+                        Finish
+                        (
+                            new PresetExecutorResult
+                            {
+                                EndReason       = ExecutorEndReason.Completed,
+                                CompletedRounds = CurrentRound
+                            },
+                            false
+                        );
+                        return;
+                    case ActionFlowKind.LeaveAndRestart:
+                        return;
+                    default:
+                        throw new InvalidOperationException($"不支持的步骤跳转结果: {stepResult.Kind}");
+                }
+            }
+
+            SetRunningMessage("等待副本完成");
+        }
+        finally
+        {
+            isPresetRunActive = false;
+        }
     }
 
-    private async Task HandleDutyCompletedAsync(CancellationToken cancellationToken)
+    private bool IsValidNavigation
+    (
+        int stepIndex,
+        int actionIndex
+    )
+    {
+        if (stepIndex < 0 || stepIndex >= ExecutorPreset!.Steps.Count)
+            return false;
+
+        if (actionIndex < 0)
+            return true;
+
+        return actionIndex < ExecutorPreset.Steps[stepIndex].Actions.Count;
+    }
+
+    private async Task HandleDutyCompletedAsync
+    (
+        CancellationToken cancellationToken
+    )
     {
         if (ExecutorPreset!.AutoOpenTreasures)
             await OpenTreasuresAsync(cancellationToken);
@@ -370,12 +439,17 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
 
         await LeaveDutyAndRestartAsync
         (
-            IsStopAfterDutyCompletionRequested ? "副本完成, 离开副本后结束执行" : "副本完成, 离开副本, 进入下一局",
+            IsStopAfterDutyCompletionRequested ?
+                "副本完成, 离开副本后结束执行" :
+                "副本完成, 离开副本, 进入下一局",
             cancellationToken
         );
     }
 
-    private async Task EquipRecommendedGearAsync(CancellationToken cancellationToken)
+    private async Task EquipRecommendedGearAsync
+    (
+        CancellationToken cancellationToken
+    )
     {
         SetRunningMessage("尝试切换最强装备");
 
@@ -389,7 +463,11 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
         await Task.Delay(100, cancellationToken);
     }
 
-    protected override async Task LeaveDutyAndRestartAsync(string message, CancellationToken cancellationToken)
+    protected override async Task LeaveDutyAndRestartAsync
+    (
+        string            message,
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -432,8 +510,10 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
 
     private bool HasReachedMaxRound() => MaxRound != -1 && CurrentRound >= MaxRound;
 
-    private async Task WaitForDutyExitAsync(CancellationToken cancellationToken)
-    {
+    private async Task WaitForDutyExitAsync
+    (
+        CancellationToken cancellationToken
+    ) =>
         await WaitUntilAsync
         (
             () =>
@@ -441,12 +521,16 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
                 if (!Throttler.Shared.Throttle("等待副本结束节流")) return false;
                 return !DService.Instance().DutyState.IsDutyStarted && DService.Instance().ClientState.TerritoryType != ExecutorPreset!.Zone;
             },
-            IsStopAfterDutyCompletionRequested ? "等待退出副本后结束" : "等待副本结束",
+            IsStopAfterDutyCompletionRequested ?
+                "等待退出副本后结束" :
+                "等待副本结束",
             cancellationToken
         );
-    }
 
-    private async Task RegisterDutyAsync(CancellationToken cancellationToken)
+    private async Task RegisterDutyAsync
+    (
+        CancellationToken cancellationToken
+    )
     {
         await WaitForDutyExitAsync(cancellationToken);
 
@@ -508,7 +592,10 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
         }
     }
 
-    private async Task OpenTreasuresAsync(CancellationToken cancellationToken)
+    private async Task OpenTreasuresAsync
+    (
+        CancellationToken cancellationToken
+    )
     {
         var localPlayer = DService.Instance().ObjectTable.LocalPlayer;
         var originalPos = localPlayer?.Position ?? default;
@@ -550,9 +637,18 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
     }
 
     protected override void LeaveDuty() =>
-        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.LeaveDuty, DService.Instance().Condition[ConditionFlag.InCombat] ? 1U : 0);
+        ExecuteCommandManager.Instance().ExecuteCommand
+        (
+            ExecuteCommandFlag.LeaveDuty,
+            DService.Instance().Condition[ConditionFlag.InCombat] ?
+                1U :
+                0
+        );
 
-    protected override void SetRunningMessage(string message) => RunningMessage = message;
+    protected override void SetRunningMessage
+    (
+        string message
+    ) => RunningMessage = message;
 
     private void AbortPrevious()
     {
@@ -568,7 +664,11 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
         currentWorkCts.Cancel();
     }
 
-    private void Finish(PresetExecutorResult result, bool abortQueue)
+    private void Finish
+    (
+        PresetExecutorResult result,
+        bool                 abortQueue
+    )
     {
         if (Result != null)
             return;
@@ -585,13 +685,20 @@ public class PresetExecutor : ExecuteActionExecutionHost, IDisposable
 
     protected override ConditionContext CreateConditionContext() => ConditionContext.Create((int)CurrentRound);
 
-    protected override void ValidateStepIndex(int stepIndex)
+    protected override void ValidateStepIndex
+    (
+        int stepIndex
+    )
     {
         if (ExecutorPreset == null || stepIndex < 0 || stepIndex >= ExecutorPreset.Steps.Count)
             throw new InvalidOperationException($"无效的步骤索引: {stepIndex}");
     }
 
-    protected override void ValidateActionIndex(int actionIndex, int actionCount)
+    protected override void ValidateActionIndex
+    (
+        int actionIndex,
+        int actionCount
+    )
     {
         if (actionIndex < 0 || actionIndex >= actionCount)
             throw new InvalidOperationException($"无效的执行动作索引: {actionIndex}");

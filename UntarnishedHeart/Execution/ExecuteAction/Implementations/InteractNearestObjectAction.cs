@@ -12,10 +12,16 @@ public sealed class InteractNearestObjectAction : ExecuteActionBase
     public override ExecuteActionKind Kind =>
         ExecuteActionKind.InteractNearestObject;
 
-    public override void Draw(ExecuteActionDrawContext context) =>
+    public override void Draw
+    (
+        ExecuteActionDrawContext context
+    ) =>
         ExecuteActionDrawHelper.DrawNoExtraParametersHint();
 
-    protected override bool EqualsCore(ExecuteActionBase other) =>
+    protected override bool EqualsCore
+    (
+        ExecuteActionBase other
+    ) =>
         other is InteractNearestObjectAction;
 
     protected override int GetCoreHashCode() => 0;

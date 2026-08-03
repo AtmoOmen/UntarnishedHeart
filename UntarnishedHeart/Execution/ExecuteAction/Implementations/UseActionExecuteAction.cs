@@ -26,7 +26,10 @@ public sealed class UseActionExecuteAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.UseAction;
 
-    public override void Draw(ExecuteActionDrawContext context)
+    public override void Draw
+    (
+        ExecuteActionDrawContext context
+    )
     {
         ExecuteActionDrawHelper.DrawActionReference(Action, "UseAction");
 
@@ -47,7 +50,10 @@ public sealed class UseActionExecuteAction : ExecuteActionBase
         ExecuteActionDrawHelper.DrawPositionSelector("UseActionGetCurrentPosition", position => Location = position, () => Location);
     }
 
-    protected override bool EqualsCore(ExecuteActionBase other) =>
+    protected override bool EqualsCore
+    (
+        ExecuteActionBase other
+    ) =>
         other is UseActionExecuteAction action       &&
         Action.Equals(action.Action)                 &&
         TargetSelector.Equals(action.TargetSelector) &&

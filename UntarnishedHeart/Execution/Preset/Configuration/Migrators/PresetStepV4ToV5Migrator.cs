@@ -9,7 +9,10 @@ internal sealed class PresetStepV4ToV5Migrator : JsonObjectMigratorBase
 
     public override int ToVersion => 5;
 
-    public override JObject Migrate(JObject jsonObject)
+    public override JObject Migrate
+    (
+        JObject jsonObject
+    )
     {
         var migrated = (JObject)jsonObject.DeepClone();
         var actions  = new JArray();
@@ -30,10 +33,13 @@ internal sealed class PresetStepV4ToV5Migrator : JsonObjectMigratorBase
                 }
 
                 var migratedAction = (JObject)actionObject.DeepClone();
+
                 if (IsJumpToAction(migratedAction))
                 {
                     var phaseIndex = PresetStepJsonConverter.ReadInt(migratedAction["ActionIndex"], -1);
-                    migratedAction["ActionIndex"] = phaseIndex < 0 ? -1 : phaseOffset + phaseIndex;
+                    migratedAction["ActionIndex"] = phaseIndex < 0 ?
+                                                        -1 :
+                                                        phaseOffset + phaseIndex;
                 }
 
                 actions.Add(migratedAction);
@@ -48,7 +54,10 @@ internal sealed class PresetStepV4ToV5Migrator : JsonObjectMigratorBase
         return migrated;
     }
 
-    private static bool IsJumpToAction(JObject actionObject)
+    private static bool IsJumpToAction
+    (
+        JObject actionObject
+    )
     {
         var typeID = PresetStepJsonConverter.ReadString(actionObject["TypeId"]);
         if (string.Equals(typeID, "JumpToAction", StringComparison.Ordinal))

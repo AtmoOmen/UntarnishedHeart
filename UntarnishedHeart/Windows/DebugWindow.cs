@@ -232,7 +232,11 @@ public class DebugWindow() : Window($"调试窗口###{Plugin.PLUGIN_NAME}-DebugW
         }
     }
 
-    private static void DrawTableRow(string label, string value)
+    private static void DrawTableRow
+    (
+        string label,
+        string value
+    )
     {
         ImGui.TableNextRow();
         ImGui.TableSetColumnIndex(0);

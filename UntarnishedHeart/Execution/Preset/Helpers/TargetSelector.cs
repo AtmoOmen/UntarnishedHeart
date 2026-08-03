@@ -15,7 +15,10 @@ public sealed class TargetSelector : IEquatable<TargetSelector>
 
     public bool RequireTargetable { get; set; } = true;
 
-    public bool Equals(TargetSelector? other)
+    public bool Equals
+    (
+        TargetSelector? other
+    )
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
@@ -27,11 +30,17 @@ public sealed class TargetSelector : IEquatable<TargetSelector>
                RequireTargetable == other.RequireTargetable;
     }
 
-    public override bool Equals(object? obj) => Equals(obj as TargetSelector);
+    public override bool Equals
+    (
+        object? obj
+    ) => Equals(obj as TargetSelector);
 
     public override int GetHashCode() => HashCode.Combine((int)Kind, (int)ObjectKind, DataID, EntityID, RequireTargetable);
 
-    public static TargetSelector Copy(TargetSelector source) =>
+    public static TargetSelector Copy
+    (
+        TargetSelector source
+    ) =>
         new()
         {
             Kind              = source.Kind,

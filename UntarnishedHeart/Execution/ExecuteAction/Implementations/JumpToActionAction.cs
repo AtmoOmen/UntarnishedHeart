@@ -14,10 +14,15 @@ public sealed class JumpToActionAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.JumpToAction;
 
-    public override void Draw(ExecuteActionDrawContext context)
+    public override void Draw
+    (
+        ExecuteActionDrawContext context
+    )
     {
         var hasValidTarget = ActionIndex >= 0 && ActionIndex < context.Actions.Count;
-        var preview        = hasValidTarget ? $"{ActionIndex}. {context.Actions[ActionIndex].Name}" : "请选择目标动作";
+        var preview = hasValidTarget ?
+                          $"{ActionIndex}. {context.Actions[ActionIndex].Name}" :
+                          "请选择目标动作";
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
 
         using var combo = ImRaii.Combo("目标动作###JumpToActionCombo", preview, ImGuiComboFlags.HeightLargest);
@@ -31,7 +36,9 @@ public sealed class JumpToActionAction : ExecuteActionBase
         (
             "选择目标动作",
             "当前步骤暂无动作",
-            hasValidTarget ? ActionIndex : -1,
+            hasValidTarget ?
+                ActionIndex :
+                -1,
             context.Actions,
             static action => action.Name,
             index =>
@@ -44,7 +51,10 @@ public sealed class JumpToActionAction : ExecuteActionBase
         );
     }
 
-    protected override bool EqualsCore(ExecuteActionBase other) =>
+    protected override bool EqualsCore
+    (
+        ExecuteActionBase other
+    ) =>
         other is JumpToActionAction action && ActionIndex == action.ActionIndex;
 
     protected override int GetCoreHashCode() => ActionIndex;

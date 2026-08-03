@@ -10,7 +10,12 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
 {
     private const string TypeIDPropertyName = "TypeId";
 
-    public override void WriteJson(JsonWriter writer, ConditionBase? value, JsonSerializer serializer)
+    public override void WriteJson
+    (
+        JsonWriter     writer,
+        ConditionBase? value,
+        JsonSerializer serializer
+    )
     {
         if (value is null)
         {
@@ -41,7 +46,11 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
         return DeserializeCurrent(jsonObject);
     }
 
-    internal static JObject SerializeToJObject(ConditionBase value, JsonSerializer serializer)
+    internal static JObject SerializeToJObject
+    (
+        ConditionBase  value,
+        JsonSerializer serializer
+    )
     {
         ArgumentNullException.ThrowIfNull(value);
 
@@ -52,7 +61,11 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
         return obj;
     }
 
-    internal static JObject SerializeLegacyV2ToJObject(ConditionBase value, JsonSerializer serializer)
+    internal static JObject SerializeLegacyV2ToJObject
+    (
+        ConditionBase  value,
+        JsonSerializer serializer
+    )
     {
         var obj = new JObject
         {
@@ -90,7 +103,10 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
         return obj;
     }
 
-    internal static ConditionBase DeserializeCurrent(JObject obj)
+    internal static ConditionBase DeserializeCurrent
+    (
+        JObject obj
+    )
     {
         var typeID = ReadString(obj[TypeIDPropertyName]);
         if (string.IsNullOrWhiteSpace(typeID))
@@ -108,7 +124,10 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
         return condition;
     }
 
-    internal static ConditionDetectType ReadConditionKind(JToken? token)
+    internal static ConditionDetectType ReadConditionKind
+    (
+        JToken? token
+    )
     {
         if (token?.Type == JTokenType.String)
         {
@@ -120,7 +139,12 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
         return ReadEnum(token, ConditionDetectType.Health);
     }
 
-    internal static ActionReference ReadActionReference(JToken? token, JToken? legacyActionIDToken, JsonSerializer serializer)
+    internal static ActionReference ReadActionReference
+    (
+        JToken?        token,
+        JToken?        legacyActionIDToken,
+        JsonSerializer serializer
+    )
     {
         if (token is not null)
             return ReadObject(token, serializer, new ActionReference());
@@ -131,10 +155,13 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
         };
     }
 
-    internal static float ReadFloat(JToken? token) =>
-        token is null
-            ? 0f
-            : token.Type switch
+    internal static float ReadFloat
+    (
+        JToken? token
+    ) =>
+        token is null ?
+            0f :
+            token.Type switch
             {
                 JTokenType.Integer                                                          => token.Value<float>(),
                 JTokenType.Float                                                            => token.Value<float>(),
@@ -142,12 +169,19 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
                 _                                                                           => 0f
             };
 
-    internal static uint ReadUInt(JToken? token) => (uint)Math.Max(0, (int)ReadFloat(token));
+    internal static uint ReadUInt
+    (
+        JToken? token
+    ) => (uint)Math.Max(0, (int)ReadFloat(token));
 
-    internal static bool ReadBool(JToken? token, bool fallback = false) =>
-        token is null
-            ? fallback
-            : token.Type switch
+    internal static bool ReadBool
+    (
+        JToken? token,
+        bool    fallback = false
+    ) =>
+        token is null ?
+            fallback :
+            token.Type switch
             {
                 JTokenType.Boolean                                                         => token.Value<bool>(),
                 JTokenType.Integer                                                         => token.Value<int>() != 0,
@@ -155,10 +189,14 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
                 _                                                                          => fallback
             };
 
-    internal static int ReadInt(JToken? token, int fallback = 0) =>
-        token is null
-            ? fallback
-            : token.Type switch
+    internal static int ReadInt
+    (
+        JToken? token,
+        int     fallback = 0
+    ) =>
+        token is null ?
+            fallback :
+            token.Type switch
             {
                 JTokenType.Integer                                                        => token.Value<int>(),
                 JTokenType.Float                                                          => (int)token.Value<float>(),
@@ -166,12 +204,21 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
                 _                                                                         => fallback
             };
 
-    internal static string ReadString(JToken? token, string fallback = "") =>
-        token?.Type == JTokenType.Null
-            ? fallback
-            : token?.Value<string>() ?? fallback;
+    internal static string ReadString
+    (
+        JToken? token,
+        string  fallback = ""
+    ) =>
+        token?.Type == JTokenType.Null ?
+            fallback :
+            token?.Value<string>() ?? fallback;
 
-    internal static T ReadObject<T>(JToken? token, JsonSerializer serializer, T fallback)
+    internal static T ReadObject<T>
+    (
+        JToken?        token,
+        JsonSerializer serializer,
+        T              fallback
+    )
     {
         if (token is null)
             return fallback;
@@ -179,7 +226,11 @@ public sealed class ConditionJSONConverter : JsonConverter<ConditionBase>
         return token.ToObject<T>(serializer) ?? fallback;
     }
 
-    internal static TEnum ReadEnum<TEnum>(JToken? token, TEnum fallback)
+    internal static TEnum ReadEnum<TEnum>
+    (
+        JToken? token,
+        TEnum   fallback
+    )
         where TEnum : struct, Enum
     {
         if (token is null)

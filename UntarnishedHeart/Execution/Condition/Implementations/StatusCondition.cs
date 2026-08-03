@@ -22,14 +22,22 @@ public sealed class StatusCondition : ConditionBase
     [JsonProperty("StatusId")]
     public uint StatusID { get; set; }
 
-    public override bool Evaluate(in ConditionContext context)
+    public override bool Evaluate
+    (
+        in ConditionContext context
+    )
     {
         var target    = ResolveTarget(context, TargetType);
         var hasStatus = target?.StatusList.HasStatus(StatusID) == true;
-        return ComparisonType == PresenceComparisonType.Has ? hasStatus : !hasStatus;
+        return ComparisonType == PresenceComparisonType.Has ?
+                   hasStatus :
+                   !hasStatus;
     }
 
-    protected override bool EqualsCore(ConditionBase other) =>
+    protected override bool EqualsCore
+    (
+        ConditionBase other
+    ) =>
         other is StatusCondition condition         &&
         ComparisonType == condition.ComparisonType &&
         TargetType     == condition.TargetType     &&
@@ -52,6 +60,7 @@ public sealed class StatusCondition : ConditionBase
     {
         DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<PresenceComparisonType>();
+
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -72,6 +81,7 @@ public sealed class StatusCondition : ConditionBase
 
         DrawLabel("作用对象", KnownColor.LightSkyBlue.ToVector4());
         var targetTypeCandidates = Enum.GetValues<ConditionTargetType>();
+
         using (var combo = ImRaii.Combo("###TargetTypeCombo", TargetType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)

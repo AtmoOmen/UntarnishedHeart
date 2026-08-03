@@ -26,36 +26,66 @@ internal abstract class PolymorphicJsonTypeRegistry<TBase, TKind, TAttribute>
 
     protected abstract string DisplayName { get; }
 
-    protected abstract TAttribute? GetMetadata(Type type);
+    protected abstract TAttribute? GetMetadata
+    (
+        Type type
+    );
 
-    protected virtual bool ShouldRegisterType(Type type) => true;
+    protected virtual bool ShouldRegisterType
+    (
+        Type type
+    ) => true;
 
-    protected abstract string GetTypeID(TAttribute metadata);
+    protected abstract string GetTypeID
+    (
+        TAttribute metadata
+    );
 
-    protected abstract TKind GetKind(TAttribute metadata);
+    protected abstract TKind GetKind
+    (
+        TAttribute metadata
+    );
 
-    protected virtual void InitializeDefaultInstance(TBase instance)
+    protected virtual void InitializeDefaultInstance
+    (
+        TBase instance
+    )
     {
     }
 
-    public TBase CreateDefault(TKind kind)
+    public TBase CreateDefault
+    (
+        TKind kind
+    )
     {
         var instance = GetEntry(kind).CreateInstance();
         InitializeDefaultInstance(instance);
         return instance;
     }
 
-    public string GetTypeID(TKind kind) => GetEntry(kind).TypeID;
+    public string GetTypeID
+    (
+        TKind kind
+    ) => GetEntry(kind).TypeID;
 
-    public string GetTypeID(TBase value)
+    public string GetTypeID
+    (
+        TBase value
+    )
     {
         ArgumentNullException.ThrowIfNull(value);
         return GetEntry(value.GetType()).TypeID;
     }
 
-    public Type GetRuntimeType(string typeID) => GetEntry(typeID).RuntimeType;
+    public Type GetRuntimeType
+    (
+        string typeID
+    ) => GetEntry(typeID).RuntimeType;
 
-    private Entry CreateEntry(Type runtimeType)
+    private Entry CreateEntry
+    (
+        Type runtimeType
+    )
     {
         var metadata = GetMetadata(runtimeType) ??
                        throw new InvalidOperationException($"{DisplayName} 类型 {runtimeType.FullName} 缺少 {typeof(TAttribute).Name}");
@@ -76,20 +106,29 @@ internal abstract class PolymorphicJsonTypeRegistry<TBase, TKind, TAttribute>
         );
     }
 
-    private Entry GetEntry(string typeID) =>
-        entriesByTypeID.TryGetValue(typeID, out var entry)
-            ? entry
-            : throw new InvalidOperationException($"未知的 {DisplayName} TypeId: {typeID}");
+    private Entry GetEntry
+    (
+        string typeID
+    ) =>
+        entriesByTypeID.TryGetValue(typeID, out var entry) ?
+            entry :
+            throw new InvalidOperationException($"未知的 {DisplayName} TypeId: {typeID}");
 
-    private Entry GetEntry(Type runtimeType) =>
-        entriesByRuntimeType.TryGetValue(runtimeType, out var entry)
-            ? entry
-            : throw new InvalidOperationException($"未注册的 {DisplayName} 运行时类型: {runtimeType.FullName}");
+    private Entry GetEntry
+    (
+        Type runtimeType
+    ) =>
+        entriesByRuntimeType.TryGetValue(runtimeType, out var entry) ?
+            entry :
+            throw new InvalidOperationException($"未注册的 {DisplayName} 运行时类型: {runtimeType.FullName}");
 
-    private Entry GetEntry(TKind kind) =>
-        entriesByKind.TryGetValue(kind, out var entry)
-            ? entry
-            : throw new InvalidOperationException($"未注册的 {DisplayName} Kind: {kind}");
+    private Entry GetEntry
+    (
+        TKind kind
+    ) =>
+        entriesByKind.TryGetValue(kind, out var entry) ?
+            entry :
+            throw new InvalidOperationException($"未注册的 {DisplayName} Kind: {kind}");
 
     private FrozenDictionary<TKey, Entry> CreateFrozenDictionary<TKey>
     (
@@ -100,7 +139,9 @@ internal abstract class PolymorphicJsonTypeRegistry<TBase, TKind, TAttribute>
     )
         where TKey : notnull
     {
-        var dictionary = comparer is null ? new Dictionary<TKey, Entry>() : new Dictionary<TKey, Entry>(comparer);
+        var dictionary = comparer is null ?
+                             new Dictionary<TKey, Entry>() :
+                             new Dictionary<TKey, Entry>(comparer);
 
         foreach (var entry in entries)
         {
@@ -109,9 +150,9 @@ internal abstract class PolymorphicJsonTypeRegistry<TBase, TKind, TAttribute>
                 throw new InvalidOperationException($"{DisplayName} 的 {keyDisplayName} 重复: {key}");
         }
 
-        return comparer is null
-                   ? dictionary.ToFrozenDictionary()
-                   : dictionary.ToFrozenDictionary(comparer);
+        return comparer is null ?
+                   dictionary.ToFrozenDictionary() :
+                   dictionary.ToFrozenDictionary(comparer);
     }
 
     private sealed record Entry

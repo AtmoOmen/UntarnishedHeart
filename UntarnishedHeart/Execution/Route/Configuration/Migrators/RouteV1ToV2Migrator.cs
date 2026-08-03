@@ -19,7 +19,10 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
 
     public override int ToVersion => 2;
 
-    public override JObject Migrate(JObject jsonObject)
+    public override JObject Migrate
+    (
+        JObject jsonObject
+    )
     {
         var migrated = new JObject
         {
@@ -45,7 +48,11 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
         return migrated;
     }
 
-    private static PresetStep MigrateStep(JObject stepObject, int stepIndex)
+    private static PresetStep MigrateStep
+    (
+        JObject stepObject,
+        int     stepIndex
+    )
     {
         var legacyStep = stepObject.ToObject<RouteStep>(Serializer) ?? new RouteStep();
         var step = new PresetStep
@@ -90,14 +97,17 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
         return step;
     }
 
-    private static ExecutePresetAction CreateExecutePresetAction(RouteStep legacyStep)
+    private static ExecutePresetAction CreateExecutePresetAction
+    (
+        RouteStep legacyStep
+    )
     {
         var action = new ExecutePresetAction
         {
             PresetName = legacyStep.PresetName,
-            DutyOptions = legacyStep.DutyOptions == null
-                              ? new DutyOptions()
-                              : new DutyOptions
+            DutyOptions = legacyStep.DutyOptions == null ?
+                              new DutyOptions() :
+                              new DutyOptions
                               {
                                   LeaderMode           = legacyStep.DutyOptions.LeaderMode,
                                   AutoRecommendGear    = legacyStep.DutyOptions.AutoRecommendGear,
@@ -111,27 +121,44 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
         return action;
     }
 
-    private static ExecuteActionBase? MigrateBranchAction(RouteStepActionType actionType, int jumpIndex, int stepIndex) =>
+    private static ExecuteActionBase? MigrateBranchAction
+    (
+        RouteStepActionType actionType,
+        int                 jumpIndex,
+        int                 stepIndex
+    ) =>
         actionType switch
         {
             RouteStepActionType.RepeatCurrentStep => InitializeAction(new JumpToStepAction { StepIndex = stepIndex }),
             RouteStepActionType.JumpToStep        => InitializeAction(new JumpToStepAction { StepIndex = jumpIndex }),
             RouteStepActionType.EndRoute          => InitializeAction(new LeaveDutyAndEndAction()),
-            RouteStepActionType.GoToPreviousStep => stepIndex > 0
-                                                        ? InitializeAction(new JumpToStepAction { StepIndex = stepIndex - 1 })
-                                                        : InitializeAction(new JumpToStepAction { StepIndex = stepIndex }),
+            RouteStepActionType.GoToPreviousStep => stepIndex > 0 ?
+                                                        InitializeAction(new JumpToStepAction { StepIndex = stepIndex - 1 }) :
+                                                        InitializeAction(new JumpToStepAction { StepIndex = stepIndex }),
             RouteStepActionType.GoToNextStep => null,
             _                                => null
         };
 
-    private static ConditionCollection CreateConditionCollection(ConditionBase condition, bool negate) =>
+    private static ConditionCollection CreateConditionCollection
+    (
+        ConditionBase condition,
+        bool          negate
+    ) =>
         new()
         {
             ExecuteType = ConditionExecuteType.Skip,
-            Conditions  = [negate ? NegateCondition(condition) : condition]
+            Conditions =
+            [
+                negate ?
+                    NegateCondition(condition) :
+                    condition
+            ]
         };
 
-    private static ConditionBase CreateCondition(RouteStep legacyStep)
+    private static ConditionBase CreateCondition
+    (
+        RouteStep legacyStep
+    )
     {
         ConditionBase condition = legacyStep.ConditionType switch
         {
@@ -159,7 +186,10 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
         return condition;
     }
 
-    private static ConditionBase NegateCondition(ConditionBase condition)
+    private static ConditionBase NegateCondition
+    (
+        ConditionBase condition
+    )
     {
         var negated = ConditionBase.Copy(condition);
 
@@ -180,7 +210,10 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
         return negated;
     }
 
-    private static NumericComparisonType MapComparisonType(ComparisonType comparisonType) =>
+    private static NumericComparisonType MapComparisonType
+    (
+        ComparisonType comparisonType
+    ) =>
         comparisonType switch
         {
             ComparisonType.GreaterThan        => NumericComparisonType.GreaterThan,
@@ -192,7 +225,10 @@ internal sealed class RouteV1ToV2Migrator : JsonObjectMigratorBase
             _                                 => NumericComparisonType.EqualTo
         };
 
-    private static T InitializeAction<T>(T action)
+    private static T InitializeAction<T>
+    (
+        T action
+    )
         where T : ExecuteActionBase
     {
         action.ResetMetadata();

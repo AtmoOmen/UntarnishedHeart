@@ -1,7 +1,6 @@
-using OmenTools.Dalamud;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using OmenTools.Interop.Game.Helpers;
 using OmenTools.OmenService;
-using FFXIVClientStructs.FFXIV.Client.UI;
 using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.Condition.Enums;
 using UntarnishedHeart.Execution.Enums;
@@ -37,9 +36,15 @@ public abstract class ExecuteActionExecutionHost
     {
         public static ActionFlowResult Continue() => new(ActionFlowKind.Continue);
 
-        public static ActionFlowResult JumpToStep(int stepIndex) => new(ActionFlowKind.JumpToStep, stepIndex);
+        public static ActionFlowResult JumpToStep
+        (
+            int stepIndex
+        ) => new(ActionFlowKind.JumpToStep, stepIndex);
 
-        public static ActionFlowResult JumpToAction(int actionIndex) => new(ActionFlowKind.JumpToAction, actionIndex);
+        public static ActionFlowResult JumpToAction
+        (
+            int actionIndex
+        ) => new(ActionFlowKind.JumpToAction, actionIndex);
 
         public static ActionFlowResult LeaveAndEnd() => new(ActionFlowKind.LeaveAndEnd);
 
@@ -50,10 +55,19 @@ public abstract class ExecuteActionExecutionHost
 
     protected void ResetRuntimeCursor() => runtimeCursor = ExecuteActionRuntimeCursor.Empty;
 
-    protected void SetRuntimeCursor(int stepIndex, int actionIndex = -1) =>
+    protected void SetRuntimeCursor
+    (
+        int stepIndex,
+        int actionIndex = -1
+    ) =>
         runtimeCursor = new(stepIndex, actionIndex);
 
-    protected Task<ActionFlowResult> ExecuteStepAsync(PresetStep step, int stepIndex, CancellationToken cancellationToken) =>
+    protected Task<ActionFlowResult> ExecuteStepAsync
+    (
+        PresetStep        step,
+        int               stepIndex,
+        CancellationToken cancellationToken
+    ) =>
         ExecuteStepAsync(step, stepIndex, null, cancellationToken);
 
     protected async Task<ActionFlowResult> ExecuteStepAsync
@@ -65,10 +79,10 @@ public abstract class ExecuteActionExecutionHost
     )
     {
         SetRuntimeCursor(stepIndex);
-        var actions          = step.Actions;
-        var startActionIndex = startCursor is { HasAction: true, StepIndex: var cursorStepIndex } && cursorStepIndex == stepIndex
-                                   ? startCursor.ActionIndex
-                                   : 0;
+        var actions = step.Actions;
+        var startActionIndex = startCursor is { HasAction: true, StepIndex: var cursorStepIndex } && cursorStepIndex == stepIndex ?
+                                   startCursor.ActionIndex :
+                                   0;
 
         return await ExecuteActionListAsync(stepIndex, step, actions, cancellationToken, startActionIndex);
     }
@@ -183,7 +197,9 @@ public abstract class ExecuteActionExecutionHost
                 return ActionFlowResult.Continue();
 
             case JumpToStepAction jumpToStep:
-                var targetStepIndex = jumpToStep.StepIndex < 0 ? stepIndex : jumpToStep.StepIndex;
+                var targetStepIndex = jumpToStep.StepIndex < 0 ?
+                                          stepIndex :
+                                          jumpToStep.StepIndex;
                 ValidateStepIndex(targetStepIndex);
                 SetRunningMessage(actionLabel);
                 return ActionFlowResult.JumpToStep(targetStepIndex);
@@ -215,6 +231,7 @@ public abstract class ExecuteActionExecutionHost
                 SetRunningMessage(actionLabel);
 
                 if (gameCommandComplex.UseLocation)
+                {
                     ExecuteCommandManager.Instance().ExecuteCommandComplexLocation
                     (
                         gameCommandComplex.Command,
@@ -224,7 +241,9 @@ public abstract class ExecuteActionExecutionHost
                         gameCommandComplex.Param3,
                         gameCommandComplex.Param4
                     );
+                }
                 else
+                {
                     ExecuteCommandManager.Instance().ExecuteCommandComplex
                     (
                         gameCommandComplex.Command,
@@ -234,6 +253,7 @@ public abstract class ExecuteActionExecutionHost
                         gameCommandComplex.Param3,
                         gameCommandComplex.Param4
                     );
+                }
 
                 return ActionFlowResult.Continue();
 
@@ -355,10 +375,20 @@ public abstract class ExecuteActionExecutionHost
         }
     }
 
-    protected static string BuildActionMessage(int stepIndex, PresetStep step, int actionIndex, string suffix) =>
+    protected static string BuildActionMessage
+    (
+        int        stepIndex,
+        PresetStep step,
+        int        actionIndex,
+        string     suffix
+    ) =>
         $"步骤 {stepIndex}: {step.Name} / 动作 {actionIndex}: {suffix}";
 
-    protected bool ShouldRepeat(ConditionCollection conditionCollection, int executedCount)
+    protected bool ShouldRepeat
+    (
+        ConditionCollection conditionCollection,
+        int                 executedCount
+    )
     {
         if (conditionCollection.MaxExecuteCount > 0 && executedCount >= conditionCollection.MaxExecuteCount)
             return false;
@@ -374,15 +404,29 @@ public abstract class ExecuteActionExecutionHost
 
     protected abstract ConditionContext CreateConditionContext();
 
-    protected abstract void SetRunningMessage(string message);
+    protected abstract void SetRunningMessage
+    (
+        string message
+    );
 
-    protected abstract void ValidateStepIndex(int stepIndex);
+    protected abstract void ValidateStepIndex
+    (
+        int stepIndex
+    );
 
-    protected abstract void ValidateActionIndex(int actionIndex, int currentActionCount);
+    protected abstract void ValidateActionIndex
+    (
+        int actionIndex,
+        int currentActionCount
+    );
 
     protected abstract void LeaveDuty();
 
-    protected abstract Task LeaveDutyAndRestartAsync(string message, CancellationToken cancellationToken);
+    protected abstract Task LeaveDutyAndRestartAsync
+    (
+        string            message,
+        CancellationToken cancellationToken
+    );
 
     protected virtual Task<ActionFlowResult?> ExecuteCustomActionCoreAsync
     (
@@ -396,7 +440,12 @@ public abstract class ExecuteActionExecutionHost
     ) =>
         Task.FromResult<ActionFlowResult?>(null);
 
-    protected async Task RunCommandsAsync(string commands, string actionLabel, CancellationToken cancellationToken)
+    protected async Task RunCommandsAsync
+    (
+        string            commands,
+        string            actionLabel,
+        CancellationToken cancellationToken
+    )
     {
         if (string.IsNullOrWhiteSpace(commands))
             return;
@@ -420,7 +469,11 @@ public abstract class ExecuteActionExecutionHost
         }
     }
 
-    protected async Task ExecuteNearestInteractAsync(string sourceName, CancellationToken cancellationToken)
+    protected async Task ExecuteNearestInteractAsync
+    (
+        string            sourceName,
+        CancellationToken cancellationToken
+    )
     {
         var target = PresetTargetResolver.FindNearestInteractableObject();
 
@@ -443,7 +496,12 @@ public abstract class ExecuteActionExecutionHost
         PresetTargetResolver.OpenObjectInteraction(target);
     }
 
-    protected async Task ExecuteMovementActionAsync(MoveToPositionAction action, string actionLabel, CancellationToken cancellationToken)
+    protected async Task ExecuteMovementActionAsync
+    (
+        MoveToPositionAction action,
+        string               actionLabel,
+        CancellationToken    cancellationToken
+    )
     {
         if (action.Position == default)
             return;
@@ -469,14 +527,25 @@ public abstract class ExecuteActionExecutionHost
         await Task.CompletedTask;
     }
 
-    protected async Task WaitUntilAsync(Func<bool> predicate, string message, CancellationToken cancellationToken, int intervalMs = 100)
+    protected async Task WaitUntilAsync
+    (
+        Func<bool>        predicate,
+        string            message,
+        CancellationToken cancellationToken,
+        int               intervalMs = 100
+    )
     {
         SetRunningMessage(message);
         while (!predicate())
             await Task.Delay(intervalMs, cancellationToken);
     }
 
-    protected async Task DelayAsync(int delayMs, string message, CancellationToken cancellationToken)
+    protected async Task DelayAsync
+    (
+        int               delayMs,
+        string            message,
+        CancellationToken cancellationToken
+    )
     {
         SetRunningMessage(message);
         await Task.Delay(delayMs, cancellationToken);

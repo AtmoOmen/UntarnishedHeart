@@ -5,7 +5,11 @@ namespace UntarnishedHeart.Execution.Preset;
 
 internal static class PresetReferenceBinder
 {
-    public static int BindUnboundReferences(RouteModel route, IReadOnlyList<Preset> presets)
+    public static int BindUnboundReferences
+    (
+        RouteModel            route,
+        IReadOnlyList<Preset> presets
+    )
     {
         var unbound = 0;
 
@@ -20,6 +24,7 @@ internal static class PresetReferenceBinder
                     continue;
 
                 Preset? match = null;
+
                 foreach (var candidate in presets)
                 {
                     if (!string.Equals(candidate.Name, presetAction.PresetName, StringComparison.Ordinal))

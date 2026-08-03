@@ -1,12 +1,15 @@
 using System.Reflection;
 using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
 
 namespace UntarnishedHeart;
 
 public sealed class Plugin : IDalamudPlugin
 {
-    public Plugin(IDalamudPluginInterface pi, IFramework framework)
+    public Plugin
+    (
+        IDalamudPluginInterface pi,
+        IFramework              framework
+    )
     {
         if (Instance != null || IsDisposed || IsInitialized) return;
         IsInitialized = true;

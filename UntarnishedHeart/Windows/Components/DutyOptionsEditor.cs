@@ -8,7 +8,11 @@ namespace UntarnishedHeart.Windows.Components;
 
 internal static class DutyOptionsEditor
 {
-    public static bool Draw(DutyOptions dutyOptions, Action? onChanged = null)
+    public static bool Draw
+    (
+        DutyOptions dutyOptions,
+        Action?     onChanged = null
+    )
     {
         var changed = false;
 
@@ -57,7 +61,10 @@ internal static class DutyOptionsEditor
         };
     }
 
-    private static bool DrawRunSection(DutyOptions dutyOptions)
+    private static bool DrawRunSection
+    (
+        DutyOptions dutyOptions
+    )
     {
         var changed = false;
 
@@ -106,7 +113,11 @@ internal static class DutyOptionsEditor
         return changed;
     }
 
-    private static bool DrawFinderSection(DutyOptions dutyOptions, Action? onChanged)
+    private static bool DrawFinderSection
+    (
+        DutyOptions dutyOptions,
+        Action?     onChanged
+    )
     {
         var changed = false;
         var option  = dutyOptions.ContentsFinderOption;
@@ -199,7 +210,13 @@ internal static class DutyOptionsEditor
         return changed;
     }
 
-    private static bool DrawFinderOptionCell(int columnIndex, string label, bool currentValue, Action<bool> assign)
+    private static bool DrawFinderOptionCell
+    (
+        int          columnIndex,
+        string       label,
+        bool         currentValue,
+        Action<bool> assign
+    )
     {
         ImGui.TableSetColumnIndex(columnIndex);
 

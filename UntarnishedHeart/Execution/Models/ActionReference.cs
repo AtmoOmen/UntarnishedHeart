@@ -8,7 +8,10 @@ public sealed class ActionReference : IEquatable<ActionReference>
 
     public uint ActionID { get; set; }
 
-    public bool Equals(ActionReference? other)
+    public bool Equals
+    (
+        ActionReference? other
+    )
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
@@ -16,11 +19,17 @@ public sealed class ActionReference : IEquatable<ActionReference>
         return ActionType == other.ActionType && ActionID == other.ActionID;
     }
 
-    public override bool Equals(object? obj) => Equals(obj as ActionReference);
+    public override bool Equals
+    (
+        object? obj
+    ) => Equals(obj as ActionReference);
 
     public override int GetHashCode() => HashCode.Combine((int)ActionType, ActionID);
 
-    public static ActionReference Copy(ActionReference source) =>
+    public static ActionReference Copy
+    (
+        ActionReference source
+    ) =>
         new()
         {
             ActionType = source.ActionType,

@@ -3,8 +3,8 @@ using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.Route;
 using UntarnishedHeart.Internal;
-using UntarnishedHeart.Windows.Components;
 using UntarnishedHeart.Windows;
+using UntarnishedHeart.Windows.Components;
 
 namespace UntarnishedHeart.Execution.ExecuteAction.Implementations;
 
@@ -23,7 +23,10 @@ public sealed class ExecutePresetAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.ExecutePreset;
 
-    public override void Draw(ExecuteActionDrawContext context)
+    public override void Draw
+    (
+        ExecuteActionDrawContext context
+    )
     {
         var presets             = PluginConfig.Instance().Presets;
         var selectedPresetIndex = -1;
@@ -37,9 +40,8 @@ public sealed class ExecutePresetAction : ExecuteActionBase
             break;
         }
 
-        var preview = selectedPresetIndex >= 0
-                          ? presets[selectedPresetIndex].Name
-                          : string.IsNullOrWhiteSpace(PresetID) ? "未绑定" : "预设缺失";
+        var preview = selectedPresetIndex >= 0              ? presets[selectedPresetIndex].Name
+                      : string.IsNullOrWhiteSpace(PresetID) ? "未绑定" : "预设缺失";
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
 
         using var combo = ImRaii.Combo("目标预设###ExecutePresetNameCombo", preview, ImGuiComboFlags.HeightLargest);
@@ -73,9 +75,12 @@ public sealed class ExecutePresetAction : ExecuteActionBase
         DutyOptionsEditor.Draw(DutyOptions);
     }
 
-    protected override bool EqualsCore(ExecuteActionBase other) =>
+    protected override bool EqualsCore
+    (
+        ExecuteActionBase other
+    ) =>
         other is ExecutePresetAction action &&
-        PresetID == action.PresetID         &&
+        PresetID   == action.PresetID       &&
         PresetName == action.PresetName     &&
         DutyOptions.Equals(action.DutyOptions);
 

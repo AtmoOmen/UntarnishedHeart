@@ -28,8 +28,11 @@ internal sealed class ExecuteActionJSONMigrator : VersionedJsonMigratorBase<Exec
 
     protected override IReadOnlyDictionary<int, JsonObjectMigratorBase> Migrators => MigratorsInternal;
 
-    protected override int ResolveMissingVersion(JObject jsonObject) =>
-        jsonObject["TypeId"] is not null
-            ? CurrentVersion
-            : LegacyVersion;
+    protected override int ResolveMissingVersion
+    (
+        JObject jsonObject
+    ) =>
+        jsonObject["TypeId"] is not null ?
+            CurrentVersion :
+            LegacyVersion;
 }

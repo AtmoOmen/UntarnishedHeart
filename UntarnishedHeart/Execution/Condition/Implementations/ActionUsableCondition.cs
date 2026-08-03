@@ -20,14 +20,22 @@ public sealed class ActionUsableCondition : ConditionBase
     [JsonProperty("Action")]
     public ActionReference Action { get; set; } = new();
 
-    public override unsafe bool Evaluate(in ConditionContext context)
+    public override unsafe bool Evaluate
+    (
+        in ConditionContext context
+    )
     {
         var actionStatus = ActionManager.Instance()->GetActionStatus(Action.ActionType, Action.ActionID);
         var isUsable     = actionStatus == 0;
-        return ComparisonType == PresenceComparisonType.Has ? isUsable : !isUsable;
+        return ComparisonType == PresenceComparisonType.Has ?
+                   isUsable :
+                   !isUsable;
     }
 
-    protected override bool EqualsCore(ConditionBase other) =>
+    protected override bool EqualsCore
+    (
+        ConditionBase other
+    ) =>
         other is ActionUsableCondition condition   &&
         ComparisonType == condition.ComparisonType &&
         Action.Equals(condition.Action);
@@ -48,6 +56,7 @@ public sealed class ActionUsableCondition : ConditionBase
     {
         DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<PresenceComparisonType>();
+
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)

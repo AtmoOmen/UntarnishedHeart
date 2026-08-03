@@ -8,7 +8,10 @@ internal sealed class V0ToV1ConfigMigrator : ConfigMigratorBase
 
     public override int ToVersion => 1;
 
-    public override void Migrate(PluginConfig config)
+    public override void Migrate
+    (
+        PluginConfig config
+    )
     {
         foreach (var dutyOptions in config.Routes.SelectMany(route => route.Steps)
                                           .SelectMany(step => step.Actions)

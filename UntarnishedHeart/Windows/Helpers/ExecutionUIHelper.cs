@@ -16,9 +16,11 @@ internal static class ExecutionUIHelper
     {
         if (PluginConfig.Instance().CurrentExecutionMode == ExecutionMode.Preset)
         {
-            var presetExecutor                     = ExecutionManager.PresetExecutor;
-            var isRunning                          = presetExecutor is { IsDisposed: false, Completion.IsCompleted: false };
-            var maxRoundText                       = presetExecutor?.MaxRound == -1 ? "无限" : $"{presetExecutor?.MaxRound ?? 0}";
+            var presetExecutor = ExecutionManager.PresetExecutor;
+            var isRunning      = presetExecutor is { IsDisposed: false, Completion.IsCompleted: false };
+            var maxRoundText = presetExecutor?.MaxRound == -1 ?
+                                   "无限" :
+                                   $"{presetExecutor?.MaxRound ?? 0}";
             var progressText                       = $"{presetExecutor?.CurrentRound ?? 0} / {maxRoundText}";
             var isStopAfterDutyCompletionRequested = presetExecutor?.IsStopAfterDutyCompletionRequested == true;
             var message                            = BuildRunningMessage(presetExecutor?.RunningMessage ?? string.Empty, isStopAfterDutyCompletionRequested);
@@ -33,17 +35,23 @@ internal static class ExecutionUIHelper
                 "结束",
                 StopSimpleExecution,
                 isRunning,
-                isStopAfterDutyCompletionRequested ? "取消" : "完成副本后结束",
-                isStopAfterDutyCompletionRequested ? CancelSimpleStopAfterDutyCompletionRequest : RequestSimpleStopAfterDutyCompletion,
+                isStopAfterDutyCompletionRequested ?
+                    "取消" :
+                    "完成副本后结束",
+                isStopAfterDutyCompletionRequested ?
+                    CancelSimpleStopAfterDutyCompletionRequest :
+                    RequestSimpleStopAfterDutyCompletion,
                 isRunning,
                 isStopAfterDutyCompletionRequested
             );
         }
 
-        var routeExecutor                           = ExecutionManager.RouteExecutor;
-        var isRouteRunning                          = routeExecutor?.IsRunning == true;
-        var totalSteps                              = routeExecutor?.Steps.Count ?? 0;
-        var currentStepNumber                       = routeExecutor is { CurrentStepIndex: >= 0 } runningRoute ? runningRoute.CurrentStepIndex + 1 : 0;
+        var routeExecutor  = ExecutionManager.RouteExecutor;
+        var isRouteRunning = routeExecutor?.IsRunning == true;
+        var totalSteps     = routeExecutor?.Steps.Count ?? 0;
+        var currentStepNumber = routeExecutor is { CurrentStepIndex: >= 0 } runningRoute ?
+                                    runningRoute.CurrentStepIndex + 1 :
+                                    0;
         var routeProgress                           = $"{currentStepNumber} / {totalSteps}";
         var isRouteStopAfterDutyCompletionRequested = routeExecutor?.IsStopAfterDutyCompletionRequested == true;
         var routeMessage                            = BuildRunningMessage(routeExecutor?.RunningMessage ?? string.Empty, isRouteStopAfterDutyCompletionRequested);
@@ -58,11 +66,95 @@ internal static class ExecutionUIHelper
             "停止",
             StopRouteExecution,
             isRouteRunning,
-            isRouteStopAfterDutyCompletionRequested ? "取消" : "完成副本后结束",
-            isRouteStopAfterDutyCompletionRequested ? CancelRouteStopAfterDutyCompletionRequest : RequestRouteStopAfterDutyCompletion,
+            isRouteStopAfterDutyCompletionRequested ?
+                "取消" :
+                "完成副本后结束",
+            isRouteStopAfterDutyCompletionRequested ?
+                CancelRouteStopAfterDutyCompletionRequest :
+                RequestRouteStopAfterDutyCompletion,
             isRouteRunning,
             isRouteStopAfterDutyCompletionRequested
         );
+    }
+
+    public static bool CanNavigate()
+    {
+        if (PluginConfig.Instance().CurrentExecutionMode == ExecutionMode.Preset)
+            return ExecutionManager.PresetExecutor?.CanNavigate == true;
+
+        return ExecutionManager.RouteExecutor?.CanNavigate == true;
+    }
+
+    public static List<ExecutionNavigationTarget> GetNavigationTargets()
+    {
+        var targets = new List<ExecutionNavigationTarget>();
+
+        if (PluginConfig.Instance().CurrentExecutionMode == ExecutionMode.Preset)
+        {
+            if (ExecutionManager.PresetExecutor?.ExecutorPreset is not { } preset)
+                return targets;
+
+            for (var stepIndex = 0; stepIndex < preset.Steps.Count; stepIndex++)
+            {
+                var step = preset.Steps[stepIndex];
+                targets.Add(new ExecutionNavigationTarget(stepIndex, -1, $"步骤 {stepIndex}: {step.Name}"));
+
+                for (var actionIndex = 0; actionIndex < step.Actions.Count; actionIndex++)
+                    targets.Add(new ExecutionNavigationTarget(stepIndex, actionIndex, $"步骤 {stepIndex} / 动作 {actionIndex}: {step.Actions[actionIndex].Name}"));
+            }
+
+            return targets;
+        }
+
+        if (ExecutionManager.RouteExecutor is not { } routeExecutor)
+            return targets;
+
+        for (var stepIndex = 0; stepIndex < routeExecutor.Steps.Count; stepIndex++)
+        {
+            var step = routeExecutor.Steps[stepIndex];
+            targets.Add(new ExecutionNavigationTarget(stepIndex, -1, $"路线步骤 {stepIndex}: {step.Name}"));
+
+            for (var actionIndex = 0; actionIndex < step.Actions.Count; actionIndex++)
+                targets.Add(new ExecutionNavigationTarget(stepIndex, actionIndex, $"路线步骤 {stepIndex} / 动作 {actionIndex}: {step.Actions[actionIndex].Name}"));
+        }
+
+        if (routeExecutor.CurrentExecutor is { Completion.IsCompleted: false, CanNavigate: true, ExecutorPreset: not null } presetExecutor)
+        {
+            var preset = presetExecutor.ExecutorPreset;
+
+            for (var stepIndex = 0; stepIndex < preset.Steps.Count; stepIndex++)
+            {
+                var step = preset.Steps[stepIndex];
+                targets.Add(new ExecutionNavigationTarget(stepIndex, -1, $"预设步骤 {stepIndex}: {step.Name}", true));
+
+                for (var actionIndex = 0; actionIndex < step.Actions.Count; actionIndex++)
+                    targets.Add
+                        (new ExecutionNavigationTarget(stepIndex, actionIndex, $"预设步骤 {stepIndex} / 动作 {actionIndex}: {step.Actions[actionIndex].Name}", true));
+            }
+        }
+
+        return targets;
+    }
+
+    public static void NavigateTo
+    (
+        ExecutionNavigationTarget target
+    )
+    {
+        if (PluginConfig.Instance().CurrentExecutionMode == ExecutionMode.Preset)
+        {
+            ExecutionManager.PresetExecutor?.NavigateTo(target.StepIndex, target.ActionIndex);
+            return;
+        }
+
+        var routeExecutor = ExecutionManager.RouteExecutor;
+        if (routeExecutor == null)
+            return;
+
+        if (target.IsPresetTarget && routeExecutor.CurrentExecutor is { Completion.IsCompleted: false } presetExecutor)
+            presetExecutor.NavigateTo(target.StepIndex, target.ActionIndex);
+        else
+            routeExecutor.NavigateTo(target.StepIndex, target.ActionIndex);
     }
 
     public static bool CanStartCurrentMode() => GetStartDisabledReasons().Count == 0;
@@ -143,22 +235,32 @@ internal static class ExecutionUIHelper
     private static Preset? GetSelectedPreset()
     {
         var selectedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(MainWindow.SelectedPresetIndexAccessor, PluginConfig.Instance().Presets.Count);
-        return selectedPresetIndex >= 0 ? PluginConfig.Instance().Presets[selectedPresetIndex] : null;
+        return selectedPresetIndex >= 0 ?
+                   PluginConfig.Instance().Presets[selectedPresetIndex] :
+                   null;
     }
 
     private static Route? GetSelectedRoute()
     {
         var selectedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(MainWindow.SelectedRouteIndexAccessor, PluginConfig.Instance().Routes.Count);
-        return selectedRouteIndex >= 0 ? PluginConfig.Instance().Routes[selectedRouteIndex] : null;
+        return selectedRouteIndex >= 0 ?
+                   PluginConfig.Instance().Routes[selectedRouteIndex] :
+                   null;
     }
 
-    private static string BuildRunningMessage(string runningMessage, bool isStopAfterDutyCompletionRequested)
+    private static string BuildRunningMessage
+    (
+        string runningMessage,
+        bool   isStopAfterDutyCompletionRequested
+    )
     {
         if (!isStopAfterDutyCompletionRequested)
             return runningMessage;
 
         const string REQUEST_MESSAGE = "已请求完成副本后结束，等待当前或下一次副本完成并退出";
-        return string.IsNullOrWhiteSpace(runningMessage) ? REQUEST_MESSAGE : $"{runningMessage}\n{REQUEST_MESSAGE}";
+        return string.IsNullOrWhiteSpace(runningMessage) ?
+                   REQUEST_MESSAGE :
+                   $"{runningMessage}\n{REQUEST_MESSAGE}";
     }
 
     private static unsafe void CancelDutyQueueIfNeeded()
@@ -184,4 +286,12 @@ internal readonly record struct ExecutionStatusViewState
     Action DeferredStopAction,
     bool   CanDeferredStop,
     bool   IsStopAfterDutyCompletionRequested
+);
+
+internal readonly record struct ExecutionNavigationTarget
+(
+    int    StepIndex,
+    int    ActionIndex,
+    string Label,
+    bool   IsPresetTarget = false
 );

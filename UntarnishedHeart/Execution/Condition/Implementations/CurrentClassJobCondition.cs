@@ -17,10 +17,16 @@ public sealed class CurrentClassJobCondition : ConditionBase
 
     public override ConditionDetectType Kind => ConditionDetectType.CurrentClassJob;
 
-    public override bool Evaluate(in ConditionContext context) =>
+    public override bool Evaluate
+    (
+        in ConditionContext context
+    ) =>
         JobID != 0 && LocalPlayerState.ClassJob == JobID;
 
-    protected override bool EqualsCore(ConditionBase other) =>
+    protected override bool EqualsCore
+    (
+        ConditionBase other
+    ) =>
         other is CurrentClassJobCondition condition &&
         JobID == condition.JobID;
 

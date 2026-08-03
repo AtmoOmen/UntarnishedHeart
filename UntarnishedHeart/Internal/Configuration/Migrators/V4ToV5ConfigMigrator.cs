@@ -8,7 +8,10 @@ internal sealed class V4ToV5ConfigMigrator : ConfigMigratorBase
 
     public override int ToVersion => 5;
 
-    public override void Migrate(PluginConfig config)
+    public override void Migrate
+    (
+        PluginConfig config
+    )
     {
         foreach (var route in config.Routes)
             PresetReferenceBinder.BindUnboundReferences(route, config.Presets);

@@ -1,6 +1,5 @@
 using Newtonsoft.Json;
 using OmenTools.ImGuiOm.Widgets.Combos;
-using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Windows;
@@ -24,10 +23,14 @@ public sealed class SwitchClassJobAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.SwitchClassJob;
 
-    public override void Draw(ExecuteActionDrawContext context)
+    public override void Draw
+    (
+        ExecuteActionDrawContext context
+    )
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
         var modeCandidates = Enum.GetValues<SwitchClassJobMode>();
+
         using (var combo = ImRaii.Combo("切换方式###SwitchClassJobModeCombo", Mode.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -67,7 +70,10 @@ public sealed class SwitchClassJobAction : ExecuteActionBase
         }
     }
 
-    protected override bool EqualsCore(ExecuteActionBase other) =>
+    protected override bool EqualsCore
+    (
+        ExecuteActionBase other
+    ) =>
         other is SwitchClassJobAction action &&
         Mode      == action.Mode             &&
         JobID     == action.JobID            &&

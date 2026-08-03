@@ -12,19 +12,32 @@ internal static class PendingExecutionStartManager
     private static PendingSelection<PresetModel>? PendingPresetSelection;
     private static PendingSelection<RouteModel>?  PendingRouteSelection;
 
-    public static void SelectPreset(PresetModel preset, int presetIndex, ExecuteActionRuntimeCursor startCursor)
+    public static void SelectPreset
+    (
+        PresetModel                preset,
+        int                        presetIndex,
+        ExecuteActionRuntimeCursor startCursor
+    )
     {
         PersistSelection(ExecutionMode.Preset, presetIndex, null);
         PendingPresetSelection = new(preset, CloneCursor(startCursor));
     }
 
-    public static void SelectRoute(RouteModel route, int routeIndex, ExecuteActionRuntimeCursor startCursor)
+    public static void SelectRoute
+    (
+        RouteModel                 route,
+        int                        routeIndex,
+        ExecuteActionRuntimeCursor startCursor
+    )
     {
         PersistSelection(ExecutionMode.Route, null, routeIndex);
         PendingRouteSelection = new(route, CloneCursor(startCursor));
     }
 
-    public static ExecuteActionRuntimeCursor? GetPresetStartCursor(PresetModel? preset)
+    public static ExecuteActionRuntimeCursor? GetPresetStartCursor
+    (
+        PresetModel? preset
+    )
     {
         if (preset == null || PendingPresetSelection is not { } selection)
             return null;
@@ -40,7 +53,10 @@ internal static class PendingExecutionStartManager
         return CloneCursor(selection.StartCursor);
     }
 
-    public static ExecuteActionRuntimeCursor? GetRouteStartCursor(RouteModel? route)
+    public static ExecuteActionRuntimeCursor? GetRouteStartCursor
+    (
+        RouteModel? route
+    )
     {
         if (route == null || PendingRouteSelection is not { } selection)
             return null;
@@ -56,31 +72,52 @@ internal static class PendingExecutionStartManager
         return CloneCursor(selection.StartCursor);
     }
 
-    public static string? GetPresetDescription(PresetModel? preset)
+    public static string? GetPresetDescription
+    (
+        PresetModel? preset
+    )
     {
         var startCursor = GetPresetStartCursor(preset);
-        return startCursor == null ? null : BuildDescription(startCursor);
+        return startCursor == null ?
+                   null :
+                   BuildDescription(startCursor);
     }
 
-    public static string? GetRouteDescription(RouteModel? route)
+    public static string? GetRouteDescription
+    (
+        RouteModel? route
+    )
     {
         var startCursor = GetRouteStartCursor(route);
-        return startCursor == null ? null : BuildDescription(startCursor);
+        return startCursor == null ?
+                   null :
+                   BuildDescription(startCursor);
     }
 
-    public static void ClearPreset(PresetModel? preset = null)
+    public static void ClearPreset
+    (
+        PresetModel? preset = null
+    )
     {
         if (preset == null || PendingPresetSelection == null || ReferenceEquals(PendingPresetSelection.Target, preset))
             PendingPresetSelection = null;
     }
 
-    public static void ClearRoute(RouteModel? route = null)
+    public static void ClearRoute
+    (
+        RouteModel? route = null
+    )
     {
         if (route == null || PendingRouteSelection == null || ReferenceEquals(PendingRouteSelection.Target, route))
             PendingRouteSelection = null;
     }
 
-    private static void PersistSelection(ExecutionMode mode, int? presetIndex, int? routeIndex)
+    private static void PersistSelection
+    (
+        ExecutionMode mode,
+        int?          presetIndex,
+        int?          routeIndex
+    )
     {
         var config  = PluginConfig.Instance();
         var changed = false;
@@ -117,7 +154,11 @@ internal static class PendingExecutionStartManager
             config.Save();
     }
 
-    private static bool IsValidCursor(List<PresetStep> steps, ExecuteActionRuntimeCursor cursor)
+    private static bool IsValidCursor
+    (
+        List<PresetStep>           steps,
+        ExecuteActionRuntimeCursor cursor
+    )
     {
         if (!cursor.HasStep || cursor.StepIndex < 0 || cursor.StepIndex >= steps.Count)
             return false;
@@ -129,7 +170,10 @@ internal static class PendingExecutionStartManager
         return cursor.ActionIndex >= 0 && cursor.ActionIndex < actions.Count;
     }
 
-    private static string BuildDescription(ExecuteActionRuntimeCursor startCursor)
+    private static string BuildDescription
+    (
+        ExecuteActionRuntimeCursor startCursor
+    )
     {
         var stepText = $"第 {startCursor.StepIndex} 步";
         if (!startCursor.HasAction)
@@ -139,9 +183,18 @@ internal static class PendingExecutionStartManager
         return $"(将从{stepText}{actionText}开始执行)";
     }
 
-    private static int NormalizeIndex(int index, int count) => index >= 0 && index < count ? index : -1;
+    private static int NormalizeIndex
+    (
+        int index,
+        int count
+    ) => index >= 0 && index < count ?
+             index :
+             -1;
 
-    private static ExecuteActionRuntimeCursor CloneCursor(ExecuteActionRuntimeCursor cursor) =>
+    private static ExecuteActionRuntimeCursor CloneCursor
+    (
+        ExecuteActionRuntimeCursor cursor
+    ) =>
         new(cursor.StepIndex, cursor.ActionIndex);
 
     private sealed record PendingSelection<TTarget>

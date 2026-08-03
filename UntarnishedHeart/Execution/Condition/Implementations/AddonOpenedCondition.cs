@@ -21,15 +21,23 @@ public sealed class AddonOpenedCondition : ConditionBase
     [JsonProperty("RequireAddonReady")]
     public bool RequireAddonReady { get; set; }
 
-    public override unsafe bool Evaluate(in ConditionContext context)
+    public override unsafe bool Evaluate
+    (
+        in ConditionContext context
+    )
     {
         var isOpened = AddonHelper.TryGetByName(AddonName, out var addon) &&
                        (!RequireAddonReady || addon->IsAddonAndNodesReady());
 
-        return ComparisonType == PresenceComparisonType.Has ? isOpened : !isOpened;
+        return ComparisonType == PresenceComparisonType.Has ?
+                   isOpened :
+                   !isOpened;
     }
 
-    protected override bool EqualsCore(ConditionBase other) =>
+    protected override bool EqualsCore
+    (
+        ConditionBase other
+    ) =>
         other is AddonOpenedCondition condition       &&
         AddonName         == condition.AddonName      &&
         ComparisonType    == condition.ComparisonType &&
@@ -52,6 +60,7 @@ public sealed class AddonOpenedCondition : ConditionBase
     {
         DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<PresenceComparisonType>();
+
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)

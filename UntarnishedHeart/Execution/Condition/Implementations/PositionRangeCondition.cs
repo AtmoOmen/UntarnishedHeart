@@ -20,16 +20,24 @@ public sealed class PositionRangeCondition : ConditionBase
     [JsonProperty("Range")]
     public PositionRange Range { get; set; } = new();
 
-    public override bool Evaluate(in ConditionContext context)
+    public override bool Evaluate
+    (
+        in ConditionContext context
+    )
     {
         if (context.LocalPlayer is not { } localPlayer)
             return false;
 
         var isInside = Vector3.DistanceSquared(localPlayer.Position, Range.Center) <= Range.Radius * Range.Radius;
-        return ComparisonType == PresenceComparisonType.Has ? isInside : !isInside;
+        return ComparisonType == PresenceComparisonType.Has ?
+                   isInside :
+                   !isInside;
     }
 
-    protected override bool EqualsCore(ConditionBase other) =>
+    protected override bool EqualsCore
+    (
+        ConditionBase other
+    ) =>
         other is PositionRangeCondition condition  &&
         ComparisonType == condition.ComparisonType &&
         Range.Equals(condition.Range);
@@ -50,6 +58,7 @@ public sealed class PositionRangeCondition : ConditionBase
     {
         DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<PresenceComparisonType>();
+
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)

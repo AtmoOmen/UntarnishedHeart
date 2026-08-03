@@ -11,7 +11,10 @@ public sealed class OptimalPartyRecommendationCondition : RouteValueConditionBas
 {
     public override ConditionDetectType Kind => ConditionDetectType.OptimalPartyRecommendation;
 
-    protected override unsafe int GetCurrentValue(in ConditionContext context) => PlayerState.Instance()->PlayerCommendations;
+    protected override unsafe int GetCurrentValue
+    (
+        in ConditionContext context
+    ) => PlayerState.Instance()->PlayerCommendations;
 
     protected override RouteValueConditionBase DeepCopyCore() =>
         new OptimalPartyRecommendationCondition

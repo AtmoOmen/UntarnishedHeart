@@ -22,17 +22,25 @@ public sealed class ActionCastCondition : ConditionBase
     [JsonProperty("Action")]
     public ActionReference Action { get; set; } = new();
 
-    public override bool Evaluate(in ConditionContext context)
+    public override bool Evaluate
+    (
+        in ConditionContext context
+    )
     {
         var target = ResolveTarget(context, TargetType);
         var isCasting = target is { IsCasting: true }              &&
                         target.CastActionType == Action.ActionType &&
                         target.CastActionID   == Action.ActionID;
 
-        return ComparisonType == PresenceComparisonType.Has ? isCasting : !isCasting;
+        return ComparisonType == PresenceComparisonType.Has ?
+                   isCasting :
+                   !isCasting;
     }
 
-    protected override bool EqualsCore(ConditionBase other) =>
+    protected override bool EqualsCore
+    (
+        ConditionBase other
+    ) =>
         other is ActionCastCondition condition     &&
         ComparisonType == condition.ComparisonType &&
         TargetType     == condition.TargetType     &&
@@ -55,6 +63,7 @@ public sealed class ActionCastCondition : ConditionBase
     {
         DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<PresenceComparisonType>();
+
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -75,6 +84,7 @@ public sealed class ActionCastCondition : ConditionBase
 
         DrawLabel("作用对象", KnownColor.LightSkyBlue.ToVector4());
         var targetTypeCandidates = Enum.GetValues<ConditionTargetType>();
+
         using (var combo = ImRaii.Combo("###TargetTypeCombo", TargetType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)

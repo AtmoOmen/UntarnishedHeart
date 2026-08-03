@@ -17,7 +17,10 @@ internal sealed class PresetStepV3ToV4Migrator : JsonObjectMigratorBase
 
     public override int ToVersion => 4;
 
-    public override JObject Migrate(JObject jsonObject)
+    public override JObject Migrate
+    (
+        JObject jsonObject
+    )
     {
         var migrated = (JObject)jsonObject.DeepClone();
         migrated["EnterActions"] = MigrateActionArray(migrated["EnterActions"]);
@@ -26,7 +29,10 @@ internal sealed class PresetStepV3ToV4Migrator : JsonObjectMigratorBase
         return migrated;
     }
 
-    private static JToken MigrateActionArray(JToken? token)
+    private static JToken MigrateActionArray
+    (
+        JToken? token
+    )
     {
         if (token is not JArray actions)
             return token?.DeepClone() ?? new JArray();
@@ -48,7 +54,10 @@ internal sealed class PresetStepV3ToV4Migrator : JsonObjectMigratorBase
         return migrated;
     }
 
-    private static IEnumerable<JObject> ExpandAction(JObject actionObject)
+    private static IEnumerable<JObject> ExpandAction
+    (
+        JObject actionObject
+    )
     {
         if (PresetStepJsonConverter.ReadEnum(actionObject["Kind"], ExecuteActionKind.Wait) != ExecuteActionKind.MoveToPosition)
         {
@@ -73,7 +82,10 @@ internal sealed class PresetStepV3ToV4Migrator : JsonObjectMigratorBase
         yield return CreateArrivalWaitAction(position);
     }
 
-    private static JObject CreateArrivalWaitAction(Vector3 position) =>
+    private static JObject CreateArrivalWaitAction
+    (
+        Vector3 position
+    ) =>
         ExecuteActionJSONConverter.SerializeToJObject
         (
             new WaitMillisecondsAction
@@ -84,20 +96,29 @@ internal sealed class PresetStepV3ToV4Migrator : JsonObjectMigratorBase
             JsonSerializer.CreateDefault()
         );
 
-    private static ConditionCollection CreatePositionRangeConditionCollection(Vector3 position) =>
+    private static ConditionCollection CreatePositionRangeConditionCollection
+    (
+        Vector3 position
+    ) =>
         new()
         {
             Conditions = [CreatePositionRangeCondition(position)]
         };
 
-    private static PositionRangeCondition CreatePositionRangeCondition(Vector3 position) =>
+    private static PositionRangeCondition CreatePositionRangeCondition
+    (
+        Vector3 position
+    ) =>
         new()
         {
             ComparisonType = PresenceComparisonType.Has,
             Range          = CreatePositionRange(position)
         };
 
-    private static PositionRange CreatePositionRange(Vector3 position) =>
+    private static PositionRange CreatePositionRange
+    (
+        Vector3 position
+    ) =>
         new()
         {
             Center = position,

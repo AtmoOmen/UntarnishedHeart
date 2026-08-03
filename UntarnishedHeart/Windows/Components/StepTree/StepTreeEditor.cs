@@ -19,7 +19,7 @@ internal static class StepTreeEditor
         StepEditorSharedState          sharedState,
         ExecuteActionRuntimeCursor?    runningCursor,
         Func<PresetStep>               createNewStep,
-        Action?                        onCollectionChanged = null,
+        Action?                        onCollectionChanged   = null,
         StepTreeExecutionStartOptions? executionStartOptions = null
     )
     {
@@ -34,7 +34,7 @@ internal static class StepTreeEditor
         ImGui.TableNextRow();
 
         DrawSidebar(idPrefix, steps, state, sharedState, runningCursor, createNewStep, onCollectionChanged, executionStartOptions);
-        DrawDetails(idPrefix, steps, state, sharedState, createNewStep, onCollectionChanged);
+        DrawDetails(idPrefix, steps, state, sharedState, createNewStep, onCollectionChanged, executionStartOptions);
     }
 
     private static unsafe void DrawSidebar
@@ -51,7 +51,12 @@ internal static class StepTreeEditor
     {
         ImGui.TableSetColumnIndex(0);
 
-        if (ImGuiOm.ButtonStretch(state.CurrentStep >= 0 ? "添加动作" : "添加步骤"))
+        if (ImGuiOm.ButtonStretch
+            (
+                state.CurrentStep >= 0 ?
+                    "添加动作" :
+                    "添加步骤"
+            ))
         {
             if (state.CurrentStep < 0)
             {
@@ -86,7 +91,8 @@ internal static class StepTreeEditor
         if (!child)
             return;
 
-        var keyword = state.FilterText.Trim();
+        var keyword          = state.FilterText.Trim();
+        var visibleStepCount = 0;
 
         for (var stepIndex = 0; stepIndex < steps.Count; stepIndex++)
         {
@@ -95,7 +101,9 @@ internal static class StepTreeEditor
             if (!stepRenderState.Visible)
                 continue;
 
-            var isStepSelected      = state.CurrentStep == stepIndex     && state.CurrentNodeKind == StepTreeNodeKind.Step;
+            visibleStepCount++;
+
+            var isStepSelected      = state.CurrentStep == stepIndex     && state.CurrentNodeKind   == StepTreeNodeKind.Step;
             var isStepRunning       = runningCursor is { HasStep: true } && runningCursor.StepIndex == stepIndex;
             var shouldOpenByFilter  = !string.IsNullOrEmpty(keyword);
             var shouldOpenByPending = state.PendingOpenStep == stepIndex;
@@ -176,7 +184,7 @@ internal static class StepTreeEditor
                     actionFlags |= ImGuiTreeNodeFlags.Selected;
 
                 using var actionHighlightStyle = PushTreeNodeHighlightStyle(isActionSelected, isActionRunning);
-                using var actionNode = ImRaii.TreeNode($"{actionIndex}. {action.Name}###{idPrefix}-Step-{stepIndex}-Action-{actionIndex}", actionFlags);
+                using var actionNode           = ImRaii.TreeNode($"{actionIndex}. {action.Name}###{idPrefix}-Step-{stepIndex}-Action-{actionIndex}", actionFlags);
 
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
                 {
@@ -232,9 +240,9 @@ internal static class StepTreeEditor
                     actionIndex,
                     sharedState,
                     $"{idPrefix}_ActionContentMenu_{stepIndex}_{actionIndex}",
-                    executionStartOptions is { IsVisible: true, StartFromAction: not null }
-                        ? currentActionIndex => executionStartOptions.StartFromAction(stepIndex, currentActionIndex)
-                        : null,
+                    executionStartOptions is { IsVisible: true, StartFromAction: not null } ?
+                        currentActionIndex => executionStartOptions.StartFromAction(stepIndex, currentActionIndex) :
+                        null,
                     onCollectionChanged
                 );
                 if (state.CurrentStep == stepIndex)
@@ -242,7 +250,14 @@ internal static class StepTreeEditor
             }
         }
 
+        if (visibleStepCount == 0 && !string.IsNullOrEmpty(keyword))
+        {
+            ImGui.TextDisabled("未找到匹配的步骤或动作");
+            ImGui.Spacing();
+        }
+
         var blankSize = ImGui.GetContentRegionAvail();
+
         if (blankSize.X > 0 && blankSize.Y > 0 && ImGui.InvisibleButton($"{idPrefix}BlankClickArea", blankSize))
         {
             state.CurrentStep     = -1;
@@ -253,12 +268,13 @@ internal static class StepTreeEditor
 
     private static void DrawDetails
     (
-        string                idPrefix,
-        List<PresetStep>      steps,
-        StepTreeEditorState   state,
-        StepEditorSharedState sharedState,
-        Func<PresetStep>      createNewStep,
-        Action?               onCollectionChanged
+        string                         idPrefix,
+        List<PresetStep>               steps,
+        StepTreeEditorState            state,
+        StepEditorSharedState          sharedState,
+        Func<PresetStep>               createNewStep,
+        Action?                        onCollectionChanged,
+        StepTreeExecutionStartOptions? executionStartOptions
     )
     {
         ImGui.TableSetColumnIndex(1);
@@ -273,7 +289,7 @@ internal static class StepTreeEditor
         }
 
         var step = steps[state.CurrentStep];
-        DrawDetailToolbar(idPrefix, steps, state, sharedState, onCollectionChanged);
+        DrawDetailToolbar(idPrefix, steps, state, sharedState, onCollectionChanged, executionStartOptions);
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -282,7 +298,7 @@ internal static class StepTreeEditor
         switch (state.CurrentNodeKind)
         {
             case StepTreeNodeKind.Step:
-                DrawStepOverview(step, steps);
+                DrawStepOverview(step, steps, state, state.CurrentStep);
                 return;
             case StepTreeNodeKind.Action:
             {
@@ -293,7 +309,7 @@ internal static class StepTreeEditor
                 {
                     state.CurrentAction   = -1;
                     state.CurrentNodeKind = StepTreeNodeKind.Step;
-                    DrawStepOverview(step, steps);
+                    DrawStepOverview(step, steps, state, state.CurrentStep);
                     return;
                 }
 
@@ -306,7 +322,13 @@ internal static class StepTreeEditor
         }
     }
 
-    private static void DrawStepOverview(PresetStep step, IList<PresetStep> steps)
+    private static void DrawStepOverview
+    (
+        PresetStep          step,
+        IList<PresetStep>   steps,
+        StepTreeEditorState state,
+        int                 stepIndex
+    )
     {
         if (step.Actions is [ExecutePresetAction])
         {
@@ -322,23 +344,38 @@ internal static class StepTreeEditor
 
         var actions = step.Actions;
         ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), $"动作 (共 {actions.Count} 个)");
+
         if (actions.Count == 0)
         {
-            ImGui.TextDisabled("(无)");
+            ImGui.TextDisabled("该步骤还没有动作，点击上方“添加动作”创建第一个");
             return;
         }
 
-        foreach (var actionName in actions.Select((action, index) => $"{index}. {action.Name}"))
-            ImGui.BulletText(actionName);
+        for (var actionIndex = 0; actionIndex < actions.Count; actionIndex++)
+        {
+            var action = actions[actionIndex];
+            var isSelected = state.CurrentStep     == stepIndex   &&
+                             state.CurrentAction   == actionIndex &&
+                             state.CurrentNodeKind == StepTreeNodeKind.Action;
+
+            if (ImGui.Selectable($"{actionIndex}. {action.Name}", isSelected))
+            {
+                state.CurrentStep     = stepIndex;
+                state.CurrentAction   = actionIndex;
+                state.CurrentNodeKind = StepTreeNodeKind.Action;
+                StepEditor.SetActionSelection(state, step, stepIndex, actionIndex);
+            }
+        }
     }
 
     private static void DrawDetailToolbar
     (
-        string                idPrefix,
-        List<PresetStep>      steps,
-        StepTreeEditorState   state,
-        StepEditorSharedState sharedState,
-        Action?               onCollectionChanged
+        string                         idPrefix,
+        List<PresetStep>               steps,
+        StepTreeEditorState            state,
+        StepEditorSharedState          sharedState,
+        Action?                        onCollectionChanged,
+        StepTreeExecutionStartOptions? executionStartOptions
     )
     {
         if (state.CurrentStep < 0)
@@ -367,6 +404,17 @@ internal static class StepTreeEditor
             if (DrawToolbarButton($"{idPrefix}StepCopy", FontAwesomeIcon.Copy, "复制步骤"))
                 sharedState.StepToCopy = PresetStep.Copy(steps[stepIndex]);
 
+            if (sharedState.StepToCopy != null)
+            {
+                ImGui.SameLine();
+
+                if (DrawToolbarButton($"{idPrefix}StepPaste", FontAwesomeIcon.Paste, "粘贴步骤"))
+                {
+                    steps[stepIndex] = PresetStep.Copy(sharedState.StepToCopy);
+                    onCollectionChanged?.Invoke();
+                }
+            }
+
             ImGui.SameLine();
 
             if (DrawToolbarButton($"{idPrefix}StepDelete", FontAwesomeIcon.Trash, "删除步骤"))
@@ -382,6 +430,14 @@ internal static class StepTreeEditor
             {
                 AddActionToCurrentStep(steps, state);
                 onCollectionChanged?.Invoke();
+            }
+
+            if (executionStartOptions is { IsVisible: true, StartFromStep: not null })
+            {
+                ImGui.SameLine();
+
+                if (DrawToolbarButton($"{idPrefix}StepStartFromHere", FontAwesomeIcon.Play, "从此步开始"))
+                    executionStartOptions.StartFromStep(stepIndex);
             }
 
             return;
@@ -412,6 +468,17 @@ internal static class StepTreeEditor
             if (DrawToolbarButton($"{idPrefix}ActionCopy", FontAwesomeIcon.Copy, "复制动作"))
                 sharedState.ActionToCopy = ExecuteActionBase.Copy(actions[actionIndex]);
 
+            if (sharedState.ActionToCopy != null)
+            {
+                ImGui.SameLine();
+
+                if (DrawToolbarButton($"{idPrefix}ActionPaste", FontAwesomeIcon.Paste, "粘贴动作"))
+                {
+                    actions[actionIndex] = ExecuteActionBase.Copy(sharedState.ActionToCopy);
+                    onCollectionChanged?.Invoke();
+                }
+            }
+
             ImGui.SameLine();
 
             if (DrawToolbarButton($"{idPrefix}ActionDelete", FontAwesomeIcon.Trash, "删除动作"))
@@ -429,13 +496,30 @@ internal static class StepTreeEditor
                 AddActionToCurrentStep(steps, state);
                 onCollectionChanged?.Invoke();
             }
+
+            if (executionStartOptions is { IsVisible: true, StartFromAction: not null })
+            {
+                ImGui.SameLine();
+
+                if (DrawToolbarButton($"{idPrefix}ActionStartFromHere", FontAwesomeIcon.Play, "从此动作开始"))
+                    executionStartOptions.StartFromAction(state.CurrentStep, actionIndex);
+            }
         }
     }
 
-    private static bool DrawToolbarButton(string id, FontAwesomeIcon icon, string tooltip) =>
+    private static bool DrawToolbarButton
+    (
+        string          id,
+        FontAwesomeIcon icon,
+        string          tooltip
+    ) =>
         ImGuiOm.ButtonIcon(id, icon, tooltip, true);
 
-    private static void AddActionToCurrentStep(List<PresetStep> steps, StepTreeEditorState state)
+    private static void AddActionToCurrentStep
+    (
+        List<PresetStep>    steps,
+        StepTreeEditorState state
+    )
     {
         var step = steps[state.CurrentStep];
         step.Actions.Add(ExecuteActionBase.CreateDefaultAction(ExecuteActionKind.Wait));
@@ -445,7 +529,13 @@ internal static class StepTreeEditor
         StepEditor.SetActionSelection(state, step, state.CurrentStep, state.CurrentAction);
     }
 
-    private static void MoveSelectedAction(StepTreeEditorState state, PresetStep step, int stepIndex, StepOperationType operation)
+    private static void MoveSelectedAction
+    (
+        StepTreeEditorState state,
+        PresetStep          step,
+        int                 stepIndex,
+        StepOperationType   operation
+    )
     {
         var selectedIndex = CollectionOperationHelper.Apply(step.Actions, state.CurrentAction, operation, state.CurrentAction);
         StepEditor.SetActionSelection(state, step, stepIndex, selectedIndex);
@@ -550,7 +640,9 @@ internal static class StepTreeEditor
             contextOperation,
             state.CurrentStep,
             createNewStep,
-            sharedState.StepToCopy == null ? null : () => PresetStep.Copy(sharedState.StepToCopy),
+            sharedState.StepToCopy == null ?
+                null :
+                () => PresetStep.Copy(sharedState.StepToCopy),
             () => PresetStep.Copy(step)
         );
 
@@ -560,7 +652,11 @@ internal static class StepTreeEditor
         NormalizeState(steps, state);
     }
 
-    private static void NormalizeState(List<PresetStep> steps, StepTreeEditorState state)
+    private static void NormalizeState
+    (
+        List<PresetStep>    steps,
+        StepTreeEditorState state
+    )
     {
         if (steps.Count == 0)
         {
@@ -580,7 +676,12 @@ internal static class StepTreeEditor
             state.CurrentNodeKind = StepTreeNodeKind.Step;
     }
 
-    private static bool ShouldRenderAction(ExecuteActionBase action, string keyword, bool parentMatched)
+    private static bool ShouldRenderAction
+    (
+        ExecuteActionBase action,
+        string            keyword,
+        bool              parentMatched
+    )
     {
         if (string.IsNullOrEmpty(keyword) || parentMatched)
             return true;
@@ -588,21 +689,23 @@ internal static class StepTreeEditor
         return action.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static IDisposable? PushTreeNodeHighlightStyle(bool isSelected, bool isRunning)
+    private static IDisposable? PushTreeNodeHighlightStyle
+    (
+        bool isSelected,
+        bool isRunning
+    )
     {
         if (!isSelected && !isRunning)
             return null;
 
         var pulse         = (MathF.Sin((float)ImGui.GetTime() * 3.5f) + 1f) * 0.5f;
         var selectedColor = KnownColor.CornflowerBlue.ToVector4() with { W = 0.72f };
-        var runningColor  = KnownColor.ForestGreen.ToVector4() with { W = 0.32f + pulse * 0.24f };
+        var runningColor  = KnownColor.ForestGreen.ToVector4() with { W = 0.32f + (pulse * 0.24f) };
         var headerColor   = isSelected && isRunning ? Vector4.Lerp(selectedColor, runningColor, 0.55f) : isSelected ? selectedColor : runningColor;
 
-        var borderColor = isSelected && isRunning
-                              ? KnownColor.Gold.ToVector4() with { W = 0.65f + pulse * 0.35f }
-                              : isSelected
-                                  ? KnownColor.DeepSkyBlue.ToVector4() with { W = 0.9f }
-                                  : KnownColor.YellowGreen.ToVector4() with { W = 0.5f + pulse * 0.35f };
+        var borderColor = isSelected && isRunning ? KnownColor.Gold.ToVector4() with { W = 0.65f + (pulse * 0.35f) }
+                          : isSelected            ? KnownColor.DeepSkyBlue.ToVector4() with { W = 0.9f }
+                                                    : KnownColor.YellowGreen.ToVector4() with { W = 0.5f + (pulse * 0.35f) };
 
         return new TreeNodeHighlightStyle(headerColor, borderColor);
     }
@@ -611,7 +714,11 @@ internal static class StepTreeEditor
     {
         private readonly IDisposable colorStack;
 
-        public TreeNodeHighlightStyle(Vector4 headerColor, Vector4 borderColor)
+        public TreeNodeHighlightStyle
+        (
+            Vector4 headerColor,
+            Vector4 borderColor
+        )
         {
             colorStack = ImRaii.PushColor(ImGuiCol.Header, headerColor)
                                .Push(ImGuiCol.HeaderHovered, headerColor with { W = Math.Min(1f, headerColor.W + 0.15f) })
@@ -629,7 +736,11 @@ internal static class StepTreeEditor
         private readonly IDisposable styleStack;
     }
 
-    private static StepRenderState BuildStepRenderState(PresetStep step, string keyword)
+    private static StepRenderState BuildStepRenderState
+    (
+        PresetStep step,
+        string     keyword
+    )
     {
         var actionCount = step.Actions.Count;
         if (string.IsNullOrEmpty(keyword))
@@ -647,7 +758,11 @@ internal static class StepTreeEditor
         int  ActionCount
     );
 
-    private static string BuildCurrentPathLabel(List<PresetStep> steps, StepTreeEditorState state)
+    private static string BuildCurrentPathLabel
+    (
+        List<PresetStep>    steps,
+        StepTreeEditorState state
+    )
     {
         if (state.CurrentStep < 0 || state.CurrentStep >= steps.Count)
             return "当前路径";
@@ -655,7 +770,7 @@ internal static class StepTreeEditor
         var step  = steps[state.CurrentStep];
         var nodes = new List<string> { $"{state.CurrentStep}.{step.Name}" };
         if (state.CurrentNodeKind == StepTreeNodeKind.Action &&
-            state.CurrentAction   >= 0                         &&
+            state.CurrentAction   >= 0                       &&
             state.CurrentAction   < step.Actions.Count)
             nodes.Add($"{state.CurrentAction}.{step.Actions[state.CurrentAction].Name}");
 

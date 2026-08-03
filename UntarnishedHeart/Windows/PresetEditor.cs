@@ -16,15 +16,24 @@ internal class PresetEditor() : CollectionEditorWindowBase<Preset>($"预设编�
 
     protected override IList<Preset> Items => PluginConfig.Instance().Presets;
 
-    protected override string GetItemName(Preset item) => item.Name;
+    protected override string GetItemName
+    (
+        Preset item
+    ) => item.Name;
 
     protected override Preset CreateNewItem() => new();
 
     protected override Preset? ImportItem() => Preset.ImportFromClipboard();
 
-    protected override void ExportItem(Preset item) => item.ExportToClipboard();
+    protected override void ExportItem
+    (
+        Preset item
+    ) => item.ExportToClipboard();
 
     protected override void SaveItems() => PluginConfig.Instance().Save();
 
-    protected override void DrawEditor(Preset item) => PresetEditorPanel.Draw(item);
+    protected override void DrawEditor
+    (
+        Preset item
+    ) => PresetEditorPanel.Draw(item);
 }

@@ -16,12 +16,18 @@ public sealed class AchievementCountCondition : RouteValueConditionBase
     [JsonProperty("AchievementId")]
     public uint AchievementID { get; set; }
 
-    protected override int GetCurrentValue(in ConditionContext context) =>
-        (int)(AchievementManager.Instance().TryGetAchievement(AchievementID, out var achievementInfo)
-                  ? achievementInfo.Current
-                  : 0);
+    protected override int GetCurrentValue
+    (
+        in ConditionContext context
+    ) =>
+        (int)(AchievementManager.Instance().TryGetAchievement(AchievementID, out var achievementInfo) ?
+                  achievementInfo.Current :
+                  0);
 
-    protected override bool EqualsExtraCore(RouteValueConditionBase other) =>
+    protected override bool EqualsExtraCore
+    (
+        RouteValueConditionBase other
+    ) =>
         other is AchievementCountCondition condition &&
         AchievementID == condition.AchievementID;
 

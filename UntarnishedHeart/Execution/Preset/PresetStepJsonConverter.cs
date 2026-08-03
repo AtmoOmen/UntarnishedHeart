@@ -7,7 +7,12 @@ namespace UntarnishedHeart.Execution.Preset;
 
 public sealed class PresetStepJsonConverter : JsonConverter<PresetStep>
 {
-    public override void WriteJson(JsonWriter writer, PresetStep? value, JsonSerializer serializer)
+    public override void WriteJson
+    (
+        JsonWriter     writer,
+        PresetStep?    value,
+        JsonSerializer serializer
+    )
     {
         if (value is null)
         {
@@ -38,7 +43,11 @@ public sealed class PresetStepJsonConverter : JsonConverter<PresetStep>
         return DeserializeCurrent(jsonObject, serializer);
     }
 
-    internal static JObject SerializeToJObject(PresetStep value, JsonSerializer serializer) =>
+    internal static JObject SerializeToJObject
+    (
+        PresetStep     value,
+        JsonSerializer serializer
+    ) =>
         new()
         {
             ["Version"] = PresetStepJSONMigrator.CurrentJSONVersion,
@@ -47,7 +56,11 @@ public sealed class PresetStepJsonConverter : JsonConverter<PresetStep>
             ["Actions"] = JToken.FromObject(value.Actions, serializer)
         };
 
-    internal static PresetStep DeserializeCurrent(JObject jsonObject, JsonSerializer serializer) =>
+    internal static PresetStep DeserializeCurrent
+    (
+        JObject        jsonObject,
+        JsonSerializer serializer
+    ) =>
         new()
         {
             Name    = ReadString(jsonObject["Name"]),
@@ -55,10 +68,14 @@ public sealed class PresetStepJsonConverter : JsonConverter<PresetStep>
             Actions = ReadObject(jsonObject["Actions"], serializer, new List<ExecuteActionBase>())
         };
 
-    internal static bool ReadBool(JToken? token, bool fallback = false) =>
-        token is null
-            ? fallback
-            : token.Type switch
+    internal static bool ReadBool
+    (
+        JToken? token,
+        bool    fallback = false
+    ) =>
+        token is null ?
+            fallback :
+            token.Type switch
             {
                 JTokenType.Boolean                                                         => token.Value<bool>(),
                 JTokenType.Integer                                                         => token.Value<int>() != 0,
@@ -66,10 +83,14 @@ public sealed class PresetStepJsonConverter : JsonConverter<PresetStep>
                 _                                                                          => fallback
             };
 
-    internal static int ReadInt(JToken? token, int fallback = 0) =>
-        token is null
-            ? fallback
-            : token.Type switch
+    internal static int ReadInt
+    (
+        JToken? token,
+        int     fallback = 0
+    ) =>
+        token is null ?
+            fallback :
+            token.Type switch
             {
                 JTokenType.Integer                                                        => token.Value<int>(),
                 JTokenType.Float                                                          => (int)token.Value<float>(),
@@ -77,14 +98,27 @@ public sealed class PresetStepJsonConverter : JsonConverter<PresetStep>
                 _                                                                         => fallback
             };
 
-    internal static uint ReadUInt(JToken? token, uint fallback = 0) => (uint)Math.Max(0, ReadInt(token, (int)fallback));
+    internal static uint ReadUInt
+    (
+        JToken? token,
+        uint    fallback = 0
+    ) => (uint)Math.Max(0, ReadInt(token, (int)fallback));
 
-    internal static string ReadString(JToken? token, string fallback = "") =>
-        token?.Type == JTokenType.Null
-            ? fallback
-            : token?.Value<string>() ?? fallback;
+    internal static string ReadString
+    (
+        JToken? token,
+        string  fallback = ""
+    ) =>
+        token?.Type == JTokenType.Null ?
+            fallback :
+            token?.Value<string>() ?? fallback;
 
-    internal static T ReadObject<T>(JToken? token, JsonSerializer serializer, T fallback)
+    internal static T ReadObject<T>
+    (
+        JToken?        token,
+        JsonSerializer serializer,
+        T              fallback
+    )
     {
         if (token is null)
             return fallback;
@@ -92,7 +126,11 @@ public sealed class PresetStepJsonConverter : JsonConverter<PresetStep>
         return token.ToObject<T>(serializer) ?? fallback;
     }
 
-    internal static TEnum ReadEnum<TEnum>(JToken? token, TEnum fallback)
+    internal static TEnum ReadEnum<TEnum>
+    (
+        JToken? token,
+        TEnum   fallback
+    )
         where TEnum : struct, Enum
     {
         if (token is null)

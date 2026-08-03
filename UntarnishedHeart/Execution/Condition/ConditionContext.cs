@@ -9,7 +9,10 @@ public readonly record struct ConditionContext
     int           CompletedDutyCount = 0
 )
 {
-    public static ConditionContext Create(int completedDutyCount = 0) =>
+    public static ConditionContext Create
+    (
+        int completedDutyCount = 0
+    ) =>
         new
         (
             DService.Instance().ObjectTable.LocalPlayer,

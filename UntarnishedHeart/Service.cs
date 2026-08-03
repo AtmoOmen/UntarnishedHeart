@@ -9,7 +9,10 @@ namespace UntarnishedHeart;
 
 public class Service
 {
-    public static void Init(IDalamudPluginInterface pluginInterface)
+    public static void Init
+    (
+        IDalamudPluginInterface pluginInterface
+    )
     {
         DService.Init(pluginInterface);
         DService.Instance().UIBuilder.DisableCutsceneUiHide = true;

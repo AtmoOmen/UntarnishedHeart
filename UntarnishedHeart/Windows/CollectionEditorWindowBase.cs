@@ -21,20 +21,31 @@ internal abstract class CollectionEditorWindowBase<TItem>
 
     protected abstract IList<TItem> Items { get; }
 
-    protected abstract string GetItemName(TItem item);
+    protected abstract string GetItemName
+    (
+        TItem item
+    );
 
     protected abstract TItem CreateNewItem();
 
     protected abstract TItem? ImportItem();
 
-    protected abstract void ExportItem(TItem item);
+    protected abstract void ExportItem
+    (
+        TItem item
+    );
 
     protected abstract void SaveItems();
 
-    protected abstract void DrawEditor(TItem item);
+    protected abstract void DrawEditor
+    (
+        TItem item
+    );
 
     protected TItem? SelectedItem =>
-        selectedIndex >= 0 && selectedIndex < Items.Count ? Items[selectedIndex] : default;
+        selectedIndex >= 0 && selectedIndex < Items.Count ?
+            Items[selectedIndex] :
+            default;
 
     protected int SelectedIndex
     {
@@ -42,7 +53,20 @@ internal abstract class CollectionEditorWindowBase<TItem>
         set => selectedIndex = CollectionToolbar.NormalizeSelectedIndex(value, Items.Count);
     }
 
-    protected virtual void OnItemAdded(TItem item, bool imported)
+    internal void OpenWithSelection
+    (
+        int index
+    )
+    {
+        SelectedIndex = index;
+        IsOpen        = true;
+    }
+
+    protected virtual void OnItemAdded
+    (
+        TItem item,
+        bool  imported
+    )
     {
         if (imported)
             SaveItems();
@@ -85,7 +109,9 @@ internal abstract class CollectionEditorWindowBase<TItem>
             ImGui.TextDisabled(EmptyCollectionText);
         else
         {
-            var previewValue = selectedIndex >= 0 ? GetItemName(Items[selectedIndex]) : "请选择";
+            var previewValue = selectedIndex >= 0 ?
+                                   GetItemName(Items[selectedIndex]) :
+                                   "请选择";
 
             ImGui.SetNextItemWidth(280f * GlobalUIScale);
 
@@ -98,11 +124,9 @@ internal abstract class CollectionEditorWindowBase<TItem>
             if (ImGui.IsItemClicked())
             {
                 var trimmed = SelectorLabel.Trim().TrimEnd(':', '：');
-                var title = string.IsNullOrWhiteSpace(trimmed)
-                                ? "选择项目"
-                                : trimmed.StartsWith("选择", StringComparison.Ordinal)
-                                    ? trimmed
-                                    : $"选择{trimmed}";
+                var title = string.IsNullOrWhiteSpace(trimmed)                   ? "选择项目"
+                            : trimmed.StartsWith("选择", StringComparison.Ordinal) ? trimmed
+                                                                                   : $"选择{trimmed}";
 
                 CollectionSelectorWindow.Open
                 (

@@ -9,7 +9,10 @@ internal sealed class PresetStepV1ToV2Migrator : JsonObjectMigratorBase
 
     public override int ToVersion => 2;
 
-    public override JObject Migrate(JObject jsonObject)
+    public override JObject Migrate
+    (
+        JObject jsonObject
+    )
     {
         var migrated = (JObject)jsonObject.DeepClone();
 

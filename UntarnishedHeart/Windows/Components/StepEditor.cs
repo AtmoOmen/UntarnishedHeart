@@ -10,7 +10,10 @@ namespace UntarnishedHeart.Windows.Components;
 
 internal static class StepEditor
 {
-    public static void DrawStepMetadata(PresetStep step)
+    public static void DrawStepMetadata
+    (
+        PresetStep step
+    )
     {
         var stepName = step.Name;
         ImGuiOm.CompLabelLeft("名称:", -1f, () => ImGui.InputText("###StepNameInput", ref stepName, 128));
@@ -23,7 +26,12 @@ internal static class StepEditor
             step.Remark = stepRemark;
     }
 
-    public static int NormalizeActionSelection(StepTreeEditorState state, PresetStep step, int stepIndex)
+    public static int NormalizeActionSelection
+    (
+        StepTreeEditorState state,
+        PresetStep          step,
+        int                 stepIndex
+    )
     {
         var actions       = step.Actions;
         var selectedIndex = CollectionToolbar.NormalizeSelectedIndex(state.StepActionSelections.GetValueOrDefault(stepIndex, -1), actions.Count);
@@ -31,10 +39,20 @@ internal static class StepEditor
         return selectedIndex;
     }
 
-    public static int GetActionSelection(StepTreeEditorState state, int stepIndex) =>
+    public static int GetActionSelection
+    (
+        StepTreeEditorState state,
+        int                 stepIndex
+    ) =>
         state.StepActionSelections.GetValueOrDefault(stepIndex, -1);
 
-    public static void SetActionSelection(StepTreeEditorState state, PresetStep step, int stepIndex, int selectedIndex)
+    public static void SetActionSelection
+    (
+        StepTreeEditorState state,
+        PresetStep          step,
+        int                 stepIndex,
+        int                 selectedIndex
+    )
     {
         var actions = step.Actions;
         state.StepActionSelections[stepIndex] = CollectionToolbar.NormalizeSelectedIndex(selectedIndex, actions.Count);
@@ -159,7 +177,9 @@ internal static class StepEditor
             contextOperation,
             selectedIndex,
             () => ExecuteActionBase.CreateDefaultAction(ExecuteActionKind.Wait),
-            sharedState.ActionToCopy == null ? null : () => ExecuteActionBase.Copy(sharedState.ActionToCopy),
+            sharedState.ActionToCopy == null ?
+                null :
+                () => ExecuteActionBase.Copy(sharedState.ActionToCopy),
             () => ExecuteActionBase.Copy(action)
         );
 
@@ -167,7 +187,11 @@ internal static class StepEditor
             onChanged?.Invoke();
     }
 
-    public static void DrawSinglePresetActionOverview(PresetStep step, IList<PresetStep> steps)
+    public static void DrawSinglePresetActionOverview
+    (
+        PresetStep        step,
+        IList<PresetStep> steps
+    )
     {
         if (step.Actions is not [var action] || action is not ExecutePresetAction)
             return;
@@ -189,7 +213,7 @@ internal static class StepEditor
         ImGui.Separator();
         ImGui.Spacing();
 
-        if (ImGui.CollapsingHeader("条件组"))
+        if (ImGui.CollapsingHeader($"条件组 ({action.Condition.Conditions.Count} 个条件)"))
             action.Condition.Draw();
     }
 
@@ -222,11 +246,16 @@ internal static class StepEditor
         ImGui.Separator();
         ImGui.Spacing();
 
-        if (ImGui.CollapsingHeader("条件组"))
+        if (ImGui.CollapsingHeader($"条件组 ({action.Condition.Conditions.Count} 个条件)"))
             action.Condition.Draw();
     }
 
-    private static void ReplaceAction(List<ExecuteActionBase> actions, ExecuteActionBase current, ExecuteActionBase next)
+    private static void ReplaceAction
+    (
+        List<ExecuteActionBase> actions,
+        ExecuteActionBase       current,
+        ExecuteActionBase       next
+    )
     {
         for (var i = 0; i < actions.Count; i++)
         {
@@ -238,7 +267,10 @@ internal static class StepEditor
         }
     }
 
-    private static void DrawActionMetadataEditor(ExecuteActionBase action)
+    private static void DrawActionMetadataEditor
+    (
+        ExecuteActionBase action
+    )
     {
         var actionName = action.Name;
         ImGuiOm.CompLabelLeft("名称:", -1f, () => ImGui.InputText("###ActionNameInput", ref actionName, 128));
@@ -251,7 +283,11 @@ internal static class StepEditor
             action.Remark = actionRemark;
     }
 
-    private static void DrawActionTypeSelector(ExecuteActionBase current, Action<ExecuteActionBase> replaceCurrent)
+    private static void DrawActionTypeSelector
+    (
+        ExecuteActionBase         current,
+        Action<ExecuteActionBase> replaceCurrent
+    )
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
         var candidates = Enum.GetValues<ExecuteActionKind>();

@@ -8,7 +8,12 @@ public sealed class ExecuteActionJSONConverter : JsonConverter<ExecuteActionBase
 {
     private const string TypeIDPropertyName = "TypeId";
 
-    public override void WriteJson(JsonWriter writer, ExecuteActionBase? value, JsonSerializer serializer)
+    public override void WriteJson
+    (
+        JsonWriter         writer,
+        ExecuteActionBase? value,
+        JsonSerializer     serializer
+    )
     {
         if (value is null)
         {
@@ -39,7 +44,11 @@ public sealed class ExecuteActionJSONConverter : JsonConverter<ExecuteActionBase
         return DeserializeCurrent(jsonObject);
     }
 
-    internal static JObject SerializeToJObject(ExecuteActionBase value, JsonSerializer serializer)
+    internal static JObject SerializeToJObject
+    (
+        ExecuteActionBase value,
+        JsonSerializer    serializer
+    )
     {
         ArgumentNullException.ThrowIfNull(value);
 
@@ -50,7 +59,10 @@ public sealed class ExecuteActionJSONConverter : JsonConverter<ExecuteActionBase
         return obj;
     }
 
-    internal static ExecuteActionBase DeserializeCurrent(JObject obj)
+    internal static ExecuteActionBase DeserializeCurrent
+    (
+        JObject obj
+    )
     {
         var typeID = obj[TypeIDPropertyName]?.Value<string>();
         if (string.IsNullOrWhiteSpace(typeID))

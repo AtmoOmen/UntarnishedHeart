@@ -13,7 +13,10 @@ public sealed class WaitMillisecondsAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.Wait;
 
-    public override void Draw(ExecuteActionDrawContext context)
+    public override void Draw
+    (
+        ExecuteActionDrawContext context
+    )
     {
         var milliseconds = Milliseconds;
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
@@ -21,7 +24,10 @@ public sealed class WaitMillisecondsAction : ExecuteActionBase
             Milliseconds = Math.Max(0, milliseconds);
     }
 
-    protected override bool EqualsCore(ExecuteActionBase other) => other is WaitMillisecondsAction action && Milliseconds == action.Milliseconds;
+    protected override bool EqualsCore
+    (
+        ExecuteActionBase other
+    ) => other is WaitMillisecondsAction action && Milliseconds == action.Milliseconds;
 
     protected override int GetCoreHashCode() => Milliseconds;
 

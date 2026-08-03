@@ -9,7 +9,10 @@ internal sealed class ExecuteActionV3ToV4Migrator : JsonObjectMigratorBase
 
     public override int ToVersion => 4;
 
-    public override JObject Migrate(JObject jsonObject)
+    public override JObject Migrate
+    (
+        JObject jsonObject
+    )
     {
         var migrated = (JObject)jsonObject.DeepClone();
         var typeID   = migrated["TypeId"]?.Value<string>();

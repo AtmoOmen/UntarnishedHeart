@@ -12,10 +12,16 @@ public sealed class LeaveDutyAndRestartAction : ExecuteActionBase
     public override ExecuteActionKind Kind =>
         ExecuteActionKind.LeaveDutyAndRestartPreset;
 
-    public override void Draw(ExecuteActionDrawContext context) =>
+    public override void Draw
+    (
+        ExecuteActionDrawContext context
+    ) =>
         ExecuteActionDrawHelper.DrawNoExtraParametersHint();
 
-    protected override bool EqualsCore(ExecuteActionBase other) =>
+    protected override bool EqualsCore
+    (
+        ExecuteActionBase other
+    ) =>
         other is LeaveDutyAndRestartAction;
 
     protected override int GetCoreHashCode() => 0;

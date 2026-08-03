@@ -56,6 +56,9 @@ public class PluginConfig : IPluginConfiguration
     internal void Save() =>
         DService.Instance().PI.SavePluginConfig(this);
 
-    internal PresetExecutorRunOptions CreatePresetRunOptions(ExecuteActionRuntimeCursor? startCursor = null) =>
+    internal PresetExecutorRunOptions CreatePresetRunOptions
+    (
+        ExecuteActionRuntimeCursor? startCursor = null
+    ) =>
         new(RunTimes, LeaderMode, AutoRecommendGear, ContentEntryType, ContentsFinderOption, startCursor);
 }

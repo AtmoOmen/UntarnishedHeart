@@ -10,11 +10,23 @@ internal sealed class ExecuteActionJsonTypeRegistry : PolymorphicJsonTypeRegistr
 
     protected override string DisplayName => "执行动作";
 
-    protected override ExecuteActionJsonTypeAttribute? GetMetadata(Type type) => type.GetCustomAttribute<ExecuteActionJsonTypeAttribute>(false);
+    protected override ExecuteActionJsonTypeAttribute? GetMetadata
+    (
+        Type type
+    ) => type.GetCustomAttribute<ExecuteActionJsonTypeAttribute>(false);
 
-    protected override string GetTypeID(ExecuteActionJsonTypeAttribute metadata) => metadata.TypeID;
+    protected override string GetTypeID
+    (
+        ExecuteActionJsonTypeAttribute metadata
+    ) => metadata.TypeID;
 
-    protected override ExecuteActionKind GetKind(ExecuteActionJsonTypeAttribute metadata) => metadata.Kind;
+    protected override ExecuteActionKind GetKind
+    (
+        ExecuteActionJsonTypeAttribute metadata
+    ) => metadata.Kind;
 
-    protected override void InitializeDefaultInstance(ExecuteActionBase instance) => instance.ResetMetadata();
+    protected override void InitializeDefaultInstance
+    (
+        ExecuteActionBase instance
+    ) => instance.ResetMetadata();
 }

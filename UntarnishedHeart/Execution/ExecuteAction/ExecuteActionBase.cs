@@ -20,7 +20,10 @@ public abstract class ExecuteActionBase : IEquatable<ExecuteActionBase>
 
     public abstract ExecuteActionKind Kind { get; }
 
-    public abstract void Draw(ExecuteActionDrawContext context);
+    public abstract void Draw
+    (
+        ExecuteActionDrawContext context
+    );
 
     public abstract ExecuteActionBase DeepCopy();
 
@@ -32,7 +35,10 @@ public abstract class ExecuteActionBase : IEquatable<ExecuteActionBase>
         Remark = string.Empty;
     }
 
-    public bool Equals(ExecuteActionBase? other)
+    public bool Equals
+    (
+        ExecuteActionBase? other
+    )
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
@@ -44,15 +50,24 @@ public abstract class ExecuteActionBase : IEquatable<ExecuteActionBase>
                Condition.Equals(other.Condition);
     }
 
-    protected abstract bool EqualsCore(ExecuteActionBase other);
+    protected abstract bool EqualsCore
+    (
+        ExecuteActionBase other
+    );
 
-    public override bool Equals(object? obj) => Equals(obj as ExecuteActionBase);
+    public override bool Equals
+    (
+        object? obj
+    ) => Equals(obj as ExecuteActionBase);
 
     public override int GetHashCode() => HashCode.Combine((int)Kind, Name, Remark, GetCoreHashCode(), Condition);
 
     protected abstract int GetCoreHashCode();
 
-    protected T CopyBasePropertiesTo<T>(T target)
+    protected T CopyBasePropertiesTo<T>
+    (
+        T target
+    )
         where T : ExecuteActionBase
     {
         target.Name      = Name;
@@ -61,8 +76,14 @@ public abstract class ExecuteActionBase : IEquatable<ExecuteActionBase>
         return target;
     }
 
-    internal static ExecuteActionBase CreateDefaultAction(ExecuteActionKind kind) =>
+    internal static ExecuteActionBase CreateDefaultAction
+    (
+        ExecuteActionKind kind
+    ) =>
         ExecuteActionJsonTypeRegistry.Instance.CreateDefault(kind);
 
-    public static ExecuteActionBase Copy(ExecuteActionBase source) => source.DeepCopy();
+    public static ExecuteActionBase Copy
+    (
+        ExecuteActionBase source
+    ) => source.DeepCopy();
 }

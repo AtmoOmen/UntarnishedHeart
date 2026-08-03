@@ -10,9 +10,12 @@ internal sealed class ConditionCollectionV2ToV3Migrator : JsonObjectMigratorBase
 
     public override int ToVersion => 3;
 
-    public override JObject Migrate(JObject jsonObject)
+    public override JObject Migrate
+    (
+        JObject jsonObject
+    )
     {
-        var migrated = (JObject)jsonObject.DeepClone();
+        var migrated        = (JObject)jsonObject.DeepClone();
         var executeTypeText = migrated["ExecuteType"]?.Value<string>();
 
         if (string.Equals(executeTypeText, "Sustain", StringComparison.OrdinalIgnoreCase))
@@ -21,9 +24,7 @@ internal sealed class ConditionCollectionV2ToV3Migrator : JsonObjectMigratorBase
             migrated["Negate"]      = migrated["Conditions"] is JArray { Count: > 0 };
         }
         else
-        {
             migrated["Negate"] = false;
-        }
 
         migrated["Version"] = 3;
         return migrated;

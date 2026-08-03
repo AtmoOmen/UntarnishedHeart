@@ -27,13 +27,21 @@ internal static class PluginCommand
         manager.MainCommand = null;
     }
 
-    private static void OnMainCommand(string command, string arguments)
+    private static void OnMainCommand
+    (
+        string command,
+        string arguments
+    )
     {
         if (WindowManager.Instance().Get<MainWindow>() is { } main)
             main.IsOpen ^= true;
     }
 
-    private static void OnAutoInteract(string command, string args)
+    private static void OnAutoInteract
+    (
+        string command,
+        string args
+    )
     {
         if (ExecutionManager.TryRequestNearestInteract())
             return;
@@ -41,6 +49,10 @@ internal static class PluginCommand
         NotifyHelper.Instance().Chat("当前没有正在运行的执行器，无法执行最近交互");
     }
 
-    private static void OnEnqueueNewRound(string command, string args) =>
+    private static void OnEnqueueNewRound
+    (
+        string command,
+        string args
+    ) =>
         ExecutionManager.ManualEnqueueNewRound();
 }

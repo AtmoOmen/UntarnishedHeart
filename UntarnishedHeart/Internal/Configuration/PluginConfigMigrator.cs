@@ -17,7 +17,10 @@ internal static class PluginConfigMigrator
             new V4ToV5ConfigMigrator()
         }.ToFrozenDictionary(migrator => migrator.FromVersion);
 
-    internal static void Migrate(PluginConfig config)
+    internal static void Migrate
+    (
+        PluginConfig config
+    )
     {
         ArgumentNullException.ThrowIfNull(config);
 

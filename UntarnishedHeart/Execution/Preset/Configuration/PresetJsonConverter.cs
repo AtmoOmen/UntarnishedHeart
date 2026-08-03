@@ -5,7 +5,12 @@ namespace UntarnishedHeart.Execution.Preset.Configuration;
 
 public sealed class PresetJsonConverter : JsonConverter<Preset>
 {
-    public override void WriteJson(JsonWriter writer, Preset? value, JsonSerializer serializer)
+    public override void WriteJson
+    (
+        JsonWriter     writer,
+        Preset?        value,
+        JsonSerializer serializer
+    )
     {
         if (value is null)
         {
@@ -36,7 +41,11 @@ public sealed class PresetJsonConverter : JsonConverter<Preset>
         return DeserializeCurrent(jsonObject, serializer);
     }
 
-    internal static JObject SerializeToJObject(Preset value, JsonSerializer serializer) =>
+    internal static JObject SerializeToJObject
+    (
+        Preset         value,
+        JsonSerializer serializer
+    ) =>
         new()
         {
             ["Version"]           = PresetJSONMigrator.CurrentJSONVersion,
@@ -49,7 +58,11 @@ public sealed class PresetJsonConverter : JsonConverter<Preset>
             ["DutyDelay"]         = value.DutyDelay
         };
 
-    internal static Preset DeserializeCurrent(JObject jsonObject, JsonSerializer serializer) =>
+    internal static Preset DeserializeCurrent
+    (
+        JObject        jsonObject,
+        JsonSerializer serializer
+    ) =>
         new()
         {
             Version           = PresetJSONMigrator.CurrentJSONVersion,

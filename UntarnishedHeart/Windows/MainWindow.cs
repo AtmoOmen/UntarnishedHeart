@@ -29,7 +29,9 @@ public class MainWindow : Window
         CollectionToolbar.NormalizeSelectedIndex(PluginConfig.Instance().SelectedRouteIndex, PluginConfig.Instance().Routes.Count);
 
     public void RefreshWindowFlags() =>
-        Flags = PluginConfig.Instance().UnlockMainWindowSize ? ImGuiWindowFlags.None : ImGuiWindowFlags.AlwaysAutoResize;
+        Flags = PluginConfig.Instance().UnlockMainWindowSize ?
+                    ImGuiWindowFlags.None :
+                    ImGuiWindowFlags.AlwaysAutoResize;
 
     public override void Draw()
     {
@@ -110,8 +112,10 @@ public class MainWindow : Window
         }
 
         var selectedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(config.SelectedPresetIndex, config.Presets.Count);
-        var previewValue        = selectedPresetIndex >= 0 ? config.Presets[selectedPresetIndex].Name : "请选择";
-        var selectorWidth       = CalculateSelectorWidth(72f);
+        var previewValue = selectedPresetIndex >= 0 ?
+                               config.Presets[selectedPresetIndex].Name :
+                               "请选择";
+        var selectorWidth = CalculateSelectorWidth(72f);
 
         ImGui.SetNextItemWidth(selectorWidth * GlobalUIScale);
 
@@ -142,7 +146,7 @@ public class MainWindow : Window
 
         ImGui.SameLine();
         if (ImGui.Button("编辑##EditPreset", new(72f * GlobalUIScale, 0f)))
-            WindowManager.Instance().Get<PresetEditor>().IsOpen = true;
+            WindowManager.Instance().Get<PresetEditor>().OpenWithSelection(selectedPresetIndex);
 
         DrawPendingStartDescription(PendingExecutionStartManager.GetPresetDescription(GetSelectedPreset(selectedPresetIndex)));
 
@@ -161,8 +165,10 @@ public class MainWindow : Window
         }
 
         var selectedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(config.SelectedRouteIndex, config.Routes.Count);
-        var previewValue       = selectedRouteIndex >= 0 ? config.Routes[selectedRouteIndex].Name : "请选择";
-        var selectorWidth      = CalculateSelectorWidth(72f);
+        var previewValue = selectedRouteIndex >= 0 ?
+                               config.Routes[selectedRouteIndex].Name :
+                               "请选择";
+        var selectorWidth = CalculateSelectorWidth(72f);
 
         ImGui.SetNextItemWidth(selectorWidth * GlobalUIScale);
 
@@ -194,18 +200,21 @@ public class MainWindow : Window
         ImGui.SameLine();
 
         if (ImGui.Button("编辑##EditRoute", new(72f * GlobalUIScale, 0f)))
-            WindowManager.Instance().Get<RouteEditor>().IsOpen = true;
+            WindowManager.Instance().Get<RouteEditor>().OpenWithSelection(selectedRouteIndex);
 
         DrawPendingStartDescription(PendingExecutionStartManager.GetRouteDescription(GetSelectedRoute(selectedRouteIndex)));
     }
 
     private static void DrawPrimaryActionSection()
     {
-        var status    = ExecutionUIHelper.CreateStatusViewState();
-        var isRunning = status.IsRunning;
-        var canStart  = ExecutionUIHelper.CanStartCurrentMode();
-        var label     = isRunning ? status.StopLabel : "开始";
-        var width     = ImGui.GetContentRegionAvail().X;
+        var status               = ExecutionUIHelper.CreateStatusViewState();
+        var isRunning            = status.IsRunning;
+        var startDisabledReasons = ExecutionUIHelper.GetStartDisabledReasons();
+        var canStart             = startDisabledReasons.Count == 0;
+        var label = isRunning ?
+                        status.StopLabel :
+                        "开始";
+        var width = ImGui.GetContentRegionAvail().X;
 
         using (ImRaii.Disabled(!isRunning && !canStart))
         {
@@ -221,6 +230,9 @@ public class MainWindow : Window
                     StartRouteExecution();
             }
         }
+
+        if (!isRunning && !canStart && ImGui.IsItemHovered())
+            ImGuiOm.TooltipHover(string.Join("\n", startDisabledReasons));
 
         using (ImRaii.Disabled(!status.CanDeferredStop))
         {
@@ -243,7 +255,10 @@ public class MainWindow : Window
         config.Save();
     }
 
-    private static void PersistSelectedPresetIndex(int selectedPresetIndex)
+    private static void PersistSelectedPresetIndex
+    (
+        int selectedPresetIndex
+    )
     {
         var config                = PluginConfig.Instance();
         var normalizedPresetIndex = CollectionToolbar.NormalizeSelectedIndex(selectedPresetIndex, config.Presets.Count);
@@ -255,7 +270,10 @@ public class MainWindow : Window
         config.Save();
     }
 
-    private static void PersistSelectedRouteIndex(int selectedRouteIndex)
+    private static void PersistSelectedRouteIndex
+    (
+        int selectedRouteIndex
+    )
     {
         var config               = PluginConfig.Instance();
         var normalizedRouteIndex = CollectionToolbar.NormalizeSelectedIndex(selectedRouteIndex, config.Routes.Count);
@@ -267,7 +285,12 @@ public class MainWindow : Window
         config.Save();
     }
 
-    private static void DrawEmptyState(string text, Action openEditor, Action importAction)
+    private static void DrawEmptyState
+    (
+        string text,
+        Action openEditor,
+        Action importAction
+    )
     {
         ImGui.TextDisabled(text);
         ImGui.Spacing();
@@ -285,10 +308,16 @@ public class MainWindow : Window
             importAction();
     }
 
-    private static void DrawTopActionButton(int columnIndex, string label, float width, Action onClick)
+    private static void DrawTopActionButton
+    (
+        int    columnIndex,
+        string label,
+        float  width,
+        Action onClick
+    )
     {
         ImGui.TableSetColumnIndex(columnIndex);
-        if (ImGui.Button(label, new(width - 2 * ImGui.GetStyle().ItemSpacing.X, 1.2f * ImGui.GetTextLineHeightWithSpacing())))
+        if (ImGui.Button(label, new(width - (2 * ImGui.GetStyle().ItemSpacing.X), 1.2f * ImGui.GetTextLineHeightWithSpacing())))
             onClick();
     }
 
@@ -352,19 +381,32 @@ public class MainWindow : Window
         ExecutionUIHelper.OpenStatusWindow();
     }
 
-    private static Preset? GetSelectedPreset(int selectedPresetIndex)
+    private static Preset? GetSelectedPreset
+    (
+        int selectedPresetIndex
+    )
     {
         var config = PluginConfig.Instance();
-        return selectedPresetIndex >= 0 && selectedPresetIndex < config.Presets.Count ? config.Presets[selectedPresetIndex] : null;
+        return selectedPresetIndex >= 0 && selectedPresetIndex < config.Presets.Count ?
+                   config.Presets[selectedPresetIndex] :
+                   null;
     }
 
-    private static Route? GetSelectedRoute(int selectedRouteIndex)
+    private static Route? GetSelectedRoute
+    (
+        int selectedRouteIndex
+    )
     {
         var config = PluginConfig.Instance();
-        return selectedRouteIndex >= 0 && selectedRouteIndex < config.Routes.Count ? config.Routes[selectedRouteIndex] : null;
+        return selectedRouteIndex >= 0 && selectedRouteIndex < config.Routes.Count ?
+                   config.Routes[selectedRouteIndex] :
+                   null;
     }
 
-    private static void DrawPendingStartDescription(string? description)
+    private static void DrawPendingStartDescription
+    (
+        string? description
+    )
     {
         if (string.IsNullOrWhiteSpace(description))
             return;
@@ -373,6 +415,9 @@ public class MainWindow : Window
         ImGui.TextDisabled(description);
     }
 
-    private static float CalculateSelectorWidth(float actionButtonWidth)
-        => (ImGui.GetContentRegionAvail().X - actionButtonWidth * GlobalUIScale - ImGui.GetStyle().ItemSpacing.X) / GlobalUIScale;
+    private static float CalculateSelectorWidth
+    (
+        float actionButtonWidth
+    )
+        => (ImGui.GetContentRegionAvail().X - (actionButtonWidth * GlobalUIScale) - ImGui.GetStyle().ItemSpacing.X) / GlobalUIScale;
 }

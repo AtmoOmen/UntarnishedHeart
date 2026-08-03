@@ -14,7 +14,10 @@ public sealed class JumpToStepAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.JumpToStep;
 
-    public override void Draw(ExecuteActionDrawContext context)
+    public override void Draw
+    (
+        ExecuteActionDrawContext context
+    )
     {
         var hasValidTarget = StepIndex >= 0 && StepIndex < context.Steps.Count;
         var preview        = StepIndex < 0 ? "当前步骤" : hasValidTarget ? $"{StepIndex}. {context.Steps[StepIndex].Name}" : "请选择目标步骤";
@@ -31,7 +34,9 @@ public sealed class JumpToStepAction : ExecuteActionBase
         (
             "选择目标步骤",
             "暂无步骤",
-            hasValidTarget ? StepIndex : -1,
+            hasValidTarget ?
+                StepIndex :
+                -1,
             context.Steps,
             static step => step.Name,
             index =>
@@ -44,7 +49,10 @@ public sealed class JumpToStepAction : ExecuteActionBase
         );
     }
 
-    protected override bool EqualsCore(ExecuteActionBase other) =>
+    protected override bool EqualsCore
+    (
+        ExecuteActionBase other
+    ) =>
         other is JumpToStepAction action && StepIndex == action.StepIndex;
 
     protected override int GetCoreHashCode() =>

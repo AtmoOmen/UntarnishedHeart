@@ -28,10 +28,11 @@ internal sealed class ConditionJSONMigrator : VersionedJsonMigratorBase<Conditio
 
     protected override IReadOnlyDictionary<int, JsonObjectMigratorBase> Migrators => MigratorsInternal;
 
-    protected override int ResolveMissingVersion(JObject jsonObject) =>
-        jsonObject["TypeId"] is not null
-            ? CurrentVersion
-            : jsonObject["Kind"] is null
-                ? LegacyVersion
-                : 2;
+    protected override int ResolveMissingVersion
+    (
+        JObject jsonObject
+    ) =>
+        jsonObject["TypeId"] is not null ? CurrentVersion
+        : jsonObject["Kind"] is null     ? LegacyVersion
+                                           : 2;
 }

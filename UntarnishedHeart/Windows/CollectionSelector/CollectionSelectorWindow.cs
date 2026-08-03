@@ -91,9 +91,9 @@ internal class CollectionSelectorWindow : Window
         where TEnum : struct, Enum
     {
         var resolvedCandidates = ResolveEnumCandidates(candidates);
-        var items = candidates.Length == 0
-                        ? EnumSelectorCache.GetItems<TEnum>()
-                        : BuildItems(resolvedCandidates, static value => new CollectionSelectorItem(value.GetDescription()));
+        var items = candidates.Length == 0 ?
+                        EnumSelectorCache.GetItems<TEnum>() :
+                        BuildItems(resolvedCandidates, static value => new CollectionSelectorItem(value.GetDescription()));
         var request = new CollectionSelectorRequest(title, emptyText, FindValueIndex(resolvedCandidates, selectedValue), items);
 
         Open
@@ -181,6 +181,9 @@ internal class CollectionSelectorWindow : Window
         ImGui.SetNextItemWidth(-1f);
         ImGui.InputTextWithHint("###CollectionSelectorSearch", "输入关键字筛选", ref searchText, 256);
 
+        ImGui.TextDisabled("点击或按回车确认，上下键选择，Esc 取消");
+        ImGui.Spacing();
+
         var filteredIndices     = BuildFilteredIndices(request, searchText);
         var hasVisibleSelection = NormalizeVisibleSelection(filteredIndices);
 
@@ -201,11 +204,20 @@ internal class CollectionSelectorWindow : Window
 
     public override void OnClose() => CancelPendingRequest();
 
-    private void DrawItemList(CollectionSelectorRequest request, List<int> filteredIndices)
+    private void DrawItemList
+    (
+        CollectionSelectorRequest request,
+        List<int>                 filteredIndices
+    )
     {
         if (filteredIndices.Count == 0)
         {
-            ImGui.TextDisabled(string.IsNullOrWhiteSpace(searchText) ? request.EmptyText : "未找到匹配项");
+            ImGui.TextDisabled
+            (
+                string.IsNullOrWhiteSpace(searchText) ?
+                    request.EmptyText :
+                    "未找到匹配项"
+            );
             return;
         }
 
@@ -270,7 +282,12 @@ internal class CollectionSelectorWindow : Window
         }
     }
 
-    private void HandleKeyboard(CollectionSelectorRequest request, List<int> filteredIndices, bool hasVisibleSelection)
+    private void HandleKeyboard
+    (
+        CollectionSelectorRequest request,
+        List<int>                 filteredIndices,
+        bool                      hasVisibleSelection
+    )
     {
         if (!ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows))
             return;
@@ -287,17 +304,17 @@ internal class CollectionSelectorWindow : Window
 
             if (ImGui.IsKeyPressed(ImGuiKey.DownArrow))
             {
-                var nextIndex = currentFilteredIndex < 0
-                                    ? 0
-                                    : Math.Min(currentFilteredIndex + 1, filteredIndices.Count - 1);
+                var nextIndex = currentFilteredIndex < 0 ?
+                                    0 :
+                                    Math.Min(currentFilteredIndex + 1, filteredIndices.Count - 1);
                 highlightedIndex    = filteredIndices[nextIndex];
                 scrollToHighlighted = true;
             }
             else if (ImGui.IsKeyPressed(ImGuiKey.UpArrow))
             {
-                var nextIndex = currentFilteredIndex <= 0
-                                    ? 0
-                                    : currentFilteredIndex - 1;
+                var nextIndex = currentFilteredIndex <= 0 ?
+                                    0 :
+                                    currentFilteredIndex - 1;
                 highlightedIndex    = filteredIndices[nextIndex];
                 scrollToHighlighted = true;
             }
@@ -307,7 +324,11 @@ internal class CollectionSelectorWindow : Window
             CompleteSelection(NormalizeVisibleIndex(request, highlightedIndex, filteredIndices));
     }
 
-    private static List<int> BuildFilteredIndices(CollectionSelectorRequest request, string searchText)
+    private static List<int> BuildFilteredIndices
+    (
+        CollectionSelectorRequest request,
+        string                    searchText
+    )
     {
         var indices = new List<int>(request.Items.Count);
         var keyword = searchText.Trim();
@@ -334,7 +355,10 @@ internal class CollectionSelectorWindow : Window
         return indices;
     }
 
-    private void CompleteSelection(int index)
+    private void CompleteSelection
+    (
+        int index
+    )
     {
         var request  = currentRequest;
         var callback = onSelected;
@@ -349,7 +373,10 @@ internal class CollectionSelectorWindow : Window
         callback(normalizedIndex);
     }
 
-    private void CompleteDelete(int index)
+    private void CompleteDelete
+    (
+        int index
+    )
     {
         var request  = currentRequest;
         var callback = onDelete;
@@ -411,7 +438,10 @@ internal class CollectionSelectorWindow : Window
         return normalizedRequest;
     }
 
-    private bool NormalizeVisibleSelection(List<int> filteredIndices)
+    private bool NormalizeVisibleSelection
+    (
+        List<int> filteredIndices
+    )
     {
         if (filteredIndices.Count == 0)
         {
@@ -427,37 +457,66 @@ internal class CollectionSelectorWindow : Window
         return true;
     }
 
-    private static CollectionSelectorRequest NormalizeRequest(CollectionSelectorRequest request)
+    private static CollectionSelectorRequest NormalizeRequest
+    (
+        CollectionSelectorRequest request
+    )
     {
         var normalizedIndex = NormalizeItemIndex(request.Items, request.SelectedIndex);
-        return normalizedIndex == request.SelectedIndex
-                   ? request
-                   : request with { SelectedIndex = normalizedIndex };
+        return normalizedIndex == request.SelectedIndex ?
+                   request :
+                   request with { SelectedIndex = normalizedIndex };
     }
 
-    private static int NormalizeVisibleIndex(CollectionSelectorRequest request, int index, IReadOnlyList<int> filteredIndices)
+    private static int NormalizeVisibleIndex
+    (
+        CollectionSelectorRequest request,
+        int                       index,
+        IReadOnlyList<int>        filteredIndices
+    )
     {
         var normalizedIndex = NormalizeItemIndex(request.Items, index);
         if (normalizedIndex < 0)
             return -1;
 
-        return FindIndex(filteredIndices, normalizedIndex) >= 0 ? normalizedIndex : -1;
+        return FindIndex(filteredIndices, normalizedIndex) >= 0 ?
+                   normalizedIndex :
+                   -1;
     }
 
-    private static int NormalizeItemIndex(IReadOnlyList<CollectionSelectorItem> items, int index) =>
+    private static int NormalizeItemIndex
+    (
+        IReadOnlyList<CollectionSelectorItem> items,
+        int                                   index
+    ) =>
         NormalizeIndex(index, items.Count);
 
-    private static int NormalizeIndex(int index, int count) =>
-        count <= 0 ? -1 : Math.Clamp(index, 0, count - 1);
+    private static int NormalizeIndex
+    (
+        int index,
+        int count
+    ) =>
+        count <= 0 ?
+            -1 :
+            Math.Clamp(index, 0, count - 1);
 
     private static CollectionSelectorWindow GetWindow() =>
         WindowManager.Instance().Get<CollectionSelectorWindow>() ?? throw new InvalidOperationException("集合选择窗口尚未注册");
 
-    private static IList<TEnum> ResolveEnumCandidates<TEnum>(TEnum[] candidates)
+    private static IList<TEnum> ResolveEnumCandidates<TEnum>
+    (
+        TEnum[] candidates
+    )
         where TEnum : struct, Enum =>
-        candidates.Length == 0 ? EnumSelectorCache.GetValues<TEnum>() : candidates;
+        candidates.Length == 0 ?
+            EnumSelectorCache.GetValues<TEnum>() :
+            candidates;
 
-    private static CollectionSelectorItem[] BuildItems<TItem>(IList<TItem> items, Func<TItem, CollectionSelectorItem> itemSelector)
+    private static CollectionSelectorItem[] BuildItems<TItem>
+    (
+        IList<TItem>                        items,
+        Func<TItem, CollectionSelectorItem> itemSelector
+    )
     {
         var result = new CollectionSelectorItem[items.Count];
 
@@ -467,10 +526,18 @@ internal class CollectionSelectorWindow : Window
         return result;
     }
 
-    private static bool IsValidIndex(int index, int count) =>
+    private static bool IsValidIndex
+    (
+        int index,
+        int count
+    ) =>
         (uint)index < (uint)count;
 
-    private static int FindIndex(IReadOnlyList<int> indices, int value)
+    private static int FindIndex
+    (
+        IReadOnlyList<int> indices,
+        int                value
+    )
     {
         for (var i = 0; i < indices.Count; i++)
             if (indices[i] == value)
@@ -479,7 +546,11 @@ internal class CollectionSelectorWindow : Window
         return -1;
     }
 
-    private static int FindValueIndex<T>(IList<T> values, T value)
+    private static int FindValueIndex<T>
+    (
+        IList<T> values,
+        T        value
+    )
     {
         var comparer = EqualityComparer<T>.Default;
 

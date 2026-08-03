@@ -27,17 +27,26 @@ internal class RouteEditor() : CollectionEditorWindowBase<Route>($"路线编辑�
 
     protected override IList<Route> Items => PluginConfig.Instance().Routes;
 
-    protected override string GetItemName(Route item) => item.Name;
+    protected override string GetItemName
+    (
+        Route item
+    ) => item.Name;
 
     protected override Route CreateNewItem() => new() { Name = $"新路线 {Items.Count + 1}" };
 
     protected override Route? ImportItem() => Route.ImportFromClipboard();
 
-    protected override void ExportItem(Route item) => item.ExportToClipboard();
+    protected override void ExportItem
+    (
+        Route item
+    ) => item.ExportToClipboard();
 
     protected override void SaveItems() => PluginConfig.Instance().Save();
 
-    protected override void DrawEditor(Route item) => RouteEditorPanel.Draw(item);
+    protected override void DrawEditor
+    (
+        Route item
+    ) => RouteEditorPanel.Draw(item);
 
     public override void Draw()
     {
@@ -62,7 +71,10 @@ internal class RouteEditor() : CollectionEditorWindowBase<Route>($"路线编辑�
             ImportPackage();
     }
 
-    private void ExportPackage(Route route)
+    private void ExportPackage
+    (
+        Route route
+    )
     {
         if (!route.IsValid)
         {
@@ -86,7 +98,9 @@ internal class RouteEditor() : CollectionEditorWindowBase<Route>($"路线编辑�
                     return;
                 }
 
-                var preset = PluginConfig.Instance().Presets.FirstOrDefault(candidate => string.Equals(candidate.ID, presetAction.PresetID, StringComparison.Ordinal));
+                var preset = PluginConfig.Instance().Presets.FirstOrDefault
+                    (candidate => string.Equals(candidate.ID, presetAction.PresetID, StringComparison.Ordinal));
+
                 if (preset is not { IsValid: true })
                 {
                     NotifyHelper.Instance().ChatError($"路线包导出失败: 找不到预设: {presetAction.PresetName}");
@@ -98,43 +112,63 @@ internal class RouteEditor() : CollectionEditorWindowBase<Route>($"路线编辑�
             }
         }
 
-        var safeName = string.Concat(route.Name.Select(static character => Path.GetInvalidFileNameChars().Contains(character) ? '_' : character));
-        FileDialogManager.SaveFileDialog("导出路线包", ".uthpkg", $"{safeName}.uthpkg", ".uthpkg", (confirmed, path) =>
-        {
-            if (!confirmed)
-                return;
+        var safeName = string.Concat
+        (
+            route.Name.Select
+            (static character => Path.GetInvalidFileNameChars().Contains(character) ?
+                                     '_' :
+                                     character
+            )
+        );
+        FileDialogManager.SaveFileDialog
+        (
+            "导出路线包",
+            ".uthpkg",
+            $"{safeName}.uthpkg",
+            ".uthpkg",
+            (confirmed, path) =>
+            {
+                if (!confirmed)
+                    return;
 
-            try
-            {
-                UTHPackageIO.Export(route, presets, path);
-                NotifyHelper.Instance().Chat($"路线包已导出: {path}");
+                try
+                {
+                    UTHPackageIO.Export(route, presets, path);
+                    NotifyHelper.Instance().Chat($"路线包已导出: {path}");
+                }
+                catch (Exception ex)
+                {
+                    NotifyHelper.Instance().ChatError($"导出路线包失败: {ex.Message}");
+                }
             }
-            catch (Exception ex)
-            {
-                NotifyHelper.Instance().ChatError($"导出路线包失败: {ex.Message}");
-            }
-        });
+        );
     }
 
-    private void ImportPackage()
-    {
-        FileDialogManager.OpenFileDialog("导入路线包", ".uthpkg", (confirmed, path) =>
-        {
-            if (!confirmed)
-                return;
-
-            try
+    private void ImportPackage() =>
+        FileDialogManager.OpenFileDialog
+        (
+            "导入路线包",
+            ".uthpkg",
+            (confirmed, path) =>
             {
-                BeginPackageImport(UTHPackageIO.Read(path));
-            }
-            catch (Exception ex)
-            {
-                NotifyHelper.Instance().ChatError($"导入路线包失败: {ex.Message}");
-            }
-        });
-    }
+                if (!confirmed)
+                    return;
 
-    private void BeginPackageImport(UTHPackageContent content)
+                try
+                {
+                    BeginPackageImport(UTHPackageIO.Read(path));
+                }
+                catch (Exception ex)
+                {
+                    NotifyHelper.Instance().ChatError($"导入路线包失败: {ex.Message}");
+                }
+            }
+        );
+
+    private void BeginPackageImport
+    (
+        UTHPackageContent content
+    )
     {
         var session = new PackageImportSession(content);
         var presets = PluginConfig.Instance().Presets;
@@ -158,7 +192,10 @@ internal class RouteEditor() : CollectionEditorWindowBase<Route>($"路线编辑�
         ImGui.OpenPopup("路线包导入冲突");
     }
 
-    private void ApplyPackageImport(PackageImportSession session)
+    private void ApplyPackageImport
+    (
+        PackageImportSession session
+    )
     {
         var config    = PluginConfig.Instance();
         var remap     = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -200,7 +237,7 @@ internal class RouteEditor() : CollectionEditorWindowBase<Route>($"路线编辑�
 
                 default:
                     var copy = packagePreset.Copy();
-                    copy.ID = Guid.NewGuid().ToString("D");
+                    copy.ID                 = Guid.NewGuid().ToString("D");
                     remap[packagePreset.ID] = copy.ID;
                     config.Presets.Add(copy);
                     copied++;
@@ -209,13 +246,14 @@ internal class RouteEditor() : CollectionEditorWindowBase<Route>($"路线编辑�
         }
 
         var finalPackagePresets = new List<Preset>();
+
         foreach (var packagePreset in session.Content.Presets)
         {
             finalPackagePresets.Add
             (
-                remap.TryGetValue(packagePreset.ID, out var newID)
-                    ? config.Presets.First(candidate => string.Equals(candidate.ID, newID, StringComparison.Ordinal))
-                    : packagePreset
+                remap.TryGetValue(packagePreset.ID, out var newID) ?
+                    config.Presets.First(candidate => string.Equals(candidate.ID, newID, StringComparison.Ordinal)) :
+                    packagePreset
             );
         }
 
@@ -233,9 +271,9 @@ internal class RouteEditor() : CollectionEditorWindowBase<Route>($"路线编辑�
             }
         }
 
-        var unbound = PresetReferenceBinder.BindUnboundReferences(session.Content.Route, config.Presets);
+        var unbound    = PresetReferenceBinder.BindUnboundReferences(session.Content.Route, config.Presets);
         var routeAdded = !config.Routes.Any(existing => existing.Equals(session.Content.Route));
-        var missing = 0;
+        var missing    = 0;
 
         foreach (var step in session.Content.Route.Steps)
         {
@@ -257,9 +295,9 @@ internal class RouteEditor() : CollectionEditorWindowBase<Route>($"路线编辑�
 
         config.Save();
 
-        var routeMessage = routeAdded
-                               ? $"路线“{session.Content.Route.Name}”已添加"
-                               : $"路线“{session.Content.Route.Name}”内容重复，已跳过";
+        var routeMessage = routeAdded ?
+                               $"路线“{session.Content.Route.Name}”已添加" :
+                               $"路线“{session.Content.Route.Name}”内容重复，已跳过";
         NotifyHelper.Instance().Chat($"路线包导入完成: 新增预设 {added}、覆盖 {overwrote}、跳过 {skipped}、保留 {kept}、另存副本 {copied}、未绑定引用 {unbound}、缺失预设 {missing}；{routeMessage}");
 
         if (missing > 0)
@@ -307,14 +345,21 @@ internal class RouteEditor() : CollectionEditorWindowBase<Route>($"路线编辑�
         ImGui.EndPopup();
     }
 
-    private sealed class PackageImportSession(UTHPackageContent content)
+    private sealed class PackageImportSession
+    (
+        UTHPackageContent content
+    )
     {
         public UTHPackageContent Content { get; } = content;
 
         public List<PresetConflictItem> Conflicts { get; } = [];
     }
 
-    private sealed class PresetConflictItem(Preset packagePreset, Preset localPreset)
+    private sealed class PresetConflictItem
+    (
+        Preset packagePreset,
+        Preset localPreset
+    )
     {
         public Preset PackagePreset { get; } = packagePreset;
 

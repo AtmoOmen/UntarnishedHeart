@@ -10,11 +10,23 @@ internal sealed class ConditionJsonTypeRegistry : PolymorphicJsonTypeRegistry<Co
 
     protected override string DisplayName => "条件";
 
-    protected override ConditionJsonTypeAttribute? GetMetadata(Type type) => type.GetCustomAttribute<ConditionJsonTypeAttribute>(false);
+    protected override ConditionJsonTypeAttribute? GetMetadata
+    (
+        Type type
+    ) => type.GetCustomAttribute<ConditionJsonTypeAttribute>(false);
 
-    protected override string GetTypeID(ConditionJsonTypeAttribute metadata) => metadata.TypeID;
+    protected override string GetTypeID
+    (
+        ConditionJsonTypeAttribute metadata
+    ) => metadata.TypeID;
 
-    protected override ConditionDetectType GetKind(ConditionJsonTypeAttribute metadata) => metadata.Kind;
+    protected override ConditionDetectType GetKind
+    (
+        ConditionJsonTypeAttribute metadata
+    ) => metadata.Kind;
 
-    protected override void InitializeDefaultInstance(ConditionBase instance) => instance.ResetMetadata();
+    protected override void InitializeDefaultInstance
+    (
+        ConditionBase instance
+    ) => instance.ResetMetadata();
 }

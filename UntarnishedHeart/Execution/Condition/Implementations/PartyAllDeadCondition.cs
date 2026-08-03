@@ -14,7 +14,10 @@ public sealed class PartyAllDeadCondition : ConditionBase
     [JsonProperty("ComparisonType")]
     public PresenceComparisonType ComparisonType { get; set; } = PresenceComparisonType.Has;
 
-    public override bool Evaluate(in ConditionContext context)
+    public override bool Evaluate
+    (
+        in ConditionContext context
+    )
     {
         var partyList = DService.Instance().PartyList;
         if (partyList.Length < 2)
@@ -37,10 +40,15 @@ public sealed class PartyAllDeadCondition : ConditionBase
             }
         }
 
-        return ComparisonType == PresenceComparisonType.Has ? allDead : !allDead;
+        return ComparisonType == PresenceComparisonType.Has ?
+                   allDead :
+                   !allDead;
     }
 
-    protected override bool EqualsCore(ConditionBase other) =>
+    protected override bool EqualsCore
+    (
+        ConditionBase other
+    ) =>
         other is PartyAllDeadCondition condition &&
         ComparisonType == condition.ComparisonType;
 
@@ -53,6 +61,7 @@ public sealed class PartyAllDeadCondition : ConditionBase
     {
         DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<PresenceComparisonType>();
+
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)

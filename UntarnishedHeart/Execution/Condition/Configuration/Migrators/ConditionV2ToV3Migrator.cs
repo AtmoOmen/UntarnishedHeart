@@ -9,5 +9,8 @@ internal sealed class ConditionV2ToV3Migrator : JsonObjectMigratorBase
 
     public override int ToVersion => 3;
 
-    public override JObject Migrate(JObject jsonObject) => (JObject)jsonObject.DeepClone();
+    public override JObject Migrate
+    (
+        JObject jsonObject
+    ) => (JObject)jsonObject.DeepClone();
 }

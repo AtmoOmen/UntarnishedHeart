@@ -8,5 +8,8 @@ internal abstract class JsonObjectMigratorBase
 
     public abstract int ToVersion { get; }
 
-    public abstract JObject Migrate(JObject jsonObject);
+    public abstract JObject Migrate
+    (
+        JObject jsonObject
+    );
 }

@@ -36,7 +36,10 @@ public sealed class AtkValueParameter : IEquatable<AtkValueParameter>
             _                            => IntValue
         };
 
-    public static AtkValueArray CreateValueArray(IReadOnlyList<AtkValueParameter> parameters)
+    public static AtkValueArray CreateValueArray
+    (
+        IReadOnlyList<AtkValueParameter> parameters
+    )
     {
         if (parameters.Count == 0)
             return new AtkValueArray();
@@ -59,7 +62,10 @@ public sealed class AtkValueParameter : IEquatable<AtkValueParameter>
             StringValue = StringValue
         };
 
-    public bool Equals(AtkValueParameter? other)
+    public bool Equals
+    (
+        AtkValueParameter? other
+    )
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
@@ -72,7 +78,10 @@ public sealed class AtkValueParameter : IEquatable<AtkValueParameter>
                StringValue == other.StringValue;
     }
 
-    public override bool Equals(object? obj) => Equals(obj as AtkValueParameter);
+    public override bool Equals
+    (
+        object? obj
+    ) => Equals(obj as AtkValueParameter);
 
     public override int GetHashCode() => HashCode.Combine((int)Type, IntValue, UIntValue, FloatValue, BoolValue, StringValue);
 }

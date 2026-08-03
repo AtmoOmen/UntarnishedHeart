@@ -16,9 +16,15 @@ public sealed class ItemCountCondition : RouteValueConditionBase
     [JsonProperty("ItemId")]
     public uint ItemID { get; set; }
 
-    protected override int GetCurrentValue(in ConditionContext context) => (int)LocalPlayerState.GetItemCount(ItemID);
+    protected override int GetCurrentValue
+    (
+        in ConditionContext context
+    ) => (int)LocalPlayerState.GetItemCount(ItemID);
 
-    protected override bool EqualsExtraCore(RouteValueConditionBase other) =>
+    protected override bool EqualsExtraCore
+    (
+        RouteValueConditionBase other
+    ) =>
         other is ItemCountCondition condition &&
         ItemID == condition.ItemID;
 

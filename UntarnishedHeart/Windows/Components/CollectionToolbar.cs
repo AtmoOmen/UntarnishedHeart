@@ -2,7 +2,11 @@ namespace UntarnishedHeart.Windows.Components;
 
 internal static class CollectionToolbar
 {
-    public static int NormalizeSelectedIndex(int selectedIndex, int count)
+    public static int NormalizeSelectedIndex
+    (
+        int selectedIndex,
+        int count
+    )
     {
         if (count <= 0) return -1;
         return Math.Clamp(selectedIndex, 0, count - 1);

@@ -19,13 +19,21 @@ public sealed class GameConditionStateCondition : ConditionBase
     [JsonProperty("ComparisonType")]
     public PresenceComparisonType ComparisonType { get; set; } = PresenceComparisonType.NotHas;
 
-    public override bool Evaluate(in ConditionContext context)
+    public override bool Evaluate
+    (
+        in ConditionContext context
+    )
     {
         var hasFlag = DService.Instance().Condition[Flag];
-        return ComparisonType == PresenceComparisonType.Has ? hasFlag : !hasFlag;
+        return ComparisonType == PresenceComparisonType.Has ?
+                   hasFlag :
+                   !hasFlag;
     }
 
-    protected override bool EqualsCore(ConditionBase other) =>
+    protected override bool EqualsCore
+    (
+        ConditionBase other
+    ) =>
         other is GameConditionStateCondition condition &&
         Flag           == condition.Flag               &&
         ComparisonType == condition.ComparisonType;
@@ -46,6 +54,7 @@ public sealed class GameConditionStateCondition : ConditionBase
     {
         DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<PresenceComparisonType>();
+
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -69,6 +78,7 @@ public sealed class GameConditionStateCondition : ConditionBase
                              .GetValues<ConditionFlag>()
                              .Where(static value => value != ConditionFlag.None)
                              .ToArray();
+
         using (var combo = ImRaii.Combo("###ConditionFlagCombo", GetConditionFlagDisplayText(Flag), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -89,16 +99,25 @@ public sealed class GameConditionStateCondition : ConditionBase
         }
     }
 
-    private static string GetConditionFlagDisplayText(ConditionFlag flag) =>
+    private static string GetConditionFlagDisplayText
+    (
+        ConditionFlag flag
+    ) =>
         $"{GetConditionFlagChineseName(flag)} ({flag})";
 
-    private static string GetConditionFlagDescription(ConditionFlag flag) =>
+    private static string GetConditionFlagDescription
+    (
+        ConditionFlag flag
+    ) =>
         $"枚举名: {flag}";
 
-    private static string GetConditionFlagChineseName(ConditionFlag flag) =>
-        ConditionFlagTranslations.TryGetValue(flag, out var translation)
-            ? translation
-            : throw new InvalidOperationException($"未配置 ConditionFlag {flag} 的中文翻译");
+    private static string GetConditionFlagChineseName
+    (
+        ConditionFlag flag
+    ) =>
+        ConditionFlagTranslations.TryGetValue(flag, out var translation) ?
+            translation :
+            throw new InvalidOperationException($"未配置 ConditionFlag {flag} 的中文翻译");
 
     #region 常量
 

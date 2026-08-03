@@ -20,7 +20,10 @@ public sealed class ActionCooldownCondition : ConditionBase
     [JsonProperty("Action")]
     public ActionReference Action { get; set; } = new();
 
-    public override bool Evaluate(in ConditionContext context)
+    public override bool Evaluate
+    (
+        in ConditionContext context
+    )
     {
         var isOffCooldown = UseActionManager.Instance().IsActionOffCooldown(Action.ActionType, Action.ActionID);
         return ComparisonType switch
@@ -31,7 +34,10 @@ public sealed class ActionCooldownCondition : ConditionBase
         };
     }
 
-    protected override bool EqualsCore(ConditionBase other) =>
+    protected override bool EqualsCore
+    (
+        ConditionBase other
+    ) =>
         other is ActionCooldownCondition condition &&
         ComparisonType == condition.ComparisonType &&
         Action.Equals(condition.Action);
@@ -52,6 +58,7 @@ public sealed class ActionCooldownCondition : ConditionBase
     {
         DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<CooldownComparisonType>();
+
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)

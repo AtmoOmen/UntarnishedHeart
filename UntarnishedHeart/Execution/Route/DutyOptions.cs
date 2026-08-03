@@ -26,7 +26,10 @@ public sealed class DutyOptions : IEquatable<DutyOptions>
     internal PresetExecutorRunOptions ToRunOptions() =>
         new(RunTimes, LeaderMode, AutoRecommendGear, ContentEntryType, ContentsFinderOption);
 
-    public bool Equals(DutyOptions? other)
+    public bool Equals
+    (
+        DutyOptions? other
+    )
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
@@ -38,11 +41,17 @@ public sealed class DutyOptions : IEquatable<DutyOptions>
                ContentsFinderOption.Equals(other.ContentsFinderOption);
     }
 
-    public override bool Equals(object? obj) => Equals(obj as DutyOptions);
+    public override bool Equals
+    (
+        object? obj
+    ) => Equals(obj as DutyOptions);
 
     public override int GetHashCode() => HashCode.Combine(LeaderMode, AutoRecommendGear, RunTimes, ContentEntryType, ContentsFinderOption);
 
-    public static DutyOptions Copy(DutyOptions source) =>
+    public static DutyOptions Copy
+    (
+        DutyOptions source
+    ) =>
         new()
         {
             LeaderMode           = source.LeaderMode,

@@ -9,7 +9,10 @@ internal sealed class ExecuteActionV4ToV5Migrator : JsonObjectMigratorBase
 
     public override int ToVersion => 5;
 
-    public override JObject Migrate(JObject jsonObject)
+    public override JObject Migrate
+    (
+        JObject jsonObject
+    )
     {
         var migrated = (JObject)jsonObject.DeepClone();
 

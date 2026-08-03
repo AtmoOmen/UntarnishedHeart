@@ -2,7 +2,6 @@ using System.Numerics;
 using Dalamud.Game.ClientState.Objects.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using OmenTools.OmenService;
-using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
 using UntarnishedHeart.Execution.ExecuteAction.Models;
 using UntarnishedHeart.Execution.Models;
@@ -14,10 +13,15 @@ namespace UntarnishedHeart.Execution.ExecuteAction.Helpers;
 
 internal static class ExecuteActionDrawHelper
 {
-    public static void DrawActionReference(ActionReference reference, string idSuffix = "")
+    public static void DrawActionReference
+    (
+        ActionReference reference,
+        string          idSuffix = ""
+    )
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
         var actionTypeCandidates = Enum.GetValues<ActionType>();
+
         using (var combo = ImRaii.Combo($"技能类型###ActionTypeCombo{idSuffix}", reference.ActionType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -42,10 +46,15 @@ internal static class ExecuteActionDrawHelper
             reference.ActionID = actionID;
     }
 
-    public static void DrawTargetSelector(TargetSelector selector, string idSuffix)
+    public static void DrawTargetSelector
+    (
+        TargetSelector selector,
+        string         idSuffix
+    )
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
         var selectorKindCandidates = Enum.GetValues<TargetSelectorKind>();
+
         using (var combo = ImRaii.Combo($"目标选择方式###TargetSelectorKind{idSuffix}", selector.Kind.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -72,6 +81,7 @@ internal static class ExecuteActionDrawHelper
                 {
                     ImGui.SetNextItemWidth(240f * GlobalUIScale);
                     var objectKindCandidates = Enum.GetValues<ObjectKind>();
+
                     using (var combo = ImRaii.Combo($"对象类型###TargetObjectKind{idSuffix}", selector.ObjectKind.GetDescription(), ImGuiComboFlags.HeightLargest))
                     {
                         if (combo)
@@ -130,7 +140,12 @@ internal static class ExecuteActionDrawHelper
         }
     }
 
-    public static unsafe void DrawPositionSelector(string buttonID, Action<Vector3> setPosition, Func<Vector3>? getPosition = null)
+    public static unsafe void DrawPositionSelector
+    (
+        string          buttonID,
+        Action<Vector3> setPosition,
+        Func<Vector3>?  getPosition = null
+    )
     {
         ImGui.SameLine();
         if (ImGuiOm.ButtonIcon($"{buttonID}_GetCurrent", FontAwesomeIcon.Bullseye, "取当前位置", true) &&
@@ -153,7 +168,11 @@ internal static class ExecuteActionDrawHelper
     public static void DrawNoExtraParametersHint() =>
         ImGui.TextDisabled("此动作无需额外参数");
 
-    public static void DrawAtkValueParameters(List<AtkValueParameter> parameters, string idSuffix)
+    public static void DrawAtkValueParameters
+    (
+        List<AtkValueParameter> parameters,
+        string                  idSuffix
+    )
     {
         if (ImGui.Button($"新增参数###{idSuffix}"))
             parameters.Add(new AtkValueParameter());
@@ -196,6 +215,7 @@ internal static class ExecuteActionDrawHelper
 
             ImGui.SetNextItemWidth(200f * GlobalUIScale);
             var parameterTypeCandidates = Enum.GetValues<AtkValueParameterType>();
+
             using (var combo = ImRaii.Combo("参数类型###Type", parameter.Type.GetDescription(), ImGuiComboFlags.HeightLargest))
             {
                 if (combo)
@@ -219,7 +239,10 @@ internal static class ExecuteActionDrawHelper
         }
     }
 
-    private static void DrawAtkValueParameterValue(AtkValueParameter parameter)
+    private static void DrawAtkValueParameterValue
+    (
+        AtkValueParameter parameter
+    )
     {
         switch (parameter.Type)
         {

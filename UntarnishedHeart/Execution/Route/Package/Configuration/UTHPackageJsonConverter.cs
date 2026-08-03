@@ -6,7 +6,12 @@ namespace UntarnishedHeart.Execution.Route.Package.Configuration;
 
 public sealed class UTHPackageJsonConverter : JsonConverter<UTHPackage>
 {
-    public override void WriteJson(JsonWriter writer, UTHPackage? value, JsonSerializer serializer)
+    public override void WriteJson
+    (
+        JsonWriter     writer,
+        UTHPackage?    value,
+        JsonSerializer serializer
+    )
     {
         if (value is null)
         {
@@ -37,7 +42,11 @@ public sealed class UTHPackageJsonConverter : JsonConverter<UTHPackage>
         return DeserializeCurrent(jsonObject, serializer);
     }
 
-    internal static JObject SerializeToJObject(UTHPackage value, JsonSerializer serializer) =>
+    internal static JObject SerializeToJObject
+    (
+        UTHPackage     value,
+        JsonSerializer serializer
+    ) =>
         new()
         {
             ["Version"]     = UTHPackageJSONMigrator.CurrentJSONVersion,
@@ -45,7 +54,11 @@ public sealed class UTHPackageJsonConverter : JsonConverter<UTHPackage>
             ["PresetFiles"] = JToken.FromObject(value.PresetFiles, serializer)
         };
 
-    internal static UTHPackage DeserializeCurrent(JObject jsonObject, JsonSerializer serializer) =>
+    internal static UTHPackage DeserializeCurrent
+    (
+        JObject        jsonObject,
+        JsonSerializer serializer
+    ) =>
         new()
         {
             Version     = UTHPackageJSONMigrator.CurrentJSONVersion,

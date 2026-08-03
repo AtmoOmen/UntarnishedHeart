@@ -9,7 +9,10 @@ internal sealed class PresetV2ToV3Migrator : JsonObjectMigratorBase
 
     public override int ToVersion => 3;
 
-    public override JObject Migrate(JObject jsonObject)
+    public override JObject Migrate
+    (
+        JObject jsonObject
+    )
     {
         var migrated = (JObject)jsonObject.DeepClone();
         var id       = migrated["ID"]?.Value<string>();

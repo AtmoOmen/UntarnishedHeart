@@ -34,7 +34,10 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
         return Evaluate(context);
     }
 
-    public bool Evaluate(in ConditionContext context)
+    public bool Evaluate
+    (
+        in ConditionContext context
+    )
     {
         var result = Conditions.Count == 0 ||
                      RelationType switch
@@ -43,10 +46,15 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
                          ConditionRelationType.Or  => EvaluateOr(context),
                          _                         => false
                      };
-        return Negate ? !result : result;
+        return Negate ?
+                   !result :
+                   result;
     }
 
-    private bool EvaluateAnd(in ConditionContext context)
+    private bool EvaluateAnd
+    (
+        in ConditionContext context
+    )
     {
         foreach (var condition in Conditions)
         {
@@ -57,7 +65,10 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
         return true;
     }
 
-    private bool EvaluateOr(in ConditionContext context)
+    private bool EvaluateOr
+    (
+        in ConditionContext context
+    )
     {
         foreach (var condition in Conditions)
         {
@@ -68,7 +79,10 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
         return false;
     }
 
-    public bool Equals(ConditionCollection? other)
+    public bool Equals
+    (
+        ConditionCollection? other
+    )
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
@@ -82,14 +96,19 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
                Conditions.SequenceEqual(other.Conditions);
     }
 
-    public override bool Equals(object? obj) => Equals(obj as ConditionCollection);
+    public override bool Equals
+    (
+        object? obj
+    ) => Equals(obj as ConditionCollection);
 
-    public override int GetHashCode() => HashCode.Combine((int)RelationType, (int)ExecuteType, MinExecuteCount, MaxExecuteCount, IntervalMs, Negate, Conditions.Count);
+    public override int GetHashCode() => HashCode.Combine
+        ((int)RelationType, (int)ExecuteType, MinExecuteCount, MaxExecuteCount, IntervalMs, Negate, Conditions.Count);
 
     public void Draw()
     {
         ImGui.SetNextItemWidth(320f * GlobalUIScale);
         var executeTypeCandidates = Enum.GetValues<ConditionExecuteType>();
+
         using (var combo = ImRaii.Combo("执行方式###ExecuteTypeCombo", ExecuteType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -125,6 +144,7 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
 
         ImGui.SetNextItemWidth(320f * GlobalUIScale);
         var relationTypeCandidates = Enum.GetValues<ConditionRelationType>();
+
         using (var combo = ImRaii.Combo("条件组合方式###RelationTypeCombo", RelationType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -193,7 +213,11 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
             Negate = true;
     }
 
-    private void DrawConditionContextMenu(int index, ConditionBase condition)
+    private void DrawConditionContextMenu
+    (
+        int           index,
+        ConditionBase condition
+    )
     {
         var contextOperation = StepOperationType.Pass;
 
@@ -249,12 +273,18 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
             index,
             contextOperation,
             createNew: () => ConditionBase.CreateDefaultCondition(ConditionDetectType.Health),
-            createClipboardCopy: conditionToCopy == null ? null : () => ConditionBase.Copy(conditionToCopy),
+            createClipboardCopy: conditionToCopy == null ?
+                                     null :
+                                     () => ConditionBase.Copy(conditionToCopy),
             createCurrentCopy: () => ConditionBase.Copy(condition)
         );
     }
 
-    private void ReplaceCondition(ConditionBase current, ConditionBase next)
+    private void ReplaceCondition
+    (
+        ConditionBase current,
+        ConditionBase next
+    )
     {
         for (var i = 0; i < Conditions.Count; i++)
         {
@@ -266,9 +296,16 @@ public sealed class ConditionCollection : IEquatable<ConditionCollection>
         }
     }
 
-    private static string BuildConditionLabel(int index, ConditionBase condition) => $"{index}. {condition.Name}";
+    private static string BuildConditionLabel
+    (
+        int           index,
+        ConditionBase condition
+    ) => $"{index}. {condition.Name}";
 
-    public static ConditionCollection Copy(ConditionCollection source) =>
+    public static ConditionCollection Copy
+    (
+        ConditionCollection source
+    ) =>
         new()
         {
             Conditions      = source.Conditions.Select(ConditionBase.Copy).ToList(),

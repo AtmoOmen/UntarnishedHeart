@@ -14,7 +14,10 @@ internal abstract class VersionedJsonMigratorBase<T>
 
     protected abstract IReadOnlyDictionary<int, JsonObjectMigratorBase> Migrators { get; }
 
-    public JObject MigrateToLatest(JObject jsonObject)
+    public JObject MigrateToLatest
+    (
+        JObject jsonObject
+    )
     {
         ArgumentNullException.ThrowIfNull(jsonObject);
 
@@ -37,7 +40,10 @@ internal abstract class VersionedJsonMigratorBase<T>
         return current;
     }
 
-    private int ReadVersion(JObject jsonObject)
+    private int ReadVersion
+    (
+        JObject jsonObject
+    )
     {
         var token = jsonObject[VersionPropertyName];
         if (token is null)
@@ -56,5 +62,8 @@ internal abstract class VersionedJsonMigratorBase<T>
         return version;
     }
 
-    protected virtual int ResolveMissingVersion(JObject jsonObject) => LegacyVersion;
+    protected virtual int ResolveMissingVersion
+    (
+        JObject jsonObject
+    ) => LegacyVersion;
 }

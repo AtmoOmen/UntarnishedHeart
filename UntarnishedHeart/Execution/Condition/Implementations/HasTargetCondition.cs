@@ -15,13 +15,21 @@ public sealed class HasTargetCondition : ConditionBase
     [JsonProperty("ComparisonType")]
     public PresenceComparisonType ComparisonType { get; set; } = PresenceComparisonType.Has;
 
-    public override bool Evaluate(in ConditionContext context)
+    public override bool Evaluate
+    (
+        in ConditionContext context
+    )
     {
         var hasTarget = TargetManager.Target != null;
-        return ComparisonType == PresenceComparisonType.Has ? hasTarget : !hasTarget;
+        return ComparisonType == PresenceComparisonType.Has ?
+                   hasTarget :
+                   !hasTarget;
     }
 
-    protected override bool EqualsCore(ConditionBase other) =>
+    protected override bool EqualsCore
+    (
+        ConditionBase other
+    ) =>
         other is HasTargetCondition condition &&
         ComparisonType == condition.ComparisonType;
 
@@ -34,6 +42,7 @@ public sealed class HasTargetCondition : ConditionBase
     {
         DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<PresenceComparisonType>();
+
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)

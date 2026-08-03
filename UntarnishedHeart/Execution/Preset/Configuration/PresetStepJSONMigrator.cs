@@ -29,5 +29,8 @@ internal sealed class PresetStepJSONMigrator : VersionedJsonMigratorBase<PresetS
 
     protected override IReadOnlyDictionary<int, JsonObjectMigratorBase> Migrators => MigratorsInternal;
 
-    protected override int ResolveMissingVersion(JObject jsonObject) => LegacyVersion;
+    protected override int ResolveMissingVersion
+    (
+        JObject jsonObject
+    ) => LegacyVersion;
 }

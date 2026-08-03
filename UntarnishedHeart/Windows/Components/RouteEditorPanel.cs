@@ -13,7 +13,10 @@ internal static class RouteEditorPanel
 {
     private static readonly ConditionalWeakTable<Route, RouteEditorState> EditorStates = [];
 
-    public static void Draw(Route route)
+    public static void Draw
+    (
+        Route route
+    )
     {
         var state = EditorStates.GetValue(route, static _ => new RouteEditorState());
 
@@ -41,7 +44,10 @@ internal static class RouteEditorPanel
         }
     }
 
-    private static void DrawBasicInfoTab(Route route)
+    private static void DrawBasicInfoTab
+    (
+        Route route
+    )
     {
         ImGui.Spacing();
 
@@ -59,8 +65,11 @@ internal static class RouteEditorPanel
             route.Remark = routeRemark;
     }
 
-    private static void DrawStepsTab(Route route, RouteEditorState state)
-    {
+    private static void DrawStepsTab
+    (
+        Route            route,
+        RouteEditorState state
+    ) =>
         StepTreeEditor.Draw
         (
             "Route",
@@ -76,9 +85,11 @@ internal static class RouteEditorPanel
             () => PluginConfig.Instance().Save(),
             CreateExecutionStartOptions(route)
         );
-    }
 
-    private static ExecuteActionRuntimeCursor? GetRunningCursor(Route route)
+    private static ExecuteActionRuntimeCursor? GetRunningCursor
+    (
+        Route route
+    )
     {
         if (ExecutionManager.RouteExecutor is not { IsRunning: true } routeExecutor)
             return null;
@@ -89,7 +100,10 @@ internal static class RouteEditorPanel
         return routeExecutor.ExecutionCursor.RouteCursor;
     }
 
-    private static StepTreeExecutionStartOptions? CreateExecutionStartOptions(Route route)
+    private static StepTreeExecutionStartOptions? CreateExecutionStartOptions
+    (
+        Route route
+    )
     {
         if (ExecutionManager.PresetExecutor is { IsDisposed: false, Completion.IsCompleted: false } ||
             ExecutionManager.RouteExecutor is { IsRunning: true })
@@ -101,8 +115,8 @@ internal static class RouteEditorPanel
 
         return new()
         {
-            IsVisible      = true,
-            StartFromStep  = stepIndex => PendingExecutionStartManager.SelectRoute(route, routeIndex, new(stepIndex, -1)),
+            IsVisible     = true,
+            StartFromStep = stepIndex => PendingExecutionStartManager.SelectRoute(route, routeIndex, new(stepIndex, -1)),
             StartFromAction = (stepIndex, actionIndex) =>
                 PendingExecutionStartManager.SelectRoute(route, routeIndex, new(stepIndex, actionIndex))
         };

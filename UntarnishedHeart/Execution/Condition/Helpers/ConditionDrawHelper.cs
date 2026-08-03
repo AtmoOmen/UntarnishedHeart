@@ -1,5 +1,5 @@
-using FFXIVClientStructs.FFXIV.Client.Game;
 using Dalamud.Game.ClientState.Objects.Enums;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using OmenTools.Interop.Game.Lumina;
 using UntarnishedHeart.Execution.Models;
 using UntarnishedHeart.Execution.Preset.Enums;
@@ -11,10 +11,14 @@ namespace UntarnishedHeart.Execution.Condition.Helpers;
 
 internal static class ConditionDrawHelper
 {
-    public static void DrawActionReference(ActionReference reference)
+    public static void DrawActionReference
+    (
+        ActionReference reference
+    )
     {
         ConditionBase.DrawLabel("技能类型", KnownColor.LightSkyBlue.ToVector4());
         var actionTypeCandidates = Enum.GetValues<ActionType>();
+
         using (var combo = ImRaii.Combo("###ActionTypeCombo", reference.ActionType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -47,10 +51,15 @@ internal static class ConditionDrawHelper
         }
     }
 
-    public static void DrawTargetSelector(TargetSelector selector, string idSuffix = "")
+    public static void DrawTargetSelector
+    (
+        TargetSelector selector,
+        string         idSuffix = ""
+    )
     {
         ConditionBase.DrawLabel("选择方式", KnownColor.LightSkyBlue.ToVector4());
         var selectorKindCandidates = Enum.GetValues<TargetSelectorKind>();
+
         using (var combo = ImRaii.Combo($"###TargetSelectorKind{idSuffix}", selector.Kind.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -76,6 +85,7 @@ internal static class ConditionDrawHelper
 
                 ImGui.SetNextItemWidth(240f * GlobalUIScale);
                 var objectKindCandidates = Enum.GetValues<ObjectKind>();
+
                 using (var combo = ImRaii.Combo($"###TargetObjectKind{idSuffix}", selector.ObjectKind.GetDescription(), ImGuiComboFlags.HeightLargest))
                 {
                     if (combo)
@@ -119,7 +129,10 @@ internal static class ConditionDrawHelper
         }
     }
 
-    public static void DrawPositionRange(PositionRange range)
+    public static void DrawPositionRange
+    (
+        PositionRange range
+    )
     {
         ConditionBase.DrawLabel("中心点", KnownColor.LightSkyBlue.ToVector4());
 

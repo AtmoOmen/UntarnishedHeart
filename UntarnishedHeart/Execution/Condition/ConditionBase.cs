@@ -23,7 +23,10 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
 
     public abstract ConditionDetectType Kind { get; }
 
-    public abstract bool Evaluate(in ConditionContext context);
+    public abstract bool Evaluate
+    (
+        in ConditionContext context
+    );
 
     public abstract ConditionBase DeepCopy();
 
@@ -35,7 +38,10 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         Remark = string.Empty;
     }
 
-    public bool Equals(ConditionBase? other)
+    public bool Equals
+    (
+        ConditionBase? other
+    )
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
@@ -46,15 +52,24 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
                EqualsCore(other);
     }
 
-    protected abstract bool EqualsCore(ConditionBase other);
+    protected abstract bool EqualsCore
+    (
+        ConditionBase other
+    );
 
-    public override bool Equals(object? obj) => Equals(obj as ConditionBase);
+    public override bool Equals
+    (
+        object? obj
+    ) => Equals(obj as ConditionBase);
 
     public override int GetHashCode() => HashCode.Combine((int)Kind, Name, Remark, GetCoreHashCode());
 
     protected abstract int GetCoreHashCode();
 
-    protected T CopyBasePropertiesTo<T>(T target)
+    protected T CopyBasePropertiesTo<T>
+    (
+        T target
+    )
         where T : ConditionBase
     {
         target.Name   = Name;
@@ -62,7 +77,11 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         return target;
     }
 
-    public void Draw(int index, Action<ConditionBase> replaceCurrent)
+    public void Draw
+    (
+        int                   index,
+        Action<ConditionBase> replaceCurrent
+    )
     {
         using var id    = ImRaii.PushId($"Condition-{index}");
         using var group = ImRaii.Group();
@@ -80,7 +99,11 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
 
     protected abstract void DrawBody();
 
-    internal static void DrawLabel(string text, Vector4 color)
+    internal static void DrawLabel
+    (
+        string  text,
+        Vector4 color
+    )
     {
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
@@ -90,7 +113,11 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X);
     }
 
-    protected static IBattleChara? ResolveTarget(in ConditionContext context, ConditionTargetType targetType) =>
+    protected static IBattleChara? ResolveTarget
+    (
+        in ConditionContext context,
+        ConditionTargetType targetType
+    ) =>
         targetType switch
         {
             ConditionTargetType.Self   => context.LocalPlayer,
@@ -98,7 +125,12 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
             _                          => null
         };
 
-    protected static bool CompareNumeric(NumericComparisonType comparisonType, float actualValue, float expectedValue) =>
+    protected static bool CompareNumeric
+    (
+        NumericComparisonType comparisonType,
+        float                 actualValue,
+        float                 expectedValue
+    ) =>
         comparisonType switch
         {
             NumericComparisonType.GreaterThan        => actualValue                            > expectedValue,
@@ -110,7 +142,12 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
             _                                        => false
         };
 
-    protected static bool CompareNumeric(NumericComparisonType comparisonType, int actualValue, int expectedValue) =>
+    protected static bool CompareNumeric
+    (
+        NumericComparisonType comparisonType,
+        int                   actualValue,
+        int                   expectedValue
+    ) =>
         comparisonType switch
         {
             NumericComparisonType.GreaterThan        => actualValue > expectedValue,
@@ -122,10 +159,16 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
             _                                        => false
         };
 
-    protected static IGameObject? ResolveSpecificTarget(TargetSelector selector) =>
+    protected static IGameObject? ResolveSpecificTarget
+    (
+        TargetSelector selector
+    ) =>
         PresetTargetResolver.Resolve(selector);
 
-    protected static ConditionBase CreateDefault(ConditionDetectType kind) =>
+    protected static ConditionBase CreateDefault
+    (
+        ConditionDetectType kind
+    ) =>
         ConditionJsonTypeRegistry.Instance.CreateDefault(kind);
 
     internal static ConditionBase MigrateLegacyV1ToV2
@@ -153,32 +196,44 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
                 },
                 ConditionDetectType.Status => new StatusCondition
                 {
-                    TargetType     = targetType,
-                    ComparisonType = comparisonType == ConditionComparisonType.NotHas ? PresenceComparisonType.NotHas : PresenceComparisonType.Has,
-                    StatusID       = (uint)Math.Max(0, value)
+                    TargetType = targetType,
+                    ComparisonType = comparisonType == ConditionComparisonType.NotHas ?
+                                         PresenceComparisonType.NotHas :
+                                         PresenceComparisonType.Has,
+                    StatusID = (uint)Math.Max(0, value)
                 },
                 ConditionDetectType.ActionCooldown => new ActionCooldownCondition
                 {
-                    ComparisonType = comparisonType == ConditionComparisonType.NotFinished ? CooldownComparisonType.NotFinished : CooldownComparisonType.Finished,
-                    Action         = new ActionReference { ActionID = (uint)Math.Max(0, value) }
+                    ComparisonType = comparisonType == ConditionComparisonType.NotFinished ?
+                                         CooldownComparisonType.NotFinished :
+                                         CooldownComparisonType.Finished,
+                    Action = new ActionReference { ActionID = (uint)Math.Max(0, value) }
                 },
                 ConditionDetectType.ActionCast => new ActionCastCondition
                 {
-                    TargetType     = targetType,
-                    ComparisonType = comparisonType == ConditionComparisonType.NotHas ? PresenceComparisonType.NotHas : PresenceComparisonType.Has,
-                    Action         = new ActionReference { ActionID = (uint)Math.Max(0, value) }
+                    TargetType = targetType,
+                    ComparisonType = comparisonType == ConditionComparisonType.NotHas ?
+                                         PresenceComparisonType.NotHas :
+                                         PresenceComparisonType.Has,
+                    Action = new ActionReference { ActionID = (uint)Math.Max(0, value) }
                 },
                 _ => new HealthCondition()
             }
         );
 
-    private static ConditionBase InitializeMetadata(ConditionBase condition)
+    private static ConditionBase InitializeMetadata
+    (
+        ConditionBase condition
+    )
     {
         condition.ResetMetadata();
         return condition;
     }
 
-    private void DrawKindSelector(Action<ConditionBase> replaceCurrent)
+    private void DrawKindSelector
+    (
+        Action<ConditionBase> replaceCurrent
+    )
     {
         DrawLabel("条件类型", KnownColor.LightSkyBlue.ToVector4());
 
@@ -230,7 +285,13 @@ public abstract class ConditionBase : IEquatable<ConditionBase>
             Remark = remark;
     }
 
-    internal static ConditionBase CreateDefaultCondition(ConditionDetectType kind) => CreateDefault(kind);
+    internal static ConditionBase CreateDefaultCondition
+    (
+        ConditionDetectType kind
+    ) => CreateDefault(kind);
 
-    public static ConditionBase Copy(ConditionBase source) => source.DeepCopy();
+    public static ConditionBase Copy
+    (
+        ConditionBase source
+    ) => source.DeepCopy();
 }

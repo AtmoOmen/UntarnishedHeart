@@ -42,7 +42,10 @@ public sealed class GameCommandComplexAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.GameCommandComplex;
 
-    public override void Draw(ExecuteActionDrawContext context)
+    public override void Draw
+    (
+        ExecuteActionDrawContext context
+    )
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
         var commandCandidates = Enum.GetValues<ExecuteCommandComplexFlag>();
@@ -118,7 +121,10 @@ public sealed class GameCommandComplexAction : ExecuteActionBase
             Param4 = param4;
     }
 
-    protected override bool EqualsCore(ExecuteActionBase other) =>
+    protected override bool EqualsCore
+    (
+        ExecuteActionBase other
+    ) =>
         other is GameCommandComplexAction action &&
         Command == action.Command                &&
         Target  == action.Target                 &&
@@ -132,9 +138,9 @@ public sealed class GameCommandComplexAction : ExecuteActionBase
     protected override int GetCoreHashCode() => HashCode.Combine((int)Command, Target, Location, UseLocation, Param1, Param2, Param3, Param4);
 
     private string GetCommandDisplayText() =>
-        Enum.IsDefined(typeof(ExecuteCommandComplexFlag), Command)
-            ? Command.GetDescription()
-            : $"未知命令 ({(uint)Command})";
+        Enum.IsDefined(typeof(ExecuteCommandComplexFlag), Command) ?
+            Command.GetDescription() :
+            $"未知命令 ({(uint)Command})";
 
     public override ExecuteActionBase DeepCopy() =>
         CopyBasePropertiesTo

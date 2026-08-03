@@ -1,6 +1,5 @@
 using System.Numerics;
 using Newtonsoft.Json;
-using UntarnishedHeart.Execution.Condition;
 using UntarnishedHeart.Execution.Enums;
 using UntarnishedHeart.Execution.ExecuteAction.Configuration;
 using UntarnishedHeart.Execution.ExecuteAction.Enums;
@@ -21,10 +20,14 @@ public sealed class MoveToPositionAction : ExecuteActionBase
 
     public override ExecuteActionKind Kind => ExecuteActionKind.MoveToPosition;
 
-    public override void Draw(ExecuteActionDrawContext context)
+    public override void Draw
+    (
+        ExecuteActionDrawContext context
+    )
     {
         ImGui.SetNextItemWidth(240f * GlobalUIScale);
         var moveTypeCandidates = Enum.GetValues<MoveType>();
+
         using (var combo = ImRaii.Combo("移动方式###MoveTypeCombo", MoveType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -51,7 +54,10 @@ public sealed class MoveToPositionAction : ExecuteActionBase
         ExecuteActionDrawHelper.DrawPositionSelector("MoveGetPosition", currentPosition => Position = currentPosition, () => Position);
     }
 
-    protected override bool EqualsCore(ExecuteActionBase other) =>
+    protected override bool EqualsCore
+    (
+        ExecuteActionBase other
+    ) =>
         other is MoveToPositionAction action &&
         Position.Equals(action.Position)     &&
         MoveType == action.MoveType;

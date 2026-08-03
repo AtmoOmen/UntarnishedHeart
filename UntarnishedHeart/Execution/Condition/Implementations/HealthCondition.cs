@@ -20,7 +20,10 @@ public sealed class HealthCondition : ConditionBase
     [JsonProperty("Threshold")]
     public float Threshold { get; set; }
 
-    public override bool Evaluate(in ConditionContext context)
+    public override bool Evaluate
+    (
+        in ConditionContext context
+    )
     {
         var target = ResolveTarget(context, TargetType);
         if (target is null || target.MaxHp <= 0)
@@ -30,7 +33,10 @@ public sealed class HealthCondition : ConditionBase
         return CompareNumeric(ComparisonType, healthPercent, Threshold);
     }
 
-    protected override bool EqualsCore(ConditionBase other) =>
+    protected override bool EqualsCore
+    (
+        ConditionBase other
+    ) =>
         other is HealthCondition condition                                    &&
         ComparisonType                            == condition.ComparisonType &&
         TargetType                                == condition.TargetType     &&
@@ -53,6 +59,7 @@ public sealed class HealthCondition : ConditionBase
     {
         DrawLabel("比较方式", KnownColor.LightSkyBlue.ToVector4());
         var comparisonCandidates = Enum.GetValues<NumericComparisonType>();
+
         using (var combo = ImRaii.Combo("###ComparisonTypeCombo", ComparisonType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)
@@ -73,6 +80,7 @@ public sealed class HealthCondition : ConditionBase
 
         DrawLabel("作用对象", KnownColor.LightSkyBlue.ToVector4());
         var targetTypeCandidates = Enum.GetValues<ConditionTargetType>();
+
         using (var combo = ImRaii.Combo("###TargetTypeCombo", TargetType.GetDescription(), ImGuiComboFlags.HeightLargest))
         {
             if (combo)

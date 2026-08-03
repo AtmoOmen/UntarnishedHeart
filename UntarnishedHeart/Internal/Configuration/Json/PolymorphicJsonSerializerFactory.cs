@@ -28,9 +28,12 @@ internal static class PolymorphicJsonSerializerFactory
         Type suppressedBaseType
     ) : DefaultContractResolver
     {
-        protected override JsonConverter? ResolveContractConverter(Type objectType) =>
-            suppressedBaseType.IsAssignableFrom(objectType)
-                ? null
-                : base.ResolveContractConverter(objectType);
+        protected override JsonConverter? ResolveContractConverter
+        (
+            Type objectType
+        ) =>
+            suppressedBaseType.IsAssignableFrom(objectType) ?
+                null :
+                base.ResolveContractConverter(objectType);
     }
 }

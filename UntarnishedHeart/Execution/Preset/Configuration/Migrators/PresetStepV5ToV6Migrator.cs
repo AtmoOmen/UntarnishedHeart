@@ -10,7 +10,10 @@ internal sealed class PresetStepV5ToV6Migrator : JsonObjectMigratorBase
 
     public override int ToVersion => 6;
 
-    public override JObject Migrate(JObject jsonObject)
+    public override JObject Migrate
+    (
+        JObject jsonObject
+    )
     {
         var migrated = (JObject)jsonObject.DeepClone();
         var actions  = new JArray();
@@ -34,13 +37,18 @@ internal sealed class PresetStepV5ToV6Migrator : JsonObjectMigratorBase
         return migrated;
     }
 
-    private static JObject MigrateAction(JObject actionObject, int actionIndex)
+    private static JObject MigrateAction
+    (
+        JObject actionObject,
+        int     actionIndex
+    )
     {
         var kind = ReadKind(actionObject);
         if (kind is null)
             return actionObject;
 
         var migrated = (JObject)actionObject.DeepClone();
+
         if (string.Equals(kind, "RestartCurrentStep", StringComparison.Ordinal))
         {
             migrated["TypeId"]    = "JumpToStep";
@@ -52,16 +60,17 @@ internal sealed class PresetStepV5ToV6Migrator : JsonObjectMigratorBase
             migrated["ActionIndex"] = actionIndex;
         }
         else
-        {
             return actionObject;
-        }
 
         migrated.Remove("Kind");
         migrated["Version"] = ExecuteActionJSONMigrator.CurrentJSONVersion;
         return migrated;
     }
 
-    private static string? ReadKind(JObject actionObject)
+    private static string? ReadKind
+    (
+        JObject actionObject
+    )
     {
         var typeID = actionObject["TypeId"]?.Value<string>();
         if (!string.IsNullOrWhiteSpace(typeID))
