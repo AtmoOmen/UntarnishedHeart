@@ -2,6 +2,8 @@
   <Configurations>
     <Platform Name="x64" />
   </Configurations>
+  <Project Path="FFXIVClientStructs.Expansion/FFXIVClientStructs.Expansion.Generators/FFXIVClientStructs.Expansion.Generators.csproj" />
+  <Project Path="FFXIVClientStructs.Expansion/FFXIVClientStructs.Expansion/FFXIVClientStructs.Expansion.csproj" />
   <Project Path="OmenTools/OmenTools.csproj">
     <Platform Project="x64" />
   </Project>
