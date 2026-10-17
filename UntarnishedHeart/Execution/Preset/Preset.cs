@@ -2,6 +2,7 @@ using System.Text;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
+using OmenTools.Dalamud;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 using UntarnishedHeart.Execution.ExecuteAction.Implementations;
@@ -94,13 +95,14 @@ public class Preset : IEquatable<Preset>
             var json   = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
             var preset = JsonConvert.DeserializeObject<Preset>(json);
             if (preset != null)
-                NotifyHelper.Instance().Chat("已成功从剪贴板导入预设");
+                NotifyHelper.Instance().Chat("已成功从剪贴板导入预设。");
 
             return preset;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            NotifyHelper.Instance().ChatError("尝试从剪贴板导入预设时发生错误");
+            NotifyHelper.Instance().ChatError("尝试从剪贴板导入预设时发生错误。");
+            DLog.Error("尝试从剪贴板导入预设时发生错误。", ex);
             return null;
         }
     }
