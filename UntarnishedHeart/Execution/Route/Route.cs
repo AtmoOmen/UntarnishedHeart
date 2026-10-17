@@ -1,4 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
+using OmenTools.Dalamud;
 using OmenTools.OmenService;
 using UntarnishedHeart.Execution.Preset;
 using UntarnishedHeart.Execution.Route.Configuration;
@@ -7,6 +9,7 @@ using UntarnishedHeart.Internal;
 namespace UntarnishedHeart.Execution.Route;
 
 [JsonConverter(typeof(RouteJsonConverter))]
+[SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
 public sealed class Route : IEquatable<Route>
 {
     public int Version { get; set; } = RouteJSONMigrator.CurrentJSONVersion;
@@ -26,7 +29,7 @@ public sealed class Route : IEquatable<Route>
             Version = Version,
             Name    = Name,
             Remark  = Remark,
-            Steps   = Steps.Select(PresetStep.Copy).ToList()
+            Steps   = [.. Steps.Select(PresetStep.Copy)]
         };
 
     public void ExportToClipboard()
@@ -40,6 +43,7 @@ public sealed class Route : IEquatable<Route>
         catch (Exception ex)
         {
             NotifyHelper.Instance().Chat($"导出路线失败: {ex.Message}");
+            DLog.Error("导出路线失败。", ex);
         }
     }
 

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Lumina.Excel.Sheets;
@@ -12,6 +13,7 @@ using UntarnishedHeart.Execution.Preset.Enums;
 namespace UntarnishedHeart.Execution.Preset;
 
 [JsonConverter(typeof(PresetJsonConverter))]
+[SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
 public class Preset : IEquatable<Preset>
 {
     public int Version { get; set; } = PresetJSONMigrator.CurrentJSONVersion;
@@ -39,7 +41,7 @@ public class Preset : IEquatable<Preset>
             Name              = Name,
             Remark            = Remark,
             Zone              = Zone,
-            Steps             = Steps.Select(PresetStep.Copy).ToList(),
+            Steps             = [.. Steps.Select(PresetStep.Copy)],
             AutoOpenTreasures = AutoOpenTreasures,
             DutyDelay         = DutyDelay
         };
@@ -76,11 +78,12 @@ public class Preset : IEquatable<Preset>
             var json   = JsonConvert.SerializeObject(this);
             var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
             Clipboard.SetText(base64);
-            NotifyHelper.Instance().Chat("已成功导出预设至剪贴板");
+            NotifyHelper.Instance().Chat("已成功导出预设至剪贴板。");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            NotifyHelper.Instance().ChatError("尝试导出预设至剪贴板时发生错误");
+            NotifyHelper.Instance().ChatError($"尝试导出预设至剪贴板时发生错误。");
+            DLog.Error("尝试导出预设至剪贴板时发生错误。", ex);
         }
     }
 
@@ -89,7 +92,7 @@ public class Preset : IEquatable<Preset>
         try
         {
             var base64 = Clipboard.GetText();
-            if (string.IsNullOrEmpty(base64))
+            if (string.IsNullOrWhiteSpace(base64))
                 return null;
 
             var json   = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
