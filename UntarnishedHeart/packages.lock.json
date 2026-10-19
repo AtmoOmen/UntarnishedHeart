@@ -22,8 +22,8 @@
       },
       "AngleSharp": {
         "type": "Transitive",
-        "resolved": "1.8.0",
-        "contentHash": "vRW/0M11Jlfd7WkT5Kr0tXXmnWNVdxyII2S2b6AsgZCJEBGaXCUnti6nKIJTvAjmnmKcQbvn+SJ3lpt8dqoLIA=="
+        "resolved": "1.8.5",
+        "contentHash": "BUgFIpmkjwMPi6QneHUHaprjUOGSXoWEF/xi/2seHCpnI8XMHACNiC09rn9qL8jbxrP8jWyJ3DnOjsGvXWNGmw=="
       },
       "GuerrillaNtp": {
         "type": "Transitive",
@@ -32,13 +32,26 @@
       },
       "Markdig": {
         "type": "Transitive",
-        "resolved": "0.43.0",
-        "contentHash": "tbP3Y/GYC5pIUWXw6Iqf+R5CwBGA4VJswnlgS2x3TgcHoH4IlnGVmL7hfA1sXkZoCPm/4mhzS8cJUkWhQthaPg=="
+        "resolved": "1.4.1",
+        "contentHash": "laiWlBRnwVqQlY9eWR56+uteUVtR+LpGw0doMSpirFuxdplSi3V59UOGRTepJaE8hJvfKGcCoguIZ8jmUHcEnA=="
       },
       "MessageFormat": {
         "type": "Transitive",
         "resolved": "8.0.0",
         "contentHash": "+nmYgGQVhGXmvQd+AMYILZGTxOP4J9tOR3KbjoxMDDICRrSzHYB9v1aRRVnXkD1ZeBapscFWIf5B/ck3p9R1mg=="
+      },
+      "Microsoft.Extensions.DependencyInjection": {
+        "type": "Transitive",
+        "resolved": "10.0.13",
+        "contentHash": "4tnWU9vrU/A8NwYe9Z6wvieZ0EBb/uM82LAT+edNhdepOBWREZ7M7mzb941EIDPJaeOFdbVrDd5+7s9e89U6bQ==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.13"
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions": {
+        "type": "Transitive",
+        "resolved": "10.0.13",
+        "contentHash": "G2GrGWNAPZBsii2F6AU8n+JT2tC1/I0Ml/e9ZyNCgPjf3hZqronP7o0X91aAynCmVeae8KkSIUNXXeXCNRmdVQ=="
       },
       "TinyPinyin": {
         "type": "Transitive",
@@ -51,11 +64,12 @@
       "omentools": {
         "type": "Project",
         "dependencies": {
-          "AngleSharp": "[1.8.0, )",
+          "AngleSharp": "[1.8.5, )",
           "FFXIVClientStructs.Expansion": "[1.0.0, )",
           "GuerrillaNtp": "[3.1.0, )",
-          "Markdig": "[0.43.0, )",
+          "Markdig": "[1.4.1, )",
           "MessageFormat": "[8.0.0, )",
+          "Microsoft.Extensions.DependencyInjection": "[10.0.13, )",
           "TinyPinyin": "[1.1.0, )"
         }
       }
