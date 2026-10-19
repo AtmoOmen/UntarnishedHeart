@@ -77,7 +77,7 @@ public class Preset : IEquatable<Preset>
         {
             var json   = JsonConvert.SerializeObject(this);
             var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
-            Clipboard.SetText(base64);
+            ImGui.SetClipboardText(base64);
             NotifyHelper.Instance().Chat("已成功导出预设至剪贴板。");
         }
         catch (Exception ex)
@@ -91,7 +91,7 @@ public class Preset : IEquatable<Preset>
     {
         try
         {
-            var base64 = Clipboard.GetText();
+            var base64 = ImGui.GetClipboardText();
             if (string.IsNullOrWhiteSpace(base64))
                 return null;
 
